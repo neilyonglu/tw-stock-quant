@@ -26,7 +26,15 @@
 
 ---
 
-## 當前狀態（2026-06-27）
+## 檔案與文件規範
+
+- **README.md 必須用英文撰寫**，每次更新 README 後要 commit 並 push 到 GitHub
+- plan.md、todo.md、CLAUDE.md 維持中文（內部文件）
+- 每次對專案有實質更新（新增功能、重要決策）時，主動更新 README 的 Roadmap 狀態
+
+---
+
+## 當前狀態（2026-06-28）
 
 ### 已完成
 - [x] Python 3.12 環境初始化（uv）
@@ -35,6 +43,9 @@
 - [x] 擴充套件安裝（見下方工具索引）
 - [x] 8 個 equity-research AI skills（來自 anthropics/financial-services）
 - [x] stock-analyst dispatcher skill（統一入口）
+- [x] GitHub repo 建立（tw-stock-quant，private）
+- [x] README（英文）、LICENSE（MIT）、.gitignore 設定完成
+- [x] Dashboard 建皮 todo 規劃完成
 
 ### 進行中（Phase 1 — 資料管線）
 - [ ] `src/data/universe.py`：股票清單
