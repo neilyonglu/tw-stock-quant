@@ -1,92 +1,92 @@
-# 台股分析系統
+# tw-stock-quant
 
-個人台灣股市量化分析工具。從資料抓取、技術指標、策略回測，到多因子選股、投組優化、Telegram 推播，全流程自建、完全自控。
+A personal quantitative analysis system for the Taiwan stock market (TWSE/TPEX). Covers the full pipeline from data ingestion and technical indicators to multi-factor stock screening, portfolio optimization, automated scheduling, and Telegram notifications — fully self-built, no black-box subscriptions.
 
-> 免責聲明：本專案僅供個人學習與研究用途，不構成任何投資建議。
-
----
-
-## 功能規劃
-
-- **看盤 Dashboard**：Streamlit + TradingView 等級 K 線（streamlit-lightweight-charts-v5）
-- **技術指標**：TA-Lib 150+ 指標，含 61 種 K 線型態識別
-- **策略回測**：backtesting.py，含 Sharpe、最大回撤、勝率分析
-- **基本面篩選**：Piotroski F-score、FCF 轉換率、月營收 YoY
-- **籌碼面分析**：三大法人、融資券（FinMind）
-- **多因子評分**：技術 × 基本面 × 籌碼 × 總體環境四層加權
-- **投組優化**：pyportfolioopt（均值-方差、風險平價）
-- **自動排程**：GitHub Actions，每週五收盤後自動執行
-- **推播通知**：Telegram Bot
+> **Disclaimer**: This project is for personal learning and research only. Nothing here constitutes investment advice.
 
 ---
 
-## 安裝
+## Features
 
-本專案使用 [uv](https://docs.astral.sh/uv/) 管理套件環境。
+- **Live Dashboard**: Streamlit + TradingView-grade candlestick charts via `streamlit-lightweight-charts-v5`
+- **Technical Analysis**: TA-Lib (150+ indicators, 61 candlestick pattern recognizers)
+- **Strategy Backtesting**: `backtesting.py` with Sharpe ratio, max drawdown, and win-rate reporting
+- **Fundamental Screening**: Piotroski F-score, FCF conversion rate, monthly revenue YoY
+- **Chip / Institutional Flow**: Foreign investors, investment trusts, proprietary traders, margin data (FinMind)
+- **Multi-Factor Scoring**: Four-layer framework — macro → fundamental → chip → technical
+- **Portfolio Optimization**: `pyportfolioopt` (mean-variance, risk parity)
+- **Automated Scheduling**: GitHub Actions — runs every Friday after market close, no server required
+- **Push Notifications**: Telegram Bot
+
+---
+
+## Installation
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ```bash
 git clone https://github.com/neilyonglu/tw-stock-quant.git
-cd stock_analysis
+cd tw-stock-quant
 uv sync
 ```
 
-### 環境變數（選填）
+### Environment Variables (all optional)
 
 ```bash
 cp .env.example .env
-# 編輯 .env，填入需要的 API key
+# Fill in any API keys you want to use
 ```
 
-詳見 [.env.example](.env.example)，所有 key 都是選填，系統會使用免費替代方案。
+See [.env.example](.env.example) for details. Every key is optional — the system falls back to free alternatives.
 
 ---
 
-## 啟動 Dashboard
+## Running the Dashboard
 
 ```bash
 streamlit run src/dashboard/app.py
 ```
 
-瀏覽器開啟 `http://localhost:8501`。
+Open `http://localhost:8501` in your browser.
 
 ---
 
-## 開發路線
+## Roadmap
 
-詳見 [plan.md](plan.md)。
+Full details in [plan.md](plan.md).
 
-| Phase | 內容 | 狀態 |
-|-------|------|------|
-| 0 | 環境初始化、套件安裝 | ✅ 完成 |
-| 1 | 資料管線（twstock → Parquet） | 進行中 |
-| 2 | 技術指標模組（TA-Lib） | 待開始 |
-| 3 | 策略回測（backtesting.py） | 待開始 |
-| 4 | 基本面整合（CasualMarket） | 待開始 |
-| 5 | 籌碼面 + 總體環境（FinMind） | 待開始 |
-| 6 | 選股系統 + 投組優化 + 排程推播 | 待開始 |
-| 7 | 因子驗證 + 事件研究 | 待開始 |
-| 8 | 情緒面（Google Trends + Claude API） | 待開始 |
-| 9 | Dashboard（Streamlit） | 進行中 |
-
----
-
-## 資料來源
-
-| 工具 | 用途 |
-|------|------|
-| [twstock](https://github.com/mlouielu/twstock) | 台股歷史 K 線、即時報價 |
-| [FinMind](https://finmind.github.io/) | 三大法人、融資券、財務報表 |
-| [CasualMarket](https://github.com/sacahan/CasualMarket) | 財報、月營收、股利（MCP Server）|
-| TWSE OpenAPI | 市場廣度、官方行情 |
-| yfinance | USD/TWD 匯率 |
-| data.gov.tw | 景氣燈號 |
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 0 | Environment setup | ✅ Done |
+| 1 | Data pipeline (twstock → Parquet) | In progress |
+| 2 | Technical indicators (TA-Lib) | Pending |
+| 3 | Strategy backtesting (backtesting.py) | Pending |
+| 4 | Fundamental integration (CasualMarket) | Pending |
+| 5 | Chip data + macro context (FinMind) | Pending |
+| 6 | Stock screener + portfolio optimizer + scheduling | Pending |
+| 7 | Factor validation + event study | Pending |
+| 8 | Sentiment (Google Trends + Claude API) | Pending |
+| 9 | Dashboard (Streamlit) | In progress |
 
 ---
 
-## 參考專案
+## Data Sources
 
-- [locupleto/streamlit-lightweight-charts-v5](https://github.com/locupleto/streamlit-lightweight-charts-v5)（MIT）— Dashboard K 線元件
-- [kevin801221/stock-strategies-only](https://github.com/kevin801221/stock-strategies-only)（MIT）— 台股選股邏輯與因子設計參考
+| Tool | Purpose |
+|------|---------|
+| [twstock](https://github.com/mlouielu/twstock) | Historical OHLCV, real-time quotes |
+| [FinMind](https://finmind.github.io/) | Institutional flow, margin data, financial statements |
+| [CasualMarket](https://github.com/sacahan/CasualMarket) | Financials, monthly revenue, dividends (MCP Server) |
+| TWSE OpenAPI | Market breadth, official price data |
+| yfinance | USD/TWD exchange rate |
+| data.gov.tw | Taiwan business cycle indicators |
+
+---
+
+## References
+
+- [locupleto/streamlit-lightweight-charts-v5](https://github.com/locupleto/streamlit-lightweight-charts-v5) (MIT) — Dashboard chart component
+- [kevin801221/stock-strategies-only](https://github.com/kevin801221/stock-strategies-only) (MIT) — Taiwan stock screening logic and factor design reference
 
 ---
 
