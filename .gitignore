@@ -1,0 +1,44 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# 環境變數（含 API key，絕對不能推上去）
+.env
+
+# 下載的市場資料（不可再散布）
+data/raw/
+data/processed/
+data/chip/
+data/macro/
+data/universe/
+
+# 回測輸出（大型 HTML 檔）
+*.html
+
+# Jupyter 暫存
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Parquet 資料檔
+*.parquet
+
+# 系統檔
+.DS_Store
+Thumbs.db
+
+# 日誌
+logs/
+*.log
+
+# pytest 快取
+.pytest_cache/
+
+# Claude Code 本機設定
+.claude/
