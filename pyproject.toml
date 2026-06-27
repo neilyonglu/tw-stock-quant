@@ -1,0 +1,49 @@
+[project]
+name = "stock-analysis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alphalens-reloaded>=0.4.6",
+    "apscheduler>=3.11.2",
+    "backtesting>=0.6.5",
+    "feedparser>=6.0.12",
+    "finmind>=2.0.4",
+    "fredapi>=0.5.2",
+    "jupyter>=1.1.1",
+    "plotly>=6.8.0",
+    "pyportfolioopt>=1.6.0",
+    "pytest>=9.1.1",
+    "python-telegram-bot>=22.8",
+    "pytrends>=4.9.2",
+    "scikit-learn>=1.9.0",
+    "ta-lib>=0.6.8",
+    "twstock>=1.5.1",
+    "yfinance>=1.4.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.1.0",
+    "ruff>=0.15.20",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]   # pycodestyle, pyflakes, isort, pyupgrade, bugbear
+ignore = ["E501"]                       # 長行由 line-length 控制就好
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true           # 第三方套件沒有 stub 時不報錯
+warn_return_any = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["twstock.*", "finmind.*", "backtesting.*", "talib.*"]
+ignore_missing_imports = true
