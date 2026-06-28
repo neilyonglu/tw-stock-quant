@@ -33,12 +33,26 @@ Copy `.env.example` to `.env` and fill in any API keys (all optional — system 
 
 ---
 
+## Dashboard
+
+A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui + TradingView lightweight-charts**, served alongside a Python data layer.
+
+| Step | Page | Status |
+|------|------|--------|
+| 0 | Project scaffold (Next.js + shadcn + lightweight-charts) | ✅ Done |
+| 1 | App shell (sidebar + 3-page routing) | ✅ Done |
+| 2 | Stock analysis page — 5-pane K-line chart (candles + volume + RSI + MACD), yfinance API | ✅ Done |
+| 3 | Market overview page (mock data) | Pending |
+| 4 | Weekly screening results page (mock data) | Pending |
+
+---
+
 ## Roadmap
 
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
-| 1 | Data pipeline (twstock → Parquet) | In progress |
+| 1 | Data pipeline (twstock → Parquet) | Pending |
 | 2 | Technical indicators (TA-Lib) | Pending |
 | 3 | Strategy backtesting (backtesting.py) | Pending |
 | 4 | Fundamental integration (CasualMarket) | Pending |
@@ -46,7 +60,7 @@ Copy `.env.example` to `.env` and fill in any API keys (all optional — system 
 | 6 | Stock screener + portfolio optimizer + scheduling | Pending |
 | 7 | Factor validation + event study | Pending |
 | 8 | Sentiment (Google Trends / pytrends) | Pending |
-| 9 | Dashboard (Streamlit) | In progress |
+| 9 | Dashboard API (FastAPI migration) | Pending |
 
 ---
 

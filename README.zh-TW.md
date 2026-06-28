@@ -33,12 +33,26 @@ uv sync
 
 ---
 
+## Dashboard
+
+以 **Next.js 16 + Tailwind v4 + shadcn/ui + TradingView lightweight-charts** 建立的網頁分析介面，搭配 Python 資料層。
+
+| 步驟 | 頁面 | 狀態 |
+|------|------|------|
+| 0 | 專案初始化（Next.js + shadcn + lightweight-charts） | ✅ 完成 |
+| 1 | app 框架（側欄 + 三頁路由） | ✅ 完成 |
+| 2 | 個股分析頁 — 五層 K 線圖（K 線 + 成交量 + RSI + MACD）、yfinance API | ✅ 完成 |
+| 3 | 市場總覽頁（mock 資料） | 待開始 |
+| 4 | 每週選股結果頁（mock 資料） | 待開始 |
+
+---
+
 ## 開發路線
 
 | 階段 | 說明 | 狀態 |
 |------|------|------|
 | 0 | 環境建置 | ✅ 完成 |
-| 1 | 資料管線（twstock → Parquet） | 進行中 |
+| 1 | 資料管線（twstock → Parquet） | 待開始 |
 | 2 | 技術指標（TA-Lib 封裝） | 待開始 |
 | 3 | 策略回測（backtesting.py） | 待開始 |
 | 4 | 基本面整合（CasualMarket） | 待開始 |
@@ -46,7 +60,7 @@ uv sync
 | 6 | 選股系統 + 投組優化 + 排程推播 | 待開始 |
 | 7 | 因子驗證 + 事件研究 | 待開始 |
 | 8 | 情緒面（Google Trends / pytrends） | 待開始 |
-| 9 | Dashboard（Streamlit） | 進行中 |
+| 9 | Dashboard API 遷移（FastAPI） | 待開始 |
 
 ---
 
