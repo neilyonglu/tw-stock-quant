@@ -19,6 +19,7 @@
 - README.md（英文）與 README.zh-TW.md（繁中）必須同步更新，每次更新後 commit + push
 - plan.md / todo.md / CLAUDE.md 維持中文
 - 只記錄影響架構或未來會忘記原因的決策；日常維護不寫進文件
+- **架構決策 → `docs/thinking.md`**：版本差異、工具取捨、設計選擇，每次有新決策都要更新，並同步在 CLAUDE.md 的「當前狀態」反映
 
 ---
 
@@ -30,8 +31,15 @@
 - [x] CasualMarket MCP Server（stdio 模式，`claude mcp add`）
 - [x] 8 個 equity-research AI skills + stock-analyst dispatcher
 - [x] GitHub repo、README、LICENSE、.gitignore
+- [x] `frontend/` 建立：Next.js 16 + TypeScript + Tailwind + shadcn/ui + lightweight-charts（Step 0）
 
-### 進行中（Phase 1）
+### 進行中（Dashboard 建皮）
+- [x] Step 1：app 框架（layout.tsx sidebar + 三頁路由結構）
+- [ ] Step 2：個股 K 線分析頁（TradingView 五層疊圖）
+- [ ] Step 3：市場總覽頁（mock 資料）
+- [ ] Step 4：每週選股結果頁（mock 資料）
+
+### 暫緩（Phase 1，等建皮完成後再接）
 - [ ] `src/data/universe.py`：股票清單
 - [ ] `src/data/fetcher.py`：OHLCV 歷史資料
 - [ ] `src/data/store.py`：Parquet 快取
@@ -91,8 +99,10 @@
 | 決策 | 原因 |
 |------|------|
 | 不用 FinLab | 付費，要完全自控 |
-| 不用 LINE Notify | 2025/04 停止服務 |
-| 不用 Claude API / ckip-transformers 做情緒 | 無 Anthropic API key；PyTorch+CUDA 太重；pytrends 已足夠 |
-| eventstudy 套件不用 | PyPI 上沒有，自建 100 行 |
-| TA-Lib source 編譯 | apt 未收錄；`make -j` 有 race condition，改單執行緒 |
+| 推播用 Telegram Bot | `python-telegram-bot` |
+| PTT 情緒分析用 pytrends | Google Trends 已足夠，不跑本地 NLP 模型 |
+| 事件研究自建 | PyPI 無現成台股套件；`statsmodels` + `scipy.stats` 約 100 行 |
+| TA-Lib 從 source 編譯 | apt 未收錄；`make` 單執行緒，不加 `-j` |
 | 籌碼面用 FinMind | TWSE 官方 API 格式散，FinMind 整合好 |
+| Dashboard 用 Next.js + FastAPI | 目標使用者是一般大眾，需支援手機、有視覺公信力；Streamlit 不符合 |
+| 前端部署 Vercel，後端 Railway | 免費 tier 足夠；Next.js 在 Vercel 一鍵部署 |

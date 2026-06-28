@@ -138,162 +138,6 @@
 
 ---
 
-## 研究步驟（依序執行）
-
-### Step 1：先搞懂「什麼樣的股票值得研究」
-
-在開始寫程式之前，先建立對台股的基本認識：
-
-1. **看台積電（2330）作為基準**：台積電是台股最大的股票，用它來理解每個指標的「正常值」
-2. **理解三大法人報告**：每天看 TWSE 公布的三大法人買賣超，感受數字的規模
-3. **讀一份財報**：找台積電最新一季財報，理解 EPS / ROE / 現金流是從哪裡來的
-
-**這步不用寫程式，用眼睛看，建立直覺。**
-
----
-
-### Step 2：資料管線（Phase 1）
-
-**先能穩定拿到資料，才能做任何分析。**
-
-沒有資料，一切都是空談。這步的重點是：
-- 能抓到任意股票的歷史 K 線
-- 資料存起來，下次不用重抓
-- 財務資料也能拉到
-
-完成後驗證：`python -m src.data.fetcher 2330` 跑出來有 OHLCV 資料。
-
----
-
-### Step 3：技術指標（Phase 2）
-
-**加上「分析用的尺」。**
-
-光有 K 線看不出什麼，要加上指標才能量化趨勢和動能：
-- MA / EMA：看趨勢方向
-- MACD：看動能轉折
-- RSI：看是否超買超賣
-- Bollinger Bands：看波動區間
-
-完成後驗證：跑一支股票的指標圖，能看到 MACD 金叉 / RSI 超賣的歷史時點。
-
----
-
-### Step 4：策略回測（Phase 3）
-
-**用歷史資料檢驗「如果當時這樣操作，結果如何」。**
-
-這步非常重要——你的直覺會說某個訊號有效，回測告訴你實際勝率是多少。
-
-目標：對台積電跑 2020–2025 年回測
-- 勝率多少？
-- 最大回撤多少？（跌最深的時候）
-- Sharpe 比率多少？（報酬除以波動）
-
-**注意**：回測結果好不代表未來一定好（過擬合），但回測結果差代表策略本身有問題。
-
----
-
-### Step 5：基本面整合（Phase 4）
-
-**篩掉財務有問題的公司。**
-
-技術面可能讓你進到一個「線型漂亮但公司快倒閉」的股票，加入基本面篩選是保護機制。
-
-- Piotroski F-score：九個財報問題，每個符合得 1 分，≥ 6 才考慮
-- 月營收 YoY：最即時的業績訊號，每月 10 日更新
-
----
-
-### Step 6：籌碼面分析（Phase 5）
-
-**確認有大戶同行。**
-
-散戶的判斷常常是情緒化的；機構法人的買賣有研究支撐，跟著法人的方向有更高的勝算。
-
-外資連續買超 + 投信同步進場，是台股最有效的籌碼訊號之一。
-
----
-
-### Step 7：整合選股 + 投組優化（Phase 6）
-
-**把以上四層整合成一個數字，再決定配置比例。**
-
-四層分別給分，加權後排名。排名前 20% 的股票，再用 PyPortfolioOpt 決定每檔配置多少比例（不讓單一股票佔太多）。
-
----
-
-### Step 8：驗證因子有效性（Phase 7）
-
-**確認你選的指標在台股真的有效，而不是你「以為」有效。**
-
-用 Alphalens 計算 IC（Information Coefficient）：
-- IC > 0.05 代表因子有一定預測力
-- IC < 0 代表因子是反向的（或者根本沒效）
-
-這步會讓你發現某些「直覺上很合理」的指標，在台股實際上沒用。
-
----
-
-### Step 9：自動化 + 推播（Phase 6 後段）
-
-**每週自動跑，不用手動觸發。**
-
-- 每週五 13:30 收盤後自動掃全市場
-- Telegram 推播本週前 20 候選股 + 配置建議
-- 自動監控持倉的重大公告（TWSE RSS）
-
----
-
-## 現有工具盤點
-
-### 核心工具（已安裝）
-
-| 工具 | 位置 | 狀態 | 用途 |
-|------|------|------|------|
-| `twstock` | `~/proj/tools/twstock` | ✅ 活躍（2026-04 更新） | 抓 TWSE/TPEX 歷史 K 線、即時報價 |
-| `CasualMarket` | `~/proj/tools/CasualMarket` | ✅ 本地 MCP | 財務報表、股利、營收、外資、ETF |
-| `TA-Lib` | PyPI（已安裝） | ✅ 業界標準 | 150+ 技術指標、61 種 K 線型態 |
-| `backtesting.py` | PyPI（已安裝） | ✅ 仍維護，適合入門 | 策略回測（快速原型用） |
-
-### 擴充工具（已安裝）
-
-| 工具 | 狀態 | 用途 | 費用 |
-|------|------|------|------|
-| `finmind` | ✅ 活躍，持續更新 | 三大法人、融資融券、借券、台指期 | 免費 600 req/hr（需申請帳號）|
-| `yfinance` | ✅ 活躍 | USD/TWD 匯率、美股補充 | 免費 |
-| `fredapi` | ✅ 活躍 | 美債殖利率（DGS10） | 免費（需 FRED_API_KEY）|
-| `alphalens-reloaded` | ✅ 活躍（2025-06 更新） | 多因子分析（IC、IR） | 免費 |
-| `pyportfolioopt` | ✅ 活躍（2026-02 更新） | 投組優化（均值-方差、HRP） | 免費 |
-| `apscheduler` | ✅ 活躍 | 定時排程 | 免費 |
-| `python-telegram-bot` | ✅ 活躍 | 推播通知 | 免費 |
-| `pytrends` | ⚠️ 速率限制嚴格 | Google Trends 熱度（輔助用） | 免費 |
-| `feedparser` | ✅ 活躍 | TWSE 公告 RSS 解析 | 免費 |
-| `scikit-learn` | ✅ 業界標準 | ML 底層（Phase 7 後才用） | 免費 |
-
-### 即時報價替代方案（免申請、免費）
-
-| 工具 | 用途 | 備註 |
-|------|------|------|
-| `twstock.realtime` | 單股即時報價 | 直接抓 TWSE，不需帳號 |
-| TWSE OpenAPI `/v1/exchangeReport/STOCK_DAY_ALL` | 當日全市場行情（一次全拿） | requests 直打，完全免費 |
-| `yfinance` | 分鐘線（有 15 分延遲） | 不需帳號，夠用於 Dashboard 顯示 |
-
-> **Fugle（選配）**：如果未來想要官方即時盤中資料或分鐘線，可申請 [developer.fugle.tw](https://developer.fugle.tw/) 免費帳號，安裝 `fugle-marketdata`。但不是必要，上面三個替代方案已能滿足所有需求。
-
-> **注意 1**：`eventstudy` 套件 PyPI 上不存在，事件研究改為用 `statsmodels` + `scipy.stats` 自建（約 100 行，放 `src/events/study.py`）。
-> **注意 2**：`ckip-transformers`（繁體中文 NLP）已移除——需要 PyTorch + CUDA（約 2.5 GB），佔資源且優先度最低。PTT 情緒分析改為將文章直接送 Claude API 做判斷。
-
-### 免費 API（無需套件）
-
-| 資料源 | 說明 |
-|--------|------|
-| TWSE OpenAPI `openapi.twse.com.tw` | 上市股票官方資料、漲跌家數 |
-| TPEX OpenAPI `tpex.org.tw/openapi` | 上櫃股票官方資料 |
-| data.gov.tw dataset #6099 | 台灣景氣燈號（國發會每月公布）|
-
----
-
 ## 技術選型
 
 ```
@@ -332,9 +176,9 @@ feedparser            # RSS 解析（TWSE 公告、財經新聞）
 # PTT 情緒分析改為直接呼叫 Claude API，不用本地 NLP 模型
 
 # 視覺化 + Dashboard
-streamlit             # 互動式 Web Dashboard 框架（2026 仍是最主流的選擇）
-streamlit-lightweight-charts  # TradingView 官方 K 線元件（最漂亮的金融圖表）
-plotly                # 輔助圖表（法人籌碼折線、投組圓餅圖等非 K 線場景）
+# 前端（Next.js 16，獨立在 frontend/ 資料夾）
+# Next.js 16 + Tailwind CSS v4 + shadcn/ui + TradingView lightweight-charts
+# 部署：Vercel（前端）+ Railway 或 Render（後端 FastAPI）
 # backtesting.py 視覺化：回測結果（bokeh，獨立 HTML）
 
 # 基礎設施
@@ -351,10 +195,18 @@ jupyter               # 探索分析（開發期用，不上 Dashboard）
 ```
 stock_analysis/
 ├── plan.md
+├── todo.md                            # Dashboard 建皮進度
 ├── docs/
-│   └── thinking.md        # 構思過程與決策日誌
+│   └── thinking.md                    # 架構決策日誌
 ├── pyproject.toml
-├── .env.example           # FRED_API_KEY, FINMIND_TOKEN, TELEGRAM_BOT_TOKEN
+├── .env.example                       # FRED_API_KEY, FINMIND_TOKEN, TELEGRAM_BOT_TOKEN
+│
+├── frontend/                          # Next.js 16 前端（獨立於 Python）
+│   └── src/app/
+│       ├── layout.tsx                 # 全域 layout（sidebar）
+│       ├── market/page.tsx            # 頁面一：市場總覽
+│       ├── stock/[ticker]/page.tsx    # 頁面二：個股 K 線分析
+│       └── screening/page.tsx         # 頁面三：每週選股結果
 │
 ├── data/
 │   ├── raw/               # 原始資料（Parquet）
@@ -566,153 +418,26 @@ stock_analysis/
 
 ---
 
-### Phase 9 — Dashboard 與視覺化
+### Phase 9 — Dashboard 與視覺化（提前進行中）
 
-**目標**：把所有分析結果整合進一個可以即時互動的介面，三個功能都做到。
+**目標**：把所有分析結果整合進一個可以公開給一般大眾使用的 Web 介面。
 
-**工具選擇：Streamlit + streamlit-lightweight-charts**
+**技術選型**：Next.js 16（App Router）+ Tailwind CSS v4 + shadcn/ui + TradingView lightweight-charts + FastAPI
+- 部署：前端 → Vercel（免費），後端 → Railway 或 Render（免費 tier）
+- 設計方向：Robinhood 風格（消費者友善）+ Linear 視覺語言（深色乾淨）
+- 建皮期間資料用 yfinance（`2330.TW`）；Phase 1 完成後換成 twstock + FinMind
 
-- **Streamlit**：2026 仍是 Python 做 Dashboard 最主流的工具，社群龐大、模板多
-- **streamlit-lightweight-charts**：把 TradingView 的官方 K 線元件包進 Streamlit——你在 TradingView 看到的那種流暢、可縮放、專業 K 線圖，就是這個庫
-- 兩個合在一起：框架用 Streamlit（快），K 線用 TradingView 等級元件（漂亮）
-- `streamlit run app.py` 一行啟動，本地瀏覽器開啟
+**三個頁面**（詳細步驟見 `todo.md`）：
+- `frontend/src/app/market/page.tsx`：市場總覽（景氣燈號、加權指數、三大法人、市場廣度）
+- `frontend/src/app/stock/[ticker]/page.tsx`：個股 K 線分析（五層疊圖 + 技術訊號速查 Card）
+- `frontend/src/app/screening/page.tsx`：每週選股結果（DataTable + 圓餅圖 + CSV 下載）
 
----
-
-#### 頁面一：市場總覽（看盤 Dashboard）
-
-**觀察的是**：今天大環境怎麼樣、全市場溫度。
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  台股市場總覽  2026-07-04  13:30                         │
-├──────────┬──────────┬──────────┬──────────┬─────────────┤
-│ 景氣燈號  │ 加權指數 │ 今日漲跌 │ USD/TWD  │  美債 10Y   │
-│   🟢 綠燈 │  22,450  │ +1.2%   │  31.8    │   4.35%     │
-├──────────┴──────────┴──────────┴──────────┴─────────────┤
-│ 三大法人今日                                              │
-│   外資：+85億  投信：+12億  自營：-3億  合計：+94億       │
-├─────────────────────────────────────────────────────────┤
-│ 市場廣度                                                  │
-│   漲家：650  跌家：280  平盤：120  漲停：23  跌停：2      │
-├─────────────────────────────────────────────────────────┤
-│ 市場環境判斷：多頭 ✅  建議操作強度：積極                  │
-└─────────────────────────────────────────────────────────┘
-```
-
-功能細節：
-- [ ] `src/dashboard/pages/market_overview.py`
-- [ ] 每 30 分鐘自動更新（交易時間內）；收盤後顯示日終數據
-- [ ] 三大法人近 10 日折線圖（看趨勢是持續買超還是反轉）
-- [ ] 景氣燈號近 12 個月走勢（判斷現在在哪個週期）
-
----
-
-#### 頁面二：個股 K 線分析
-
-**觀察的是**：選定一支股票，看技術面是否符合買進條件。
-
-```
-輸入股票代碼：[2330]  時間區間：[6個月 ▼]  [查詢]
-
-┌─────────────────────────────────────────────────────────┐
-│  台積電 (2330)   現價：930  今日：+1.5%                  │
-├─────────────────────────────────────────────────────────┤
-│  [K線圖 + MA5/20/60]                                    │
-│                                     ↑ MA金叉訊號         │
-│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   │
-├─────────────────────────────────────────────────────────┤
-│  [MACD 子圖]          [RSI 子圖]        [成交量]          │
-├─────────────────────────────────────────────────────────┤
-│  技術面訊號                                               │
-│   ✅ 站上 MA20    ✅ MACD 金叉    ✅ RSI 55（健康區間）   │
-│   ✅ 放量突破（今量 = 1.8 倍均量）                        │
-│   ⚠️ 布林通道上軌附近（短線稍謹慎）                       │
-├─────────────────────────────────────────────────────────┤
-│  籌碼面（近 10 日）                                       │
-│   外資：連買 7 日 +450億   投信：連買 3 日 +28億          │
-│   融資餘額：1.2%（佔流通股本，低，籌碼穩定）              │
-├─────────────────────────────────────────────────────────┤
-│  基本面速查                                               │
-│   ROE：25%  月營收 YoY：+18%  F-score：8/9              │
-│   建議進場區間：920–940   停損：860（-7%）                │
-└─────────────────────────────────────────────────────────┘
-```
-
-功能細節：
-- [ ] `src/dashboard/pages/stock_analysis.py`
-- [ ] plotly 互動 K 線（可縮放、可 hover 看每日數據）
-- [ ] 三大法人買賣超疊加在 K 線下方（綠柱 = 買、紅柱 = 賣）
-- [ ] 技術訊號自動用顏色標記（✅ 符合 / ⚠️ 注意 / ❌ 不符合）
-- [ ] 自動計算進場區間 + ATR 停損位
-
----
-
-#### 頁面三：每週選股結果
-
-**觀察的是**：本週系統掃完全市場後，推薦哪幾檔、為什麼、怎麼配。
-
-```
-本週選股推薦  （最後更新：2026-07-04 14:00）
-市場環境：多頭 ✅   操作強度：積極
-
-┌────┬────────┬──────┬───────────────────────┬──────┬──────┬──────┐
-│排名│ 股票   │ 評分 │  推薦理由（三層摘要）  │進場價│ 停損 │配置% │
-├────┼────────┼──────┼───────────────────────┼──────┼──────┼──────┤
-│ 1  │2330 台積│ 87  │外資連買7日/MACD金叉/  │ 920  │ 860  │ 20%  │
-│    │        │      │月營收YoY+18%           │~940  │      │      │
-├────┼────────┼──────┼───────────────────────┼──────┼──────┼──────┤
-│ 2  │2454 聯發│ 81  │投信+外資同買/RSI 52/  │1100  │1020  │ 15%  │
-│    │        │      │F-score 8              │~1130 │      │      │
-└────┴────────┴──────┴───────────────────────┴──────┴──────┴──────┘
-
-[點擊任一列 → 跳到個股 K 線分析]
-
-投組配置圓餅圖：
-  台積電 20% ██████
-  聯發科 15% █████
-  ...
-  現金    X% （大盤不對時自動留現金）
-
-[下載 CSV]  [重新執行掃描]
-```
-
-功能細節：
-- [ ] `src/dashboard/pages/screening_results.py`
-- [ ] 可篩選（只看電子 / 只看 ROE > 20% / 只看法人買超）
-- [ ] 點擊股票代碼直接跳轉到第二頁個股分析
-- [ ] 投組配置圓餅圖（pyportfolioopt 結果視覺化）
-- [ ] 顯示上次執行時間；按鈕手動觸發重新掃描
-
----
-
-#### 啟動方式
-
+**後端入口**：
 ```bash
-# 安裝
-uv add streamlit
-
-# 啟動
-streamlit run src/dashboard/app.py
-
-# 瀏覽器自動開啟 http://localhost:8501
+uvicorn src.api.main:app --reload   # localhost:8000
 ```
 
-目錄結構新增：
-```
-src/
-└── dashboard/
-    ├── app.py                  # 主入口，定義三個頁面
-    ├── pages/
-    │   ├── market_overview.py  # 頁面一：市場總覽
-    │   ├── stock_analysis.py   # 頁面二：個股 K 線
-    │   └── screening_results.py # 頁面三：選股結果
-    └── components/
-        ├── kline_chart.py      # 可重用的 K 線圖元件
-        └── signal_badge.py     # 技術訊號顏色標籤元件
-```
-
-- [ ] 驗收：`streamlit run src/dashboard/app.py` 能同時看到三個頁面，K 線可縮放互動，選股表可排序過濾
+- [ ] 驗收：三頁都能切換，K 線可縮放互動，選股表可排序過濾，手機版可正常操作
 
 ---
 
@@ -781,9 +506,23 @@ scorer.py（四層加權評分）
 ### 環境已就緒（2026-06-27）
 所有套件已安裝完成。詳見 `pyproject.toml`。
 
-### 待辦（Phase 1 起點）
+### 進行中（2026-06-28）：Dashboard 建皮（Phase 9 提前）
 
-**程式碼起點**：
+決定先建 Dashboard 介面框架，讓前端有具體畫面，再回來接 Phase 1 資料管線。
+
+**現況**：
+- Step 0 完成：`frontend/` 建立，Next.js 16.2.9 + shadcn/ui（Tailwind v4）+ lightweight-charts
+- 使用 yfinance 暫時供資料（`2330.TW`），Phase 1 完成後換成 twstock + FinMind
+
+**下一步**：
+- Step 1：`layout.tsx` sidebar + 三頁路由（market / stock/[ticker] / screening）
+- Step 2：個股 K 線分析頁（TradingView 五層疊圖 + FastAPI yfinance 端點）
+- Step 3：市場總覽頁（mock 資料）
+- Step 4：每週選股結果頁（mock 資料）
+
+建皮完成後回接：
+
+**Phase 1 起點（暫緩）**：
 ```bash
 mkdir -p src/data src/indicators src/strategies src/backtest src/screening src/portfolio src/macro src/sentiment src/alerts src/events src/report
 mkdir -p data/raw data/processed data/chip data/macro data/universe
