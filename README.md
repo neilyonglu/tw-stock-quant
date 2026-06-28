@@ -1,5 +1,7 @@
 # tw-stock-quant
 
+[繁體中文](README.zh-TW.md) | English
+
 A personal quantitative analysis system for the Taiwan stock market (TWSE/TPEX). Covers the full pipeline from data ingestion and technical indicators to multi-factor stock screening, portfolio optimization, automated scheduling, and Telegram notifications — fully self-built, no black-box subscriptions.
 
 > **Disclaimer**: For personal learning and research only. Not investment advice.

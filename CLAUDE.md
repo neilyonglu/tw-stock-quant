@@ -16,7 +16,7 @@
 
 ## 文件規範
 
-- README.md 必須英文，每次更新後 commit + push
+- README.md（英文）與 README.zh-TW.md（繁中）必須同步更新，每次更新後 commit + push
 - plan.md / todo.md / CLAUDE.md 維持中文
 - 只記錄影響架構或未來會忘記原因的決策；日常維護不寫進文件
 
