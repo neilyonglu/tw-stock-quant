@@ -80,22 +80,22 @@ K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 Re
   — 底層同為 TradingView lightweight-charts，五層疊圖、子圖高度、指標顏色的設定邏輯可直接對照
 - 台股選股邏輯：https://github.com/kevin801221/stock-strategies-only
 
-- [ ] `frontend/src/app/stock/[ticker]/page.tsx`
-- [ ] sidebar（頁面內側欄）加一個輸入框：股票代碼（預設 `2330`）
-- [ ] 時間區間選擇：1 個月 / 3 個月 / 6 個月 / 1 年（shadcn/ui `Select` 元件）
-- [ ] 用 yfinance API（FastAPI 端）抓資料：`yf.Ticker("2330.TW").history(period="6mo")`，轉成 OHLCV 格式
-- [ ] `kline-chart.tsx` 建五層疊圖：
+- [x] `frontend/src/app/stock/[ticker]/page.tsx`
+- [x] sidebar（頁面內側欄）加一個輸入框：股票代碼（預設 `2330`）
+- [x] 時間區間選擇：1 個月 / 3 個月 / 6 個月 / 1 年（shadcn/ui `ToggleGroup`）
+- [x] 用 yfinance API（Route Handler + python3 subprocess）抓資料，轉成 OHLCV 格式
+- [x] `kline-chart.tsx` 建五層疊圖：
   - 主圖：K 線 + SMA20（橘）+ SMA60（藍）
   - 子圖 1：成交量（Volume）
   - 子圖 2：RSI（14）
   - 子圖 3：MACD
-- [ ] 主圖高度 500px，每個子圖 120px
-- [ ] 主圖下方用 shadcn/ui `Card` 顯示速查資訊（4 欄）：
+- [x] 主圖高度 500px，每個子圖 120px
+- [x] 主圖下方用 shadcn/ui `Card` 顯示速查資訊（4 欄）：
   - 現價 / 漲跌幅
   - RSI 數值 + 狀態（超買 / 健康 / 超賣），加顏色 badge
-  - MACD 狀態（金叉 🟢 / 死叉 🔴）
+  - MACD 狀態（金叉 / 死叉）
   - 成交量 vs 5 日均量比值
-- [ ] 每個指標旁邊一句白話說明（對一般大眾）
+- [x] 每個指標旁邊一句白話說明（對一般大眾）
 
 ---
 

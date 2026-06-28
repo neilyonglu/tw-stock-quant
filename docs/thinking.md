@@ -198,3 +198,62 @@ uv add backtesting TA-Lib
 **next-themes**：深色主題改用 `next-themes` ThemeProvider（`defaultTheme="dark"`），不 hardcode `className="dark"`，避免 SSR hydration mismatch。`html` 加 `suppressHydrationWarning`。
 
 **字體**：Geist → Inter（Next.js `next/font/google`，`variable: "--font-sans"`）。
+
+---
+
+## 2026-06-28 — Dashboard Step 2 完成
+
+### 九、建皮期間 API 層：Route Handler + python3 subprocess
+
+原計畫後端用 FastAPI，但建皮階段還不需要獨立後端服務。改用 **Next.js Route Handler 直接 spawn python3 subprocess**，省去 FastAPI server 設定。
+
+```
+GET /api/stock/[ticker]?period=6mo
+  → child_process.execFile('python3', [SCRIPT, ticker, period])
+  → stdout JSON → Response.json(data)
+```
+
+Python 腳本路徑：`src/api/get_stock_data.py`，`process.cwd()` 在 Next.js 是 `frontend/`，所以腳本路徑為 `path.resolve(cwd, '..', 'src', 'api', 'get_stock_data.py')`。
+
+Phase 9 再遷移至 FastAPI，屆時只需改 `fetch` 的 base URL。
+
+### 十、@base-ui/react ToggleGroup API 與 shadcn 文件不同
+
+shadcn 4.12 的 ToggleGroup 底層從 Radix UI 換成 **@base-ui/react**，API 有 breaking changes：
+
+| 項目 | Radix UI（舊） | @base-ui/react（新） |
+|------|--------------|---------------------|
+| 單選模式 | `type="single"` | `multiple={false}`（預設即是） |
+| value 型別 | `string` | `readonly string[]` |
+| onValueChange 參數 | `string` | `string[]` |
+| 選中樣式 | `data-[state=on]:` | `aria-pressed:` |
+
+正確用法：
+```tsx
+<ToggleGroup
+  value={[period]}
+  onValueChange={(vals) => { if (vals.length > 0) setPeriod(vals[0]) }}
+>
+  <ToggleGroupItem value="6mo" className="aria-pressed:bg-zinc-700">
+    6M
+  </ToggleGroupItem>
+</ToggleGroup>
+```
+
+### 十一、lightweight-charts v5 多 pane API
+
+v5 原生支援 **單一 chart 實例 + 多 pane**，不需建立多個獨立 chart（crosshair 自動同步）：
+
+```typescript
+// 指定 pane index（第三參數）
+chart.addSeries(CandlestickSeries, options, 0) // pane 0 主圖
+chart.addSeries(HistogramSeries, options, 1)   // pane 1 成交量
+chart.addSeries(LineSeries, options, 2)        // pane 2 RSI
+chart.addSeries(LineSeries, options, 3)        // pane 3 MACD
+
+// 設定各 pane 高度
+chart.panes()[0].setHeight(500)
+chart.panes()[1].setHeight(120)
+```
+
+`autoSize: true` 讓 chart 自動填滿容器寬度（高度仍需手動設定）。
