@@ -41,6 +41,9 @@
 - [x] TA-Lib C 函式庫從 source 編譯安裝
 - [x] 核心套件安裝：backtesting 0.6.5、ta-lib 0.6.8
 - [x] 擴充套件安裝（見下方工具索引）
+- [x] statsmodels、scipy、pyarrow 補齊宣告至 pyproject.toml
+- [x] twstock 改為本地 editable install（~/proj/tools/twstock）
+- [x] CasualMarket MCP Server 設定完成（stdio 模式，claude mcp add）
 - [x] 8 個 equity-research AI skills（來自 anthropics/financial-services）
 - [x] stock-analyst dispatcher skill（統一入口）
 - [x] GitHub repo 建立（tw-stock-quant，private）
@@ -60,7 +63,7 @@
 5. Phase 5：籌碼面 + 總體環境（FinMind + FRED）
 6. Phase 6：選股系統 + 投組優化 + 排程推播
 7. Phase 7：因子驗證 + 事件研究（自建）
-8. Phase 8：情緒面（pytrends + Claude API 分析 PTT）
+8. Phase 8：情緒面（pytrends Google Trends 熱度）
 
 ---
 
@@ -70,7 +73,7 @@
 
 | 工具 | 用途 | 備註 |
 |------|------|------|
-| `twstock` | 台股日 K 線、即時報價 | 本地 clone，需 `uv add --editable ~/proj/tools/twstock` |
+| `twstock` | 台股日 K 線、即時報價 | 本地 clone，已用 editable install（`~/proj/tools/twstock`） |
 | `CasualMarket` | 財報、月營收、股利、外資（MCP Server） | 本地 clone，已設定為 MCP |
 | `finmind` | 三大法人、融資券、借券、台指期、股東結構 | 需申請免費帳號，600 req/hr |
 | `yfinance` | USD/TWD 匯率（USDTWD=X） | 免費，無需帳號 |
@@ -95,7 +98,6 @@
 | 工具 | 用途 |
 |------|------|
 | `pytrends` | Google Trends（股票熱度，有速率限制） |
-| Claude API | PTT 文章情緒分析（不用本地 NLP 模型） |
 
 ### 基礎設施
 
@@ -146,7 +148,8 @@
 |------|------|
 | 不用 FinLab（付費台股平台） | 要完全自控，理解每個環節 |
 | 不用 LINE Notify | 已於 2025/04 停止服務 |
-| 不用 ckip-transformers | 需 PyTorch+CUDA（2.5GB），太重；改用 Claude API 分析情緒 |
+| 不用 ckip-transformers | 需 PyTorch+CUDA（2.5GB），太重；改用 pytrends 輕量替代 |
+| 不用 Claude API 分析情緒 | 沒有 Anthropic API key；pytrends Google Trends 已足夠情緒代理訊號 |
 | eventstudy 套件不存在 | PyPI 上沒有，事件研究自建（100行） |
 | TA-Lib 必須 source 編譯 | apt 未收錄；make -j 並行會 race condition，改單執行緒 |
 | 籌碼面用 FinMind 而非爬 TWSE | TWSE 官方 API 免費但資料格式散，FinMind 整合好 |

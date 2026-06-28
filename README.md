@@ -65,7 +65,7 @@ Full details in [plan.md](plan.md).
 | 5 | Chip data + macro context (FinMind) | Pending |
 | 6 | Stock screener + portfolio optimizer + scheduling | Pending |
 | 7 | Factor validation + event study | Pending |
-| 8 | Sentiment (Google Trends + Claude API) | Pending |
+| 8 | Sentiment (Google Trends / pytrends) | Pending |
 | 9 | Dashboard (Streamlit) | In progress |
 
 ---
