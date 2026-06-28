@@ -192,3 +192,9 @@ uv add backtesting TA-Lib
 **shadcn/ui 使用 Tailwind v4**：初始化後無 `tailwind.config.js`，改用 CSS 變數方式（`globals.css` 內直接定義設計 token）。shadcn/ui 元件安裝指令為 `npx shadcn@latest add <component>`。
 
 **套件釐清**：`yfinance` 是 Python 套件，只能用 `uv add yfinance`，不能用 `npm install`。todo.md 原本寫錯，已修正。
+
+**shadcn 版本差異**：ui_plan.md 以舊版 shadcn（HSL、`new-york` style）為設計參考，但實際安裝為 shadcn 4.12（Tailwind v4），使用 `oklch` 色彩格式與 `base-nova` style。設計意圖不變，實作改用 oklch 等價色值。`--radius: 0.25rem` 達到與 New York 相同的 sharp corner 效果。
+
+**next-themes**：深色主題改用 `next-themes` ThemeProvider（`defaultTheme="dark"`），不 hardcode `className="dark"`，避免 SSR hydration mismatch。`html` 加 `suppressHydrationWarning`。
+
+**字體**：Geist → Inter（Next.js `next/font/google`，`variable: "--font-sans"`）。
