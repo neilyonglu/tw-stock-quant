@@ -31,7 +31,8 @@
 - [x] CasualMarket MCP Server（stdio 模式，`claude mcp add`）
 - [x] 8 個 equity-research AI skills + stock-analyst dispatcher
 - [x] GitHub repo、README、LICENSE、.gitignore
-- [x] `frontend/` 建立：Next.js 16 + TypeScript + Tailwind + shadcn/ui + lightweight-charts（Step 0）
+- [x] `frontend/` 建立：Next.js 16 + TypeScript + Tailwind v4 + shadcn/ui（base-nova）+ lightweight-charts（Step 0）
+- [x] 設計系統：Inter 字體、next-themes、stock color token、`--radius: 0.25rem`
 
 ### 進行中（Dashboard 建皮）
 - [x] Step 1：app 框架（layout.tsx sidebar + 三頁路由結構）

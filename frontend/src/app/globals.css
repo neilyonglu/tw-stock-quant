@@ -8,6 +8,11 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
+  /* stock-specific semantic colors */
+  --color-stock-up: var(--stock-up);
+  --color-stock-down: var(--stock-down);
+  --color-stock-warn: var(--stock-warn);
+  --color-stock-info: var(--stock-info);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -72,7 +77,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.25rem; /* Linear-style sharp corners */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -115,6 +120,11 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* TradingView-compatible stock colors */
+  --stock-up:   oklch(0.65 0.09 179);  /* #26A69A teal */
+  --stock-down: oklch(0.60 0.20 25);   /* #EF5350 red */
+  --stock-warn: oklch(0.78 0.17 65);   /* #F59E0B amber */
+  --stock-info: oklch(0.63 0.20 256);  /* #3B82F6 blue */
 }
 
 @layer base {
