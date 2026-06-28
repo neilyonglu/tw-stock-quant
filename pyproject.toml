@@ -13,11 +13,14 @@ dependencies = [
     "fredapi>=0.5.2",
     "jupyter>=1.1.1",
     "plotly>=6.8.0",
+    "pyarrow>=24.0.0",
     "pyportfolioopt>=1.6.0",
     "pytest>=9.1.1",
     "python-telegram-bot>=22.8",
     "pytrends>=4.9.2",
     "scikit-learn>=1.9.0",
+    "scipy>=1.18.0",
+    "statsmodels>=0.14.6",
     "ta-lib>=0.6.8",
     "twstock>=1.5.1",
     "yfinance>=1.4.1",
@@ -47,3 +50,6 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = ["twstock.*", "finmind.*", "backtesting.*", "talib.*"]
 ignore_missing_imports = true
+
+[tool.uv.sources]
+twstock = { path = "../tools/twstock", editable = true }
