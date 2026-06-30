@@ -22,6 +22,9 @@ const SUB_H = 100
 
 export function IntradayChart({ data }: { data: IntradaySeries }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  // 指數（如 ^TWII）yfinance 沒有有意義的每分鐘成交量，全部是 0；
+  // 這種情況不畫成交量子圖，畫出來也只是一條沒有意義的空白線。
+  const hasVolume = data.points.some((p) => p.volume > 0)
 
   useEffect(() => {
     if (!containerRef.current || !data.points.length) return
@@ -29,10 +32,11 @@ export function IntradayChart({ data }: { data: IntradaySeries }) {
     const lastPrice = data.points[data.points.length - 1].price
     const isUp = lastPrice >= data.prev_close
     const lineColor = isUp ? STOCK_UP : STOCK_DOWN
+    const chartHeight = hasVolume ? MAIN_H + SUB_H : MAIN_H
 
     const chart = createChart(containerRef.current, {
       autoSize: true,
-      height: MAIN_H + SUB_H,
+      height: chartHeight,
       layout: {
         background: { type: ColorType.Solid, color: "#09090B" },
         textColor: "#a1a1aa",
@@ -79,26 +83,28 @@ export function IntradayChart({ data }: { data: IntradaySeries }) {
     }, 0)
     avgSeries.setData(data.points.map((p) => ({ time: p.time as UTCTimestamp, value: p.avg_price })))
 
-    // Pane 1 — 成交量
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: "volume" },
-      priceScaleId: "vol",
-    }, 1)
-    volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0 } })
-    volumeSeries.setData(
-      data.points.map((p) => ({
-        time: p.time as UTCTimestamp,
-        value: p.volume,
-        color: p.price >= data.prev_close ? STOCK_UP : STOCK_DOWN,
-      }))
-    )
+    // Pane 1 — 成交量（指數沒有成交量資料時不畫）
+    if (hasVolume) {
+      const volumeSeries = chart.addSeries(HistogramSeries, {
+        priceFormat: { type: "volume" },
+        priceScaleId: "vol",
+      }, 1)
+      volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0 } })
+      volumeSeries.setData(
+        data.points.map((p) => ({
+          time: p.time as UTCTimestamp,
+          value: p.volume,
+          color: p.price >= data.prev_close ? STOCK_UP : STOCK_DOWN,
+        }))
+      )
+    }
 
     const panes = chart.panes()
     panes[0]?.setHeight(MAIN_H)
-    panes[1]?.setHeight(SUB_H)
+    if (hasVolume) panes[1]?.setHeight(SUB_H)
 
     return () => chart.remove()
-  }, [data])
+  }, [data, hasVolume])
 
-  return <div ref={containerRef} style={{ height: MAIN_H + SUB_H }} />
+  return <div ref={containerRef} style={{ height: hasVolume ? MAIN_H + SUB_H : MAIN_H }} />
 }

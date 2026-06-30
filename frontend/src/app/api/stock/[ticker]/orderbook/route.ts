@@ -1,11 +1,22 @@
-import { NextRequest } from "next/server"
-import { mockOrderBook } from "@/lib/mock-data"
+import { runPythonScript } from "@/lib/run-python"
+import type { OrderBookData } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
-// mock：五檔報價，yfinance 沒有委買委賣盤口資料（見 lib/types.ts OrderBookData 說明）。
-// price 由前端帶現價過來，沒帶就用預設值，純粹讓假資料的價位看起來合理。
-export async function GET(request: NextRequest) {
-  const price = Number(request.nextUrl.searchParams.get("price")) || 100
-  return Response.json(mockOrderBook(price))
+// 真實資料：twstock.realtime 直接拿 TWSE/TPEx 即時五檔，免金鑰
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ ticker: string }> }
+) {
+  const { ticker } = await params
+  try {
+    const data = await runPythonScript<OrderBookData & { error?: string }>("get_orderbook.py", [ticker])
+    if ("error" in data) {
+      return Response.json({ error: data.error }, { status: 404 })
+    }
+    return Response.json(data)
+  } catch (err) {
+    console.error("[stock/orderbook route] error:", err)
+    return Response.json({ error: "Failed to fetch order book" }, { status: 500 })
+  }
 }

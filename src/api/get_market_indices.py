@@ -17,8 +17,8 @@ GLOBAL_INDICES = [
 
 
 def _quote(symbol: str) -> dict:
-    h = yf.Ticker(symbol).history(period="5d")
-    if h.empty or len(h) < 2:
+    h = yf.Ticker(symbol).history(period="5d").dropna(subset=["Close"])
+    if len(h) < 2:
         return {"value": 0.0, "change": 0.0, "change_pct": 0.0}
     last = float(h["Close"].iloc[-1])
     prev = float(h["Close"].iloc[-2])

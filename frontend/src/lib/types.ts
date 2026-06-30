@@ -26,6 +26,8 @@ export interface MarketOverviewData {
   // 三大法人今日買賣超，單位：億元
   institutional: { foreign: number; trust: number; dealer: number } // mock，Phase 5：FinMind
   breadth: { up: number; down: number; flat: number; limit_up: number; limit_down: number } // mock，Phase 5：TWSE OpenAPI
+  // 上市加權成交值（億元）/ 成交量（億股），跟 breadth 同一個來源，mock，Phase 5：TWSE OpenAPI
+  turnover: { value: number; volume: number }
   environment: { verdict: MarketEnvironment; intensity: OperationIntensity } // mock，Phase 5：macro/context.py
 }
 
@@ -181,6 +183,11 @@ export interface StockProfile {
   pe_ratio: number | null
   pb_ratio: number | null
   dividend_yield: number | null // %
+  eps: number | null // 每股盈餘（近 12 個月）
+  week52_high: number | null
+  week52_low: number | null
+  analyst_target: number | null // 分析師平均目標價
+  analyst_count: number | null // 提供目標價的分析師人數
   monthly_revenue: MonthlyRevenue[] // mock，近 6 個月
 }
 
@@ -198,8 +205,8 @@ export interface StockChipData {
 }
 
 // ─── /api/stock/[ticker]/orderbook ──────────────────────────────────────────────
-// [mock] 五檔報價——yfinance 沒有委買委賣盤口資料，需要券商/交易所即時 Level 1 feed，
-// plan.md 目前沒有規劃資料來源
+// [真實] twstock.realtime 直接拿 TWSE/TPEx 即時五檔，免金鑰。盤前/盤後可能沒有掛單，
+// asks/bids 長度可能小於 5（甚至是空陣列），UI 要處理這個狀況
 
 export interface OrderBookLevel {
   price: number

@@ -3,7 +3,6 @@ import type {
   MarketOverviewData,
   MarketRankings,
   NewsItem,
-  OrderBookData,
   StockChipData,
 } from "./types"
 
@@ -18,6 +17,7 @@ export const mockMarketData: MarketOverviewData = {
   us10y: { value: 4.35, change: 0.02 },
   institutional: { foreign: 85, trust: 12, dealer: -3 },
   breadth: { up: 650, down: 280, flat: 120, limit_up: 23, limit_down: 2 },
+  turnover: { value: 3520, volume: 28.6 },
   environment: { verdict: "多頭", intensity: "積極" },
 }
 
@@ -88,23 +88,11 @@ export function mockStockChip(ticker: string): StockChipData {
   }
 }
 
-// 五檔報價——yfinance 沒有委買委賣盤口資料，先 mock
-export function mockOrderBook(price: number): OrderBookData {
-  const tick = price >= 1000 ? 5 : price >= 500 ? 1 : 0.5
-  const asks = [5, 4, 3, 2, 1].map((i) => ({ price: round2(price + i * tick), volume: Math.round(50 + Math.random() * 200) }))
-  const bids = [1, 2, 3, 4, 5].map((i) => ({ price: round2(price - i * tick), volume: Math.round(50 + Math.random() * 200) }))
-  return { asks, bids }
-}
-
-// 個股新聞——同上，Phase 6 才有真資料來源
+// 個股新聞——Phase 6 才有真資料來源，先 mock
 export function mockStockNews(name: string): NewsItem[] {
   return [
     { time: "2026-06-30T13:20:00+08:00", title: `${name}法說會釋出樂觀展望，外資喊買`, source: "經濟日報" },
     { time: "2026-06-29T16:45:00+08:00", title: `${name}5 月營收創新高，年增逾 15%`, source: "MoneyDJ" },
     { time: "2026-06-27T09:30:00+08:00", title: `法人連 3 日買超${name}，籌碼面轉強`, source: "工商時報" },
   ]
-}
-
-function round2(n: number) {
-  return Math.round(n * 100) / 100
 }

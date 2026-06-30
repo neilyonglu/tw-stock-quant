@@ -4,22 +4,32 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { OrderBookData } from "@/lib/types"
 
-export function OrderBook({ ticker, price }: { ticker: string; price: number }) {
+export function OrderBook({ ticker }: { ticker: string }) {
   const [data, setData] = useState<OrderBookData | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (!price) return
     setData(null)
-    fetch(`/api/stock/${ticker}/orderbook?price=${price}`)
+    setError(false)
+    fetch(`/api/stock/${ticker}/orderbook`)
       .then((res) => res.json())
-      .then(setData)
-  }, [ticker, price])
+      .then((json) => {
+        if (json.error) setError(true)
+        else setData(json)
+      })
+  }, [ticker])
 
+  if (error) {
+    return <p className="text-xs text-zinc-500">查無即時報價</p>
+  }
   if (!data) {
     return <Skeleton className="h-48 w-full bg-zinc-800" />
   }
+  if (data.asks.length === 0 && data.bids.length === 0) {
+    return <p className="text-xs text-zinc-500">非交易時段，目前沒有掛單</p>
+  }
 
-  const maxVol = Math.max(...data.asks.map((l) => l.volume), ...data.bids.map((l) => l.volume))
+  const maxVol = Math.max(1, ...data.asks.map((l) => l.volume), ...data.bids.map((l) => l.volume))
 
   return (
     <div className="text-xs space-y-0.5">

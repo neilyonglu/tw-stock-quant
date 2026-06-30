@@ -144,7 +144,7 @@ K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 Re
 - [x] K 線型態辨識（mock——TA-Lib 沒裝在 route handler 用的 python 環境，見 thinking.md 二十）
 - [x] 基本面 Tab：本益比/股價淨值比/殖利率/市值/股本/產業別/上市櫃（真實，yfinance + twstock）、近 6 個月營收（mock，Phase 4）
 - [x] 籌碼面 Tab：三大法人近 5 日、融資融券、千張大戶比例（mock，Phase 5）
-- [x] 五檔報價 sidebar 小部件（mock）
+- [x] 五檔報價 sidebar 小部件（真實，twstock.realtime）
 - [x] 新聞 Tab（mock）
 
 ### 市場總覽頁新增

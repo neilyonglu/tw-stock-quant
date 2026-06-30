@@ -22,7 +22,7 @@ export function ProfileTab({ ticker }: { ticker: string }) {
   if (loading || !data) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)}
+        {[...Array(9)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)}
       </div>
     )
   }
@@ -46,6 +46,17 @@ export function ProfileTab({ ticker }: { ticker: string }) {
           hint="股息 ÷ 股價，數字越高代表領股息的報酬率越高"
         />
         <StatCard
+          label="每股盈餘（EPS）"
+          value={data.eps != null ? data.eps.toFixed(2) : "—"}
+          hint="近 12 個月公司每股賺多少錢，是本益比的計算基礎"
+        />
+        <StatCard
+          label="52 週高低"
+          value={data.week52_high != null ? data.week52_high.toLocaleString() : "—"}
+          sub={data.week52_low != null ? `低 ${data.week52_low.toLocaleString()}` : undefined}
+          hint="近一年股價的最高、最低點，可以看出目前位階是偏高還偏低"
+        />
+        <StatCard
           label="市值"
           value={`${data.market_cap.toLocaleString()} 億`}
           hint="公司現在市場上值多少錢，數字越大通常代表越穩定、波動較小"
@@ -60,6 +71,12 @@ export function ProfileTab({ ticker }: { ticker: string }) {
           value={data.industry}
           sub={data.listed_market}
           hint="同產業的股票表現常常連動，可以拿來跟同業比較"
+        />
+        <StatCard
+          label="分析師目標價"
+          value={data.analyst_target != null ? data.analyst_target.toLocaleString() : "—"}
+          sub={data.analyst_count != null ? `${data.analyst_count} 位分析師` : undefined}
+          hint="華爾街分析師對股價的平均預期，僅供參考、不是保證"
         />
       </div>
 

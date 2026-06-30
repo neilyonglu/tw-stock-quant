@@ -356,7 +356,7 @@ calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
 | 類股漲跌幅／成交量／漲跌幅排行榜 | mock | 需要全市場掃描，等 Phase 1 + Phase 6 |
 | 個股層級三大法人、融資融券、千張大戶 | mock | Phase 5：FinMind |
 | 個股月營收 | mock | Phase 4：CasualMarket `/financial/revenue` |
-| 個股五檔報價（委買委賣盤口）| mock | yfinance 沒有 Level 1 資料，plan.md 沒規劃來源 |
+| 個股五檔報價（委買委賣盤口）| **真實**（追加修正，見下方二十二）| `twstock.realtime.get(ticker)`，免金鑰 |
 | 個股／大盤新聞 | mock | Phase 6 的 feedparser 只收持倉股 TWSE 公告，全市場新聞牆要另外找來源 |
 | K 線型態辨識（錘子線、吞噬等）| mock | TA-Lib 已裝在 `~/proj/stock_analysis/.venv`，但 Route Handler 是用系統 `python3`（miniconda），沒裝 TA-Lib，兩個環境不一樣，這次先不處理 |
 
@@ -388,3 +388,23 @@ calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
 **新增 route**（10 個）：`/api/market/{indices,intraday,futures,rankings,news}`、`/api/stock/[ticker]/{profile,intraday,chip,orderbook,news}`。
 
 `autoSize: true` 讓 chart 自動填滿容器寬度（高度仍需手動設定）。
+
+---
+
+## 2026-07-01 — 補回「該用真資料卻沒用」的欄位 + NaN bug
+
+### 二十二、五檔報價其實有真資料：`twstock.realtime`
+
+之前以為五檔沒有免費來源所以 mock，後來測試發現 `twstock.realtime.get(ticker)` 直接回傳 TWSE/TPEx 即時委買委賣五檔、開高低、累積成交量，免金鑰。改用真資料（`get_orderbook.py`），mock 版刪除。盤前/盤後可能沒掛單，`asks`/`bids` 會是空陣列，前端要處理這個狀況。
+
+### 二十三、yfinance `.info` 還有沒用到的標準欄位
+
+`StockProfile` 補上 `eps`（`trailingEps`）、`week52_high`/`week52_low`（`fiftyTwoWeekHigh/Low`）、`analyst_target`/`analyst_count`（`targetMeanPrice`/`numberOfAnalystOpinions`），都是各平台必備、之前漏掉的欄位。
+
+### 二十四、大盤分時走勢圖成交量是空的
+
+`^TWII` 這類指數 ticker，yfinance 分鐘線的 `Volume` 全部是 0（指數沒有「成交量」的概念，個股才有）。`IntradayChart` 改成偵測全 0 就不畫成交量子圖，畫了也只是一條沒意義的線。
+
+### 二十五、yfinance NaN 直接寫進 JSON 會讓 `JSON.parse` 炸掉
+
+交易日當天還沒收盤、資料還沒結算時，yfinance 會多回傳一筆 OHLC 全是 `NaN` 的列。Python 的 `json.dumps` 預設會把 `NaN` 印成裸 token（不是合法 JSON），前端 `JSON.parse` 解析時直接丟例外，整個 API 回傳「Failed to fetch」。修法：抓資料後立刻 `dropna(subset=["Close", ...])`，影響 `get_stock_data.py`、`get_market_indices.py`、`get_intraday.py` 三支 script。
