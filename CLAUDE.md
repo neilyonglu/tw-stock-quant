@@ -39,7 +39,7 @@
 - [x] Step 1：app 框架（layout.tsx sidebar + 三頁路由結構）
 - [x] Step 2：個股 K 線分析頁（TradingView 五層疊圖 + 公司名稱、K 線圖/速查指標 Tabs、5分/15分/30分/60分/日/週/月多時間週期）
 - [x] Step 3：市場總覽頁（mock 資料，`lib/types.ts` 定義未來後端合約，見 docs/thinking.md 十四）
-- [ ] Step 4：每週選股結果頁（mock 資料）
+- [x] 對照看盤平台補齊功能：個股分時/基本面/籌碼面/五檔/新聞、大盤分時/櫃買/國際指數/期貨/排行榜/新聞（yfinance/twstock 拿得到的全部真實，拿不到的 mock，見 docs/thinking.md 十八～二十一）
 - [ ] Step 4：每週選股結果頁（mock 資料）
 
 ### 暫緩（Phase 1，等建皮完成後再接）

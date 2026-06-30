@@ -328,4 +328,63 @@ calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
 
 順便把原本散在 `kline-chart.tsx`（`Candle`/`VolumeBar`/`TimeValue`/`MacdPayload`）和 `stock-analysis-view.tsx`（`StockData`/`LatestMetrics`）裡的型別，全部搬進 `frontend/src/lib/types.ts`，跟 `MarketOverviewData` 放一起，符合十四訂的原則：**Route Handler 的 JSON 形狀就是合約，要有單一定義來源**。`kline-chart.tsx` 改成從 `lib/types.ts` import 並重新 export，不影響既有 import 寫法。
 
+---
+
+## 2026-06-30 — 對照各大看盤平台補齊功能
+
+### 十八、為什麼要做這次擴充
+
+上完 Step 2、Step 3 後，對照 Yahoo奇摩股市、Goodinfo、CMoney、HiStock 等平台，盤點出我們缺的功能（個股：分時走勢圖、五檔報價、基本面數據、個股籌碼、新聞；大盤：分時走勢圖、櫃買指數、國際指數、台指期貨、排行榜、新聞快訊）。決定每一項都先把**介面長出來**，能拿到真資料的直接接真的，拿不到的用 mock 佔位但**型別合約先定好**，這樣 Phase 4/5/6 後端做完只要換 route handler 內部，畫面完全不用動（原則見十四）。
+
+### 十九、真實 vs mock 的判斷標準
+
+**判斷標準只有一個：yfinance（或 twstock 本地查表）能不能免金鑰直接拿到。能拿到的全部接真的，不因為「之後 Phase X 會有更好的資料」就先將就用 mock。**
+
+實際測試結果（都用 yfinance，2026-06-30 測試於本機可正常取得）：
+
+| 資料 | 真實／mock | 來源 |
+|------|-----------|------|
+| 加權指數、櫃買指數 | **真實** | yfinance `^TWII`、`^TWOII` |
+| 國際指數（道瓊/那斯達克/日經/上證）| **真實** | yfinance `^DJI`/`^IXIC`/`^N225`/`000001.SS` |
+| 個股／大盤分時走勢（今日 1 分鐘 K）| **真實** | yfinance `period=1d interval=1m`，個股傳 `{ticker}.TW`、大盤傳 `^TWII` |
+| 個股本益比/股價淨值比/殖利率/市值/股本 | **真實** | yfinance `Ticker.info`（`trailingPE`/`priceToBook`/`dividendYield`/`marketCap`/`sharesOutstanding`）|
+| 個股產業別、上市／上櫃別 | **真實** | twstock 本地查表（`twstock.codes[ticker].group`/`.market`），不用打 API |
+| 個股漲跌停價 | **真實計算** | 前收盤 ±10%，依 TWSE 跳動單位取整（`_tick_size`），不是外部資料但是真公式 |
+| USD/TWD、美債 10Y | mock（但其實也能真，故意先留著）| `mock-data.ts`，理由見下方 |
+| 景氣燈號、市場廣度（漲跌家數）、三大法人（大盤層級）、市場環境結論 | mock | 等 Phase 1 資料管線 + Phase 5 FinMind/data.gov.tw 做完 |
+| 台指期貨、外資未平倉 | mock | plan.md 完全沒規劃資料來源，要另外找（券商 API） |
+| 類股漲跌幅／成交量／漲跌幅排行榜 | mock | 需要全市場掃描，等 Phase 1 + Phase 6 |
+| 個股層級三大法人、融資融券、千張大戶 | mock | Phase 5：FinMind |
+| 個股月營收 | mock | Phase 4：CasualMarket `/financial/revenue` |
+| 個股五檔報價（委買委賣盤口）| mock | yfinance 沒有 Level 1 資料，plan.md 沒規劃來源 |
+| 個股／大盤新聞 | mock | Phase 6 的 feedparser 只收持倉股 TWSE 公告，全市場新聞牆要另外找來源 |
+| K 線型態辨識（錘子線、吞噬等）| mock | TA-Lib 已裝在 `~/proj/stock_analysis/.venv`，但 Route Handler 是用系統 `python3`（miniconda），沒裝 TA-Lib，兩個環境不一樣，這次先不處理 |
+
+**故意留 mock 的兩個例外**：USD/TWD 和美債 10Y 其實 yfinance 也拿得到（`USDTWD=X`、`^TNX`），這次沒接是因為它們已經在 `/api/market` 的既有合約裡跑得好好的，不想為了「順便」而動到已驗證過的程式碼路徑，之後跟景氣燈號等其他 `/api/market` 欄位一起換成真資料即可。
+
+### 二十、route handler 內部執行的 python 解譯器跟 uv venv 是兩回事
+
+`route.ts` 一律用 `execFile("python3", ...)`，這支 `python3` 是系統 PATH 找到的（這台機器上是 miniconda 的，不是 `~/proj/stock_analysis/.venv`）。yfinance、twstock 剛好兩邊都有裝，但 TA-Lib **只**裝在 uv venv，所以 Dashboard 的 python script 目前不能用 TA-Lib。之後要嘛把 TA-Lib 也裝進這支 `python3` 的環境，要嘛把 `run-python.ts` 改成呼叫 uv venv 的 python（`uv run python3 ...`），兩者都還沒做，K 線型態先維持 mock。
+
+### 二十一、新增檔案總覽
+
+**Python（`src/api/`）**：
+- `get_market_indices.py`：大盤＋國際指數（真實）
+- `get_intraday.py <symbol>`：分時走勢，個股／大盤共用（真實）
+- `get_stock_profile.py <ticker>`：個股基本資料（真實＋月營收 mock）
+- `get_stock_data.py`：加 `limit_up`/`limit_down`（真實計算）、`patterns`（mock）
+
+**前端共用**：
+- `lib/run-python.ts`：抽出 `execFile` 共用邏輯，所有「真實」route 都呼叫這支
+- `lib/types.ts`：每個 interface 上方都標註「[真實]/[mock]」＋資料來源，之後要查任何欄位現在是不是真的，直接看這支檔案最快
+- `lib/mock-data.ts`：新增 `mockFuturesData`、`mockMarketRankings`、`mockMarketNews`、`mockStockChip()`、`mockOrderBook()`、`mockStockNews()`
+
+**個股頁新元件**（`components/stock/`）：`order-book.tsx`（五檔，sidebar）、`intraday-tab.tsx`、`profile-tab.tsx`、`chip-tab.tsx`、`news-tab.tsx`。個股頁 Tabs 從 2 個（K 線圖／速查指標）擴成 6 個：分時／K 線圖／速查指標／籌碼面／基本面／新聞。
+
+**市場頁新元件**（`components/market/`）：`intraday-section.tsx`、`global-indices-row.tsx`、`futures-card.tsx`、`rankings-section.tsx`（內嵌 Tabs：類股／成交值／漲幅／跌幅）、`news-section.tsx`。
+
+**共用**：`components/charts/intraday-chart.tsx`（分時走勢圖，AreaSeries + 均價線 + 平盤參考線 + 成交量，個股／大盤共用）、`components/news-list.tsx`（新聞清單，個股／大盤共用）。
+
+**新增 route**（10 個）：`/api/market/{indices,intraday,futures,rankings,news}`、`/api/stock/[ticker]/{profile,intraday,chip,orderbook,news}`。
+
 `autoSize: true` 讓 chart 自動填滿容器寬度（高度仍需手動設定）。

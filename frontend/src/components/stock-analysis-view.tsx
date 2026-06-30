@@ -9,6 +9,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { KlineChart } from "@/components/charts/kline-chart"
 import { StatCard } from "@/components/stat-card"
 import { SignalBadge } from "@/components/signal-badge"
+import { OrderBook } from "@/components/stock/order-book"
+import { IntradayTab } from "@/components/stock/intraday-tab"
+import { ProfileTab } from "@/components/stock/profile-tab"
+import { ChipTab } from "@/components/stock/chip-tab"
+import { NewsTab } from "@/components/stock/news-tab"
 import type { StockData } from "@/lib/types"
 import { Search } from "lucide-react"
 
@@ -81,6 +86,15 @@ function buildSignals(data: StockData) {
     signals.push({ level: "positive", label: `量增 ${latest.volume_ratio}x`, desc: "今日成交量顯著放大" })
   } else if (latest.volume_ratio < 0.7) {
     signals.push({ level: "warning", label: `量縮 ${latest.volume_ratio}x`, desc: "今日成交量明顯萎縮" })
+  }
+
+  // K 線型態（mock，見 lib/types.ts CandlePattern 說明）
+  for (const p of data.patterns) {
+    signals.push({
+      level: p.signal === "bullish" ? "positive" : "negative",
+      label: `K 線型態：${p.name}`,
+      desc: p.signal === "bullish" ? "通常代表偏多訊號" : "通常代表偏空訊號",
+    })
   }
 
   return signals
@@ -224,6 +238,15 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               </div>
             </div>
           )}
+
+          {/* 五檔報價 */}
+          {latest && (
+            <div>
+              <p className="text-xs text-zinc-500 mb-2">五檔報價（mock）</p>
+              <OrderBook ticker={activeTicker} price={latest.price} />
+            </div>
+          )}
+
           {loading && (
             <div className="space-y-2 pt-1">
               {[...Array(3)].map((_, i) => (
@@ -251,17 +274,29 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               <span className={`text-sm tabular-nums font-medium ${isUp ? "text-red-400" : "text-emerald-400"}`}>
                 {fmtChange(latest.change, latest.change_pct)}
               </span>
+              <span className="text-xs text-zinc-500 tabular-nums ml-auto">
+                漲停 <span className="text-red-400">{latest.limit_up}</span>　跌停 <span className="text-emerald-400">{latest.limit_down}</span>
+              </span>
             </>
           )}
           {error && <span className="text-sm text-red-400">{error}</span>}
         </div>
 
         <div className="p-4">
-          <Tabs defaultValue="chart">
+          <Tabs defaultValue="intraday">
             <TabsList className="mb-3 bg-zinc-900 border border-zinc-800">
+              <TabsTrigger value="intraday">分時</TabsTrigger>
               <TabsTrigger value="chart">K 線圖</TabsTrigger>
               <TabsTrigger value="stats">速查指標</TabsTrigger>
+              <TabsTrigger value="chip">籌碼面</TabsTrigger>
+              <TabsTrigger value="profile">基本面</TabsTrigger>
+              <TabsTrigger value="news">新聞</TabsTrigger>
             </TabsList>
+
+            {/* 分時走勢 */}
+            <TabsContent value="intraday">
+              <IntradayTab ticker={activeTicker} />
+            </TabsContent>
 
             {/* 圖表 */}
             <TabsContent value="chart" className="space-y-1.5">
@@ -335,6 +370,21 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                   </>
                 ) : null}
               </div>
+            </TabsContent>
+
+            {/* 籌碼面 */}
+            <TabsContent value="chip">
+              <ChipTab ticker={activeTicker} />
+            </TabsContent>
+
+            {/* 基本面 */}
+            <TabsContent value="profile">
+              <ProfileTab ticker={activeTicker} />
+            </TabsContent>
+
+            {/* 新聞 */}
+            <TabsContent value="news">
+              <NewsTab ticker={activeTicker} name={data?.name} />
             </TabsContent>
           </Tabs>
         </div>

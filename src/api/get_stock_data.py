@@ -68,6 +68,42 @@ def _to_tv(series: pd.Series, is_intraday: bool) -> list:
     return out
 
 
+def _tick_size(price: float) -> float:
+    """TWSE 股票最小跳動單位（簡化版，足夠估算漲跌停價用）。"""
+    if price < 10:
+        return 0.01
+    if price < 50:
+        return 0.05
+    if price < 100:
+        return 0.1
+    if price < 500:
+        return 0.5
+    if price < 1000:
+        return 1.0
+    return 5.0
+
+
+def _limit_prices(prev_close: float) -> tuple[float, float]:
+    """漲跌停價估算：前收盤 ±10%，再依跳動單位取整（漲停無條件捨去、跌停無條件進位，
+    確保估算值不會超過交易所實際的 ±10% 上限）。"""
+    raw_up = prev_close * 1.1
+    raw_down = prev_close * 0.9
+    tick_up = _tick_size(raw_up)
+    tick_down = _tick_size(raw_down)
+    limit_up = (raw_up // tick_up) * tick_up
+    limit_down = -(-raw_down // tick_down) * tick_down
+    return round(limit_up, 2), round(limit_down, 2)
+
+
+# mock：K 線型態辨識（晨星、錘子線、吞噬等）。TA-Lib 的 61 種型態（pattern.py，Phase 2）
+# 還沒接進這支 script（執行環境沒裝 TA-Lib C 函式庫），先固定回傳近期幾筆假資料占位。
+def _mock_patterns(candles: list) -> list:
+    if len(candles) < 5:
+        return []
+    sample = candles[-5]
+    return [{"time": sample["time"], "name": "錘子線", "signal": "bullish"}]
+
+
 def main():
     ticker = sys.argv[1] if len(sys.argv) > 1 else "2330"
     period = sys.argv[2] if len(sys.argv) > 2 else "6mo"
@@ -116,6 +152,7 @@ def main():
     latest_sig = float(macd_signal.dropna().iloc[-1])
     vol_avg5 = float(volume.iloc[-6:-1].mean()) if len(volume) >= 6 else float(volume.mean())
     vol_ratio = float(volume.iloc[-1]) / vol_avg5 if vol_avg5 > 0 else 1.0
+    limit_up, limit_down = _limit_prices(prev_price)
 
     result = {
         "ticker": ticker,
@@ -130,6 +167,7 @@ def main():
             "signal": _to_tv(macd_signal, is_intraday),
             "histogram": _to_tv(macd_hist, is_intraday),
         },
+        "patterns": _mock_patterns(candles),
         "latest": {
             "price": round(latest_price, 2),
             "change": round(change, 2),
@@ -137,6 +175,8 @@ def main():
             "rsi": round(latest_rsi, 1),
             "macd_crossover": "golden" if latest_macd > latest_sig else "dead",
             "volume_ratio": round(vol_ratio, 2),
+            "limit_up": limit_up,
+            "limit_down": limit_down,
         },
     }
 

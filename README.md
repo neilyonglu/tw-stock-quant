@@ -41,9 +41,11 @@ A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui
 |------|------|--------|
 | 0 | Project scaffold (Next.js + shadcn + lightweight-charts) | ✅ Done |
 | 1 | App shell (sidebar + 3-page routing) | ✅ Done |
-| 2 | Stock analysis page — 5-pane K-line chart (candles + volume + RSI + MACD), 7 timeframes (5/15/30/60min, daily/weekly/monthly), yfinance API | ✅ Done |
-| 3 | Market overview page (mock data, typed API contract for future backend) | ✅ Done |
+| 2 | Stock analysis page — 5-pane K-line chart, 7 timeframes, intraday/fundamentals/chip/order-book/news tabs (real data where yfinance/twstock allow, mocked elsewhere) | ✅ Done |
+| 3 | Market overview page — indices (real), institutional flows/breadth/rankings/futures/news (mocked pending Phase 1/4/5/6 backend) | ✅ Done |
 | 4 | Weekly screening results page (mock data) | Pending |
+
+See [docs/thinking.md](docs/thinking.md) for the full real-vs-mock data inventory per field.
 
 ---
 
