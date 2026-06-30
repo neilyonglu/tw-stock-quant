@@ -9,34 +9,14 @@ import {
   ColorType,
   CrosshairMode,
   LineStyle,
-  type Time,
 } from "lightweight-charts"
+import type { Candle, VolumeBar, TimeValue, MacdPayload } from "@/lib/types"
 
-// 日/週/月 → "YYYY-MM-DD"；分鐘線 → unix timestamp（秒），圖表才能畫出時分
-export interface Candle {
-  time: Time
-  open: number
-  high: number
-  low: number
-  close: number
-}
+export type { Candle, VolumeBar, TimeValue, MacdPayload }
 
-export interface VolumeBar {
-  time: Time
-  value: number
-  color: string
-}
-
-export interface TimeValue {
-  time: Time
-  value: number
-}
-
-export interface MacdPayload {
-  line: TimeValue[]
-  signal: TimeValue[]
-  histogram: TimeValue[]
-}
+// 台股慣例：紅漲綠跌（跟美股的 green-up / red-down 相反）
+const STOCK_UP = "#EF5350" // 漲：紅
+const STOCK_DOWN = "#26A69A" // 跌：綠
 
 interface KlineChartProps {
   candles: Candle[]
@@ -80,12 +60,12 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
 
     // Pane 0 — K 線 + SMA20 + SMA60
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#26A69A",
-      downColor: "#EF5350",
-      borderUpColor: "#26A69A",
-      borderDownColor: "#EF5350",
-      wickUpColor: "#26A69A",
-      wickDownColor: "#EF5350",
+      upColor: STOCK_UP,
+      downColor: STOCK_DOWN,
+      borderUpColor: STOCK_UP,
+      borderDownColor: STOCK_DOWN,
+      wickUpColor: STOCK_UP,
+      wickDownColor: STOCK_DOWN,
     }, 0)
     candleSeries.setData(candles)
 
@@ -164,7 +144,7 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
     histSeries.setData(
       macd.histogram.map((d) => ({
         ...d,
-        color: d.value >= 0 ? "#26A69A80" : "#EF535080",
+        color: d.value >= 0 ? `${STOCK_UP}80` : `${STOCK_DOWN}80`,
       }))
     )
 

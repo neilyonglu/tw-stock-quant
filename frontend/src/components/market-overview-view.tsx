@@ -81,7 +81,7 @@ export function MarketOverviewView() {
               label="加權指數"
               value={data.taiex.value.toLocaleString()}
               sub={`${fmtChange(data.taiex.change)} (${fmtChange(data.taiex.change_pct)}%)`}
-              valueClassName={data.taiex.change >= 0 ? "text-emerald-400" : "text-red-400"}
+              valueClassName={data.taiex.change >= 0 ? "text-red-400" : "text-emerald-400"}
               hint="台股大盤的整體溫度計，反映上市公司平均表現"
             />
             <StatCard
@@ -119,19 +119,19 @@ export function MarketOverviewView() {
               <StatCard
                 label="外資"
                 value={`${fmtChange(data.institutional.foreign)} 億`}
-                valueClassName={data.institutional.foreign >= 0 ? "text-emerald-400" : "text-red-400"}
+                valueClassName={data.institutional.foreign >= 0 ? "text-red-400" : "text-emerald-400"}
                 hint="外國大資金今天在買，是好訊號；外資是三大法人中影響力最大的"
               />
               <StatCard
                 label="投信"
                 value={`${fmtChange(data.institutional.trust)} 億`}
-                valueClassName={data.institutional.trust >= 0 ? "text-emerald-400" : "text-red-400"}
+                valueClassName={data.institutional.trust >= 0 ? "text-red-400" : "text-emerald-400"}
                 hint="本土基金在買，月底作帳行情前常見投信買超"
               />
               <StatCard
                 label="自營商"
                 value={`${fmtChange(data.institutional.dealer)} 億`}
-                valueClassName={data.institutional.dealer >= 0 ? "text-emerald-400" : "text-red-400"}
+                valueClassName={data.institutional.dealer >= 0 ? "text-red-400" : "text-emerald-400"}
                 hint="券商自有資金的部位，波動較大、參考性較低"
               />
             </>

@@ -17,6 +17,10 @@ import yfinance as yf
 
 INTRADAY_INTERVALS = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"}
 
+# 台股慣例：紅漲綠跌（跟美股的 green-up / red-down 相反）
+STOCK_UP = "#EF5350"  # 漲：紅
+STOCK_DOWN = "#26A69A"  # 跌：綠
+
 
 def _company_name(ticker: str) -> str:
     info = twstock.codes.get(ticker)
@@ -98,7 +102,7 @@ def main():
         {
             "time": _fmt_time(idx, is_intraday),
             "value": float(r["Volume"]),
-            "color": "#26A69A" if r["Close"] >= r["Open"] else "#EF5350",
+            "color": STOCK_UP if r["Close"] >= r["Open"] else STOCK_DOWN,
         }
         for idx, r in df.iterrows()
     ]

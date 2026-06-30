@@ -120,9 +120,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  /* TradingView-compatible stock colors */
-  --stock-up:   oklch(0.65 0.09 179);  /* #26A69A teal */
-  --stock-down: oklch(0.60 0.20 25);   /* #EF5350 red */
+  /* 台股慣例：紅漲綠跌（跟美股 green-up/red-down 相反），對應 kline-chart.tsx 的 STOCK_UP/STOCK_DOWN */
+  --stock-up:   oklch(0.60 0.20 25);   /* #EF5350 紅：漲 */
+  --stock-down: oklch(0.65 0.09 179);  /* #26A69A 綠：跌 */
   --stock-warn: oklch(0.78 0.17 65);   /* #F59E0B amber */
   --stock-info: oklch(0.63 0.20 256);  /* #3B82F6 blue */
 }

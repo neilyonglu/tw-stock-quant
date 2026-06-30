@@ -15,10 +15,11 @@ const icons = {
   negative: XCircle,
 }
 
+// 台股慣例：紅漲綠跌，多頭訊號（positive）用紅、空頭訊號（negative）用綠
 const colors = {
-  positive: "text-emerald-400",
+  positive: "text-red-400",
   warning: "text-amber-400",
-  negative: "text-red-400",
+  negative: "text-emerald-400",
 }
 
 export function SignalBadge({ level, label, desc }: SignalBadgeProps) {
