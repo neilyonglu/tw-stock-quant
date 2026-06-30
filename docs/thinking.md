@@ -287,4 +287,19 @@ calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
 2. **Route Handler 的 JSON 形狀，就是未來後端 API 的合約**——現在改的話兩邊都要改，所以設計時要先想清楚欄位是「最終想要的樣子」，不要為了方便先抓而抓。例如 `get_stock_data.py` 回傳 `name` 欄位，是因為個股頁最終一定要顯示公司名稱，不是因為 yfinance 剛好有。
 3. Phase 9 遷移時，只需要把 Route Handler 內部從「spawn python3 subprocess / 回傳 mock」換成「打真正的後端 API 或直接查資料庫」，**回傳的 JSON 形狀不變**，前端元件完全不用動。
 
+---
+
+## 2026-06-30 — Dashboard Step 3 完成
+
+### 十五、市場總覽頁實際套用「型別合約」模式
+
+延續十四的原則，第一次具體實作：
+
+- `frontend/src/lib/types.ts`：`MarketOverviewData` interface，欄位是「最終想要的樣子」（加權指數、景氣燈號、USD/TWD、美債 10Y、三大法人、市場廣度、環境結論），不是 yfinance/mock 剛好有什麼就放什麼
+- `frontend/src/lib/mock-data.ts`：唯一的假資料來源，型別套用 `MarketOverviewData`
+- `frontend/src/app/api/market/route.ts`：唯一的資料入口，現在回傳 mock，Phase 9 換成 `macro/context.py`（市場環境判斷）+ `chip.py`（三大法人）算出來的真資料即可，**形狀不變**
+- `market-overview-view.tsx` 只認 `fetch('/api/market')` 回來的 JSON，不 import mock 物件
+
+之後 Step 4（選股結果頁）比照同一套模式：先定 `ScreeningResult` 型別、`mock-data.ts` 加假資料、`/api/screening` route 回傳。
+
 `autoSize: true` 讓 chart 自動填滿容器寬度（高度仍需手動設定）。
