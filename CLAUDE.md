@@ -23,7 +23,7 @@
 
 ---
 
-## 當前狀態（2026-06-28）
+## 當前狀態（2026-06-30）
 
 ### 已完成
 - [x] Python 3.12 + uv、TA-Lib C 函式庫、所有套件
@@ -36,8 +36,8 @@
 
 ### 進行中（Dashboard 建皮）
 - [x] Step 1：app 框架（layout.tsx sidebar + 三頁路由結構）
-- [x] Step 2：個股 K 線分析頁（TradingView 五層疊圖）
-- [ ] Step 3：市場總覽頁（mock 資料）
+- [x] Step 2：個股 K 線分析頁（TradingView 五層疊圖 + 公司名稱、K 線圖/速查指標 Tabs、5分/15分/30分/60分/日/週/月多時間週期）
+- [ ] Step 3：市場總覽頁（mock 資料，介面合約要對齊未來後端，見 docs/thinking.md 十四）
 - [ ] Step 4：每週選股結果頁（mock 資料）
 
 ### 暫緩（Phase 1，等建皮完成後再接）

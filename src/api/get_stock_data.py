@@ -2,14 +2,25 @@
 """
 Fetch OHLCV + technical indicators for a Taiwan stock via yfinance.
 Prints JSON to stdout.
-Usage: python3 get_stock_data.py <ticker> [period]
-  ticker: Taiwan stock code without .TW suffix (e.g. 2330)
-  period: yfinance period string (1mo | 3mo | 6mo | 1y), default 6mo
+Usage: python3 get_stock_data.py <ticker> [period] [interval]
+  ticker:   Taiwan stock code without .TW suffix (e.g. 2330)
+  period:   yfinance period string (1mo | 3mo | 6mo | 1y | 2y | 5y | 10y | max), default 6mo
+  interval: yfinance interval string (5m | 15m | 30m | 60m | 1d | 1wk | 1mo), default 1d
 """
-import sys
+import calendar
 import json
+import sys
+
 import pandas as pd
+import twstock
 import yfinance as yf
+
+INTRADAY_INTERVALS = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"}
+
+
+def _company_name(ticker: str) -> str:
+    info = twstock.codes.get(ticker)
+    return info.name if info else ticker
 
 
 def _ema(series: pd.Series, span: int) -> pd.Series:
@@ -33,19 +44,33 @@ def _macd(close: pd.Series):
     return line, signal, hist
 
 
-def _to_tv(series: pd.Series) -> list:
-    """Convert pandas Series → [{"time": "YYYY-MM-DD", "value": float}]"""
+def _fmt_time(ts, is_intraday: bool):
+    """Intraday → unix timestamp (秒，圖表才能畫出時分); 日/週/月 → "YYYY-MM-DD"。
+
+    lightweight-charts 一律用 UTC 解讀並顯示 timestamp 軸籤，跟瀏覽器所在時區無關。
+    若直接轉真正的 UTC epoch，台股 09:00 開盤會被顯示成 01:00。這裡改用「假 UTC」：
+    把台北本地的時、分數字直接當成 UTC 算 epoch，圖表上才會顯示台北的盤中時間。
+    """
+    if is_intraday:
+        return calendar.timegm(ts.timetuple())
+    return ts.strftime("%Y-%m-%d")
+
+
+def _to_tv(series: pd.Series, is_intraday: bool) -> list:
+    """Convert pandas Series → [{"time": ..., "value": float}]"""
     out = []
     for ts, val in series.dropna().items():
-        out.append({"time": ts.strftime("%Y-%m-%d"), "value": round(float(val), 4)})
+        out.append({"time": _fmt_time(ts, is_intraday), "value": round(float(val), 4)})
     return out
 
 
 def main():
     ticker = sys.argv[1] if len(sys.argv) > 1 else "2330"
     period = sys.argv[2] if len(sys.argv) > 2 else "6mo"
+    interval = sys.argv[3] if len(sys.argv) > 3 else "1d"
+    is_intraday = interval in INTRADAY_INTERVALS
 
-    df = yf.Ticker(f"{ticker}.TW").history(period=period)
+    df = yf.Ticker(f"{ticker}.TW").history(period=period, interval=interval)
     if df.empty:
         print(json.dumps({"error": f"No data found for {ticker}.TW"}))
         sys.exit(1)
@@ -60,7 +85,7 @@ def main():
 
     candles = [
         {
-            "time": idx.strftime("%Y-%m-%d"),
+            "time": _fmt_time(idx, is_intraday),
             "open": round(float(r["Open"]), 2),
             "high": round(float(r["High"]), 2),
             "low": round(float(r["Low"]), 2),
@@ -71,7 +96,7 @@ def main():
 
     volume_data = [
         {
-            "time": idx.strftime("%Y-%m-%d"),
+            "time": _fmt_time(idx, is_intraday),
             "value": float(r["Volume"]),
             "color": "#26A69A" if r["Close"] >= r["Open"] else "#EF5350",
         }
@@ -90,15 +115,16 @@ def main():
 
     result = {
         "ticker": ticker,
+        "name": _company_name(ticker),
         "candles": candles,
         "volume": volume_data,
-        "sma20": _to_tv(sma20),
-        "sma60": _to_tv(sma60),
-        "rsi": _to_tv(rsi_vals),
+        "sma20": _to_tv(sma20, is_intraday),
+        "sma60": _to_tv(sma60, is_intraday),
+        "rsi": _to_tv(rsi_vals, is_intraday),
         "macd": {
-            "line": _to_tv(macd_line),
-            "signal": _to_tv(macd_signal),
-            "histogram": _to_tv(macd_hist),
+            "line": _to_tv(macd_line, is_intraday),
+            "signal": _to_tv(macd_signal, is_intraday),
+            "histogram": _to_tv(macd_hist, is_intraday),
         },
         "latest": {
             "price": round(latest_price, 2),

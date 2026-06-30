@@ -9,10 +9,12 @@ import {
   ColorType,
   CrosshairMode,
   LineStyle,
+  type Time,
 } from "lightweight-charts"
 
+// 日/週/月 → "YYYY-MM-DD"；分鐘線 → unix timestamp（秒），圖表才能畫出時分
 export interface Candle {
-  time: string
+  time: Time
   open: number
   high: number
   low: number
@@ -20,13 +22,13 @@ export interface Candle {
 }
 
 export interface VolumeBar {
-  time: string
+  time: Time
   value: number
   color: string
 }
 
 export interface TimeValue {
-  time: string
+  time: Time
   value: number
 }
 
@@ -67,7 +69,7 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
         vertLines: { color: "#27272a" },
         horzLines: { color: "#27272a" },
       },
-      crosshair: { mode: CrosshairMode.Normal },
+      crosshair: { mode: CrosshairMode.Magnet },
       timeScale: {
         borderColor: "#3f3f46",
         timeVisible: true,
