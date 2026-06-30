@@ -302,4 +302,30 @@ calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
 
 之後 Step 4（選股結果頁）比照同一套模式：先定 `ScreeningResult` 型別、`mock-data.ts` 加假資料、`/api/screening` route 回傳。
 
+---
+
+## 2026-06-30 — 修正漲跌顏色：紅漲綠跌（台股慣例）
+
+### 十六、不要用美股的 green-up / red-down
+
+一開始所有漲跌相關顏色（K 線、成交量、MACD 柱狀圖、股價漲跌文字、加權指數、三大法人買賣超、多頭/空頭橫幅、技術訊號 SignalBadge）都沿用 `ui_plan.md` 抄 TradingView 預設配色（漲=teal #26A69A、跌=red #EF5350），這是美股慣例。**台股／中港日韓慣例是紅漲綠跌**，跟美股相反，必須改掉。
+
+修正範圍（只動「代表漲跌方向」的顏色，不動 RSI 超買超賣門檻線、景氣燈號 5 色階、amber 警示色這些非方向性的顏色）：
+
+| 檔案 | 內容 |
+|------|------|
+| `src/api/get_stock_data.py` | 成交量柱顏色（`STOCK_UP`/`STOCK_DOWN` 常數） |
+| `frontend/src/components/charts/kline-chart.tsx` | K 線 upColor/downColor/wick/border、MACD 柱狀圖正負色 |
+| `frontend/src/components/stock-analysis-view.tsx` | 現價/漲跌文字與 Card 顏色 |
+| `frontend/src/components/market-overview-view.tsx` | 加權指數、三大法人買賣超顏色（USD/TWD、美債 10Y 維持原樣——這兩個本來就是「數字變大＝紅」，方向沒錯）|
+| `frontend/src/components/market-banner.tsx` | 多頭＝紅、空頭＝綠 |
+| `frontend/src/components/signal-badge.tsx` | positive（站上均線/金叉）＝紅、negative（跌破均線/死叉）＝綠 |
+| `frontend/src/app/globals.css` | `--stock-up`/`--stock-down` token 值對調（目前程式碼還沒用到這兩個 token，但先修正避免之後踩坑）|
+
+兩處用「漲=紅」剛好就是邏輯正確、不用改的：USD/TWD 與美債 10Y 的顏色判斷本來就是「數字變大（change >= 0）→ 紅」，跟台股慣例的「數字變大＝紅」是同一條規則，只是程式裡原本的理由寫的是「對股市不利＝紅」，結果碰巧一致。
+
+### 十七、API 型別合併到 lib/types.ts
+
+順便把原本散在 `kline-chart.tsx`（`Candle`/`VolumeBar`/`TimeValue`/`MacdPayload`）和 `stock-analysis-view.tsx`（`StockData`/`LatestMetrics`）裡的型別，全部搬進 `frontend/src/lib/types.ts`，跟 `MarketOverviewData` 放一起，符合十四訂的原則：**Route Handler 的 JSON 形狀就是合約，要有單一定義來源**。`kline-chart.tsx` 改成從 `lib/types.ts` import 並重新 export，不影響既有 import 寫法。
+
 `autoSize: true` 讓 chart 自動填滿容器寬度（高度仍需手動設定）。

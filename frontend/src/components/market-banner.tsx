@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils"
 import type { MarketEnvironment, OperationIntensity } from "@/lib/types"
 
+// 台股慣例：紅漲綠跌，多頭（看漲）用紅、空頭（看跌）用綠
 const STYLES: Record<MarketEnvironment, { border: string; text: string }> = {
-  多頭: { border: "border-l-emerald-500", text: "text-emerald-400" },
+  多頭: { border: "border-l-red-500", text: "text-red-400" },
   盤整: { border: "border-l-amber-500", text: "text-amber-400" },
-  空頭: { border: "border-l-red-500", text: "text-red-400" },
+  空頭: { border: "border-l-emerald-500", text: "text-emerald-400" },
 }
 
 interface MarketBannerProps {

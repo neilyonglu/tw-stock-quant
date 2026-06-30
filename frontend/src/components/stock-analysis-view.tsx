@@ -6,33 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { KlineChart, type Candle, type VolumeBar, type TimeValue, type MacdPayload } from "@/components/charts/kline-chart"
+import { KlineChart } from "@/components/charts/kline-chart"
 import { StatCard } from "@/components/stat-card"
 import { SignalBadge } from "@/components/signal-badge"
+import type { StockData } from "@/lib/types"
 import { Search } from "lucide-react"
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface LatestMetrics {
-  price: number
-  change: number
-  change_pct: number
-  rsi: number
-  macd_crossover: "golden" | "dead"
-  volume_ratio: number
-}
-
-interface StockData {
-  ticker: string
-  name: string
-  candles: Candle[]
-  volume: VolumeBar[]
-  sma20: TimeValue[]
-  sma60: TimeValue[]
-  rsi: TimeValue[]
-  macd: MacdPayload
-  latest: LatestMetrics
-}
 
 // ─── K 線週期 / 區間 ──────────────────────────────────────────────────────────
 // 日/週/月：可選資料區間。分鐘線（5/15/30/60分）：Yahoo/yfinance 只給得到近期資料，
@@ -270,7 +248,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               <span className="text-2xl font-bold tabular-nums text-white">
                 {latest.price.toLocaleString()}
               </span>
-              <span className={`text-sm tabular-nums font-medium ${isUp ? "text-emerald-400" : "text-red-400"}`}>
+              <span className={`text-sm tabular-nums font-medium ${isUp ? "text-red-400" : "text-emerald-400"}`}>
                 {fmtChange(latest.change, latest.change_pct)}
               </span>
             </>
@@ -323,7 +301,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                       label="現價 / 漲跌"
                       value={latest.price.toLocaleString()}
                       sub={fmtChange(latest.change, latest.change_pct)}
-                      valueClassName={isUp ? "text-emerald-400" : "text-red-400"}
+                      valueClassName={isUp ? "text-red-400" : "text-emerald-400"}
                       hint="台股漲跌停限制 ±10%，無法保證以目標價成交"
                     />
                     <StatCard
