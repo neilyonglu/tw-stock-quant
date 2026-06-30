@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 個股基本資料：產業別/上市櫃別來自 twstock（本地查表），本益比/股價淨值比/
-殖利率/市值/股本來自 yfinance .info。月營收目前沒有資料來源（Phase 4 才接
-CasualMarket），先用 mock 占位。
+殖利率/EPS/52週高低/市值/股本/分析師目標價來自 yfinance .info。月營收目前
+沒有資料來源（Phase 4 才接 CasualMarket），先用 mock 占位。
 對應 frontend StockProfile（lib/types.ts）。
 Usage: python3 get_stock_profile.py <ticker>
 """
@@ -43,6 +43,11 @@ def main():
         "pe_ratio": round(info["trailingPE"], 2) if info.get("trailingPE") else None,
         "pb_ratio": round(info["priceToBook"], 2) if info.get("priceToBook") else None,
         "dividend_yield": round(info["dividendYield"], 2) if info.get("dividendYield") else None,
+        "eps": round(info["trailingEps"], 2) if info.get("trailingEps") else None,
+        "week52_high": round(info["fiftyTwoWeekHigh"], 2) if info.get("fiftyTwoWeekHigh") else None,
+        "week52_low": round(info["fiftyTwoWeekLow"], 2) if info.get("fiftyTwoWeekLow") else None,
+        "analyst_target": round(info["targetMeanPrice"], 2) if info.get("targetMeanPrice") else None,
+        "analyst_count": info.get("numberOfAnalystOpinions"),
         "monthly_revenue": _MOCK_MONTHLY_REVENUE,
     }
     print(json.dumps(result))

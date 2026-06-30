@@ -16,12 +16,12 @@ def main():
     symbol = sys.argv[1] if len(sys.argv) > 1 else "2330.TW"
 
     ticker = yf.Ticker(symbol)
-    intraday = ticker.history(period="1d", interval="1m")
+    intraday = ticker.history(period="1d", interval="1m").dropna(subset=["Close", "Volume"])
     if intraday.empty:
         print(json.dumps({"error": f"No intraday data for {symbol}"}))
         sys.exit(1)
 
-    daily = ticker.history(period="5d", interval="1d")
+    daily = ticker.history(period="5d", interval="1d").dropna(subset=["Close"])
     prev_close = float(daily["Close"].iloc[-2]) if len(daily) >= 2 else float(intraday["Close"].iloc[0])
 
     cum_pv = 0.0  # price * volume 累計，算累計均價線

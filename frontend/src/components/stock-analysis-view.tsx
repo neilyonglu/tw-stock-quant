@@ -242,8 +242,8 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {/* 五檔報價 */}
           {latest && (
             <div>
-              <p className="text-xs text-zinc-500 mb-2">五檔報價（mock）</p>
-              <OrderBook ticker={activeTicker} price={latest.price} />
+              <p className="text-xs text-zinc-500 mb-2">五檔報價</p>
+              <OrderBook ticker={activeTicker} />
             </div>
           )}
 

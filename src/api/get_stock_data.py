@@ -111,6 +111,9 @@ def main():
     is_intraday = interval in INTRADAY_INTERVALS
 
     df = yf.Ticker(f"{ticker}.TW").history(period=period, interval=interval)
+    # 交易日當天還沒收盤、資料還沒結算時，yfinance 會多回傳一筆 OHLC 全是 NaN 的列；
+    # 留著的話 latest price 會是 NaN，json.dumps 印出裸 NaN token，前端 JSON.parse 直接炸掉。
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
     if df.empty:
         print(json.dumps({"error": f"No data found for {ticker}.TW"}))
         sys.exit(1)
