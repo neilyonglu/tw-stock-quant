@@ -1,12 +1,8 @@
-import { execFile } from "child_process"
-import { promisify } from "util"
-import path from "path"
 import { NextRequest } from "next/server"
+import { runPythonScript } from "@/lib/run-python"
+import type { StockData } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
-
-const execFileAsync = promisify(execFile)
-const SCRIPT = path.resolve(process.cwd(), "..", "src", "api", "get_stock_data.py")
 
 export async function GET(
   request: NextRequest,
@@ -17,10 +13,7 @@ export async function GET(
   const interval = request.nextUrl.searchParams.get("interval") ?? "1d"
 
   try {
-    const { stdout } = await execFileAsync("python3", [SCRIPT, ticker, period, interval], {
-      timeout: 30_000,
-    })
-    const data = JSON.parse(stdout)
+    const data = await runPythonScript<StockData & { error?: string }>("get_stock_data.py", [ticker, period, interval])
     if (data.error) {
       return Response.json({ error: data.error }, { status: 404 })
     }

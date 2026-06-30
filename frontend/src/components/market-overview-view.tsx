@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/components/stat-card"
 import { MarketBanner } from "@/components/market-banner"
-import type { BusinessCycleLight, MarketOverviewData } from "@/lib/types"
+import { MarketIntradaySection } from "@/components/market/intraday-section"
+import { GlobalIndicesRow } from "@/components/market/global-indices-row"
+import { FuturesCard } from "@/components/market/futures-card"
+import { RankingsSection } from "@/components/market/rankings-section"
+import { MarketNewsSection } from "@/components/market/news-section"
+import type { BusinessCycleLight, MarketIndicesData, MarketOverviewData } from "@/lib/types"
 
 // 國發會官方景氣對策信號燈的 5 色分級，跟頁面其他地方的「紅漲綠跌」是不同的顏色系統
 // （紅燈＝過熱，不等於「漲」；綠燈＝穩定，不等於「跌」），所以用色點而不是文字顏色，
@@ -34,13 +39,18 @@ const BREADTH_ITEMS: Array<{ key: keyof MarketOverviewData["breadth"]; label: st
 
 export function MarketOverviewView() {
   const [data, setData] = useState<MarketOverviewData | null>(null)
+  const [indices, setIndices] = useState<MarketIndicesData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/market")
-      setData(await res.json())
+      const [overviewRes, indicesRes] = await Promise.all([
+        fetch("/api/market"),
+        fetch("/api/market/indices"),
+      ])
+      setData(await overviewRes.json())
+      setIndices(await indicesRes.json())
     } finally {
       setLoading(false)
     }
@@ -74,18 +84,28 @@ export function MarketOverviewView() {
         </Button>
       </div>
 
-      {/* 四個指數卡 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {loading || !data ? (
-          [...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
+      {/* 大盤分時走勢 */}
+      <MarketIntradaySection />
+
+      {/* 五個指數/指標卡 */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {loading || !data || !indices ? (
+          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
         ) : (
           <>
             <StatCard
               label="加權指數"
-              value={data.taiex.value.toLocaleString()}
-              sub={`${fmtChange(data.taiex.change)} (${fmtChange(data.taiex.change_pct)}%)`}
-              valueClassName={data.taiex.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              value={indices.taiex.value.toLocaleString()}
+              sub={`${fmtChange(indices.taiex.change)} (${fmtChange(indices.taiex.change_pct)}%)`}
+              valueClassName={indices.taiex.change >= 0 ? "text-red-400" : "text-emerald-400"}
               hint="台股大盤的整體溫度計，反映上市公司平均表現"
+            />
+            <StatCard
+              label="櫃買指數"
+              value={indices.otc.value.toLocaleString()}
+              sub={`${fmtChange(indices.otc.change)} (${fmtChange(indices.otc.change_pct)}%)`}
+              valueClassName={indices.otc.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              hint="上櫃公司（規模通常較小）的大盤指數，常用來看中小型股的風向"
             />
             <StatCard
               label="景氣燈號"
@@ -110,6 +130,9 @@ export function MarketOverviewView() {
           </>
         )}
       </div>
+
+      {/* 國際指數 */}
+      {loading || !indices ? <Skeleton className="h-20 bg-zinc-900" /> : <GlobalIndicesRow indices={indices.global} />}
 
       {/* 三大法人 */}
       <div>
@@ -142,6 +165,12 @@ export function MarketOverviewView() {
         </div>
       </div>
 
+      {/* 台指期貨 */}
+      <div>
+        <p className="text-sm text-zinc-400 mb-2">台指期貨</p>
+        <FuturesCard />
+      </div>
+
       {/* 市場廣度 */}
       <div>
         <p className="text-sm text-zinc-400 mb-2">市場廣度</p>
@@ -160,6 +189,12 @@ export function MarketOverviewView() {
           </div>
         )}
       </div>
+
+      {/* 排行榜 */}
+      <RankingsSection />
+
+      {/* 新聞快訊 */}
+      <MarketNewsSection />
 
       {/* 環境結論橫幅 */}
       {loading || !data ? (
