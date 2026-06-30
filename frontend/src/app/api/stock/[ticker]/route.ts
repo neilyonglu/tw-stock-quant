@@ -14,9 +14,10 @@ export async function GET(
 ) {
   const { ticker } = await params
   const period = request.nextUrl.searchParams.get("period") ?? "6mo"
+  const interval = request.nextUrl.searchParams.get("interval") ?? "1d"
 
   try {
-    const { stdout } = await execFileAsync("python3", [SCRIPT, ticker, period], {
+    const { stdout } = await execFileAsync("python3", [SCRIPT, ticker, period, interval], {
       timeout: 30_000,
     })
     const data = JSON.parse(stdout)

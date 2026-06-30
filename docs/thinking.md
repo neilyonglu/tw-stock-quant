@@ -256,4 +256,35 @@ chart.panes()[0].setHeight(500)
 chart.panes()[1].setHeight(120)
 ```
 
+---
+
+## 2026-06-30 — Dashboard Step 2 微調
+
+### 十二、多時間週期（分鐘/日/週/月）
+
+K 線週期從原本固定日線，擴充成 5/15/30/60 分鐘 + 日/週/月，共 7 檔。yfinance 對短週期有資料範圍限制（5–60 分線僅近 60 天、1 分線僅近 7 天），所以分鐘線不開放使用者選時間區間，固定用一個夠用的區間（如 5 分線固定抓 5 天）。日/週/月則保留時間區間選擇（如 6M/1Y、1Y/2Y/5Y、5Y/10Y/全部）。
+
+`get_stock_data.py` 新增 `interval` 參數（第三個 CLI 參數），`route.ts` 對應多傳一個 query string。
+
+### 十三、lightweight-charts 分鐘線時間軸是 UTC，不是瀏覽器本地時區
+
+lightweight-charts 的時間軸刻度一律用 **UTC** 計算與顯示，跟瀏覽器或系統時區無關。一開始把台北時間（`yfinance` 回傳的 tz-aware Asia/Taipei timestamp）直接轉成真正的 UTC epoch（`ts.timestamp()`），結果台股開盤 09:00 顯示成 01:00，整條時間軸都位移了 8 小時。
+
+**解法**：用「假 UTC」技巧——取 timestamp 的「本地壁鐘時間」欄位（年月日時分秒，不做時區轉換），當成 UTC 去算 epoch：
+
+```python
+import calendar
+calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
+```
+
+`ts.timetuple()` 回傳的是 `ts` 自身時區的壁鐘時間欄位（不轉換成 UTC），`calendar.timegm()` 再把這組欄位當 UTC 算 epoch。兩者疊加後，lightweight-charts 用 UTC 規則顯示出來的數字，正好等於台北壁鐘時間。日/週/月線本來就用日期字串（`YYYY-MM-DD`），不受影響。
+
+### 十四、API 介面設計原則（為了之後接後端）
+
+建皮期間所有資料都還是 yfinance（個股頁）或 mock（市場總覽頁），但 **Phase 9 之後會換成真正的後端**（twstock + FinMind + CasualMarket，包成 FastAPI 或繼續用 Next.js Route Handler）。為了讓那次替換只動資料層、不動畫面元件，目前統一遵守：
+
+1. **前端元件永遠透過 `fetch('/api/...')` 拿資料，不直接 import mock 物件或呼叫 Python**。換句話說，畫面元件（`*-view.tsx`）只認得 Route Handler 回傳的 JSON 形狀，不管背後是 subprocess、mock，還是真後端。
+2. **Route Handler 的 JSON 形狀，就是未來後端 API 的合約**——現在改的話兩邊都要改，所以設計時要先想清楚欄位是「最終想要的樣子」，不要為了方便先抓而抓。例如 `get_stock_data.py` 回傳 `name` 欄位，是因為個股頁最終一定要顯示公司名稱，不是因為 yfinance 剛好有。
+3. Phase 9 遷移時，只需要把 Route Handler 內部從「spawn python3 subprocess / 回傳 mock」換成「打真正的後端 API 或直接查資料庫」，**回傳的 JSON 形狀不變**，前端元件完全不用動。
+
 `autoSize: true` 讓 chart 自動填滿容器寬度（高度仍需手動設定）。

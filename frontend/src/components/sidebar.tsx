@@ -68,7 +68,7 @@ export function Sidebar() {
       {/* Footer */}
       {!collapsed && (
         <div className="px-4 py-3 border-t border-zinc-800 text-xs text-zinc-500">
-          最後更新：—
+          最後更新：2026.06.28
         </div>
       )}
     </aside>
