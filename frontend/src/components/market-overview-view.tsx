@@ -8,12 +8,15 @@ import { StatCard } from "@/components/stat-card"
 import { MarketBanner } from "@/components/market-banner"
 import type { BusinessCycleLight, MarketOverviewData } from "@/lib/types"
 
-const LIGHT_COLOR: Record<BusinessCycleLight, string> = {
-  red: "text-red-400",
-  "yellow-red": "text-amber-400",
-  green: "text-emerald-400",
-  "yellow-blue": "text-sky-400",
-  blue: "text-blue-400",
+// 國發會官方景氣對策信號燈的 5 色分級，跟頁面其他地方的「紅漲綠跌」是不同的顏色系統
+// （紅燈＝過熱，不等於「漲」；綠燈＝穩定，不等於「跌」），所以用色點而不是文字顏色，
+// 避免使用者誤讀成漲跌方向。
+const LIGHT_DOT: Record<BusinessCycleLight, string> = {
+  red: "bg-red-500",
+  "yellow-red": "bg-amber-500",
+  green: "bg-emerald-500",
+  "yellow-blue": "bg-sky-400",
+  blue: "bg-blue-500",
 }
 
 function fmtChange(change: number, suffix = "") {
@@ -87,8 +90,8 @@ export function MarketOverviewView() {
             <StatCard
               label="景氣燈號"
               value={data.business_cycle.label}
-              valueClassName={LIGHT_COLOR[data.business_cycle.light]}
-              hint="國發會每月公布，綠燈代表景氣穩定、藍燈代表景氣轉弱"
+              dot={LIGHT_DOT[data.business_cycle.light]}
+              hint="國發會每月公布，綠燈代表景氣穩定、藍燈代表景氣轉弱。這是獨立的燈號顏色，跟其他卡片的紅漲綠跌無關"
             />
             <StatCard
               label="USD/TWD"
