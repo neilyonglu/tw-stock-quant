@@ -105,24 +105,28 @@ K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 Re
 
 ---
 
-## Step 3 — 頁面一：市場總覽
+## Step 3 — 頁面一：市場總覽 ✅ 完成（2026-06-30）
 
 > 資料全部 mock，用固定數字填入，之後再接真實 API。
 
-- [ ] `frontend/src/app/market/page.tsx`
-- [ ] 頂部 4 個 `Card`（shadcn/ui）橫排：
+- [x] `frontend/src/app/market/page.tsx`
+- [x] 頂部 4 個 `Card`（shadcn/ui）橫排：
   - 加權指數（mock：22,450 +1.2%）
-  - 景氣燈號（mock：🟢 綠燈）
+  - 景氣燈號（mock：綠燈）
   - USD/TWD（mock：31.8）
   - 美債 10Y（mock：4.35%）
-- [ ] 三大法人區塊（3 欄）：
+- [x] 三大法人區塊（3 欄）：
   - 外資今日：+85 億
   - 投信今日：+12 億
   - 自營商今日：-3 億
   - 每個欄位加一句白話說明（「外國大資金今天在買，是好訊號」）
-- [ ] 市場廣度區塊（5 欄）：漲家數 / 跌家數 / 平盤 / 漲停 / 跌停
-- [ ] 底部結論橫幅：「市場環境：多頭 ✅ 建議操作強度：積極」
-- [ ] 加重新整理按鈕（暫時不接真實資料）
+- [x] 市場廣度區塊（5 欄）：漲家數 / 跌家數 / 平盤 / 漲停 / 跌停
+- [x] 底部結論橫幅：「市場環境：多頭　建議操作強度：積極」（無 emoji，用顏色辨識）
+- [x] 加重新整理按鈕（重抓 `/api/market`，目前後面接的還是同一份 mock）
+
+**架構**：資料形狀定義在 `frontend/src/lib/types.ts`（`MarketOverviewData`），就是未來真正後端 API 的合約；`frontend/src/lib/mock-data.ts` 放假資料；`/api/market` Route Handler 回傳。Phase 9 接真後端時只改 Route Handler 內部，前端元件不用動（詳見 docs/thinking.md 十四）。
+
+**已知待辦（留給 Step 5）**：手機寬度（375px）目前會橫向溢出，因為 Sidebar 響應式收合還沒做，個股分析頁也是同樣狀況，等 Step 5 一起處理。
 
 ---
 
