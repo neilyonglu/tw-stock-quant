@@ -476,3 +476,21 @@ Endpoints（詳細列表見 `data_service/README.md`）：`/stocks/{ticker}/cand
 2. Next.js Route Handler `execFile("python3", ...)` 用的系統 `python3`（miniconda，`src/api/get_stock_data.py` 這支暫時的指標計算腳本跑在這裡）
 
 這兩個是完全獨立的 twstock 安裝，`uv sync` 只會換掉第一個。實際測試發現系統 python3 的 twstock 代碼表也是舊的（查不到 7760/4169/4178），於是在系統 `python3` 上也手動跑了一次 `__update_codes()`。以後如果代碼表又過期（有新股票上市卻查不到公司名稱/產業別），兩邊都要各自更新一次。
+
+---
+
+## 2026-07-01 — 參考電視看盤軟體，補三個 K 線圖細節
+
+使用者傳了一張電視股市節目的截圖（XQ 類看盤軟體，美股 Lumentum 技術分析畫面），對照後挑出三個適合我們（一般大眾、白話說明）風格、又不會把畫面弄得太密集的細節加進 `kline-chart.tsx`：均線數值+趨勢箭頭、圖上標高低點、成交量疊均量線。專業看盤軟體常見的「多股自選清單」「精確日期區間選擇器」這種給活躍交易者用的密集功能，這次刻意沒有跟進。
+
+### 三十七、SMA 數值＋趨勢箭頭用 HTML 疊層，不是 `createPriceLine`
+
+一開始想用 RSI 70/30 那種 `createPriceLine`（在均線目前價位橫向拉一條虛線＋軸上數值），但截圖裡電視軟體的做法其實是**左上角文字圖例**（「SMA20 883.14↓ SMA60 895.26↑」），不是橫線。改用一個絕對定位的 `<div>` 蓋在圖表容器上（`kline-chart.tsx` 外層包一層 `relative`），文字內容用 `useMemo` 從 `sma20`/`sma60` 最後兩個點算方向箭頭。比 `createPriceLine` 簡單，也更貼近截圖的視覺效果，不會在主圖上多畫兩條容易跟漲跌停價、K 線本身搞混的橫線。
+
+### 三十八、區間最高/最低價標記：`createSeriesMarkers`（v5 API，不是 `series.setMarkers`）
+
+lightweight-charts v5 把 marker API 改成外掛形式：`import { createSeriesMarkers } from "lightweight-charts"`，`createSeriesMarkers(series, markers)`，不是舊版的 `series.setMarkers(markers)`。標記高點用 `shape: "arrowDown"`（紅色，跟 `STOCK_UP` 同色，把「高點」跟「漲」的直覺色連在一起）、低點用 `shape: "arrowUp"`（綠色，同 `STOCK_DOWN`），`text` 顯示價格。高低點用 `candles.reduce()` 找當前載入區間的 high/low，不是抓全部歷史資料，所以切換時間區間時高低點標記會跟著換。
+
+### 三十九、成交量均線重用主圖 SMA 的配色慣例
+
+`get_stock_data.py` 用跟 SMA20/SMA60 一樣的 `volume.rolling(5/10).mean()` 算法加了 `volume_sma5`/`volume_sma10`，畫在成交量子圖（pane 1）上，直接沿用「短週期＝amber、長週期＝blue」這套已經在主圈用過的配色（抽成 `MA_SHORT`/`MA_LONG` 常數），使用者不用重新學一套新顏色語意。這兩條線設定 `priceScaleId: "vol"` 跟成交量長條共用同一個 Y 軸。

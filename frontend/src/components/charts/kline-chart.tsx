@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import {
   createChart,
+  createSeriesMarkers,
   CandlestickSeries,
   HistogramSeries,
   LineSeries,
@@ -18,11 +19,17 @@ export type { Candle, VolumeBar, TimeValue, MacdPayload }
 const STOCK_UP = "#EF5350" // 漲：紅
 const STOCK_DOWN = "#26A69A" // 跌：綠
 
+// 短週期均線＝amber、長週期均線＝blue，主圖 SMA20/60 跟成交量 MA5/10 共用同一套配色慣例
+const MA_SHORT = "#F59E0B"
+const MA_LONG = "#3B82F6"
+
 interface KlineChartProps {
   candles: Candle[]
   volume: VolumeBar[]
   sma20: TimeValue[]
   sma60: TimeValue[]
+  volumeSma5: TimeValue[]
+  volumeSma10: TimeValue[]
   rsi: TimeValue[]
   macd: MacdPayload
 }
@@ -30,8 +37,25 @@ interface KlineChartProps {
 const MAIN_H = 500
 const SUB_H = 120
 
-export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineChartProps) {
+// 趨勢箭頭：比較均線最後兩個點的方向，跟電視看盤軟體「均線數值旁加箭頭」的做法一樣
+function trendArrow(series: TimeValue[]): string {
+  if (series.length < 2) return ""
+  const last = series[series.length - 1].value
+  const prev = series[series.length - 2].value
+  return last >= prev ? "↑" : "↓"
+}
+
+export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd }: KlineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const legend = useMemo(() => {
+    const sma20Last = sma20[sma20.length - 1]?.value
+    const sma60Last = sma60[sma60.length - 1]?.value
+    return {
+      sma20: sma20Last != null ? `SMA20 ${sma20Last.toFixed(2)}${trendArrow(sma20)}` : null,
+      sma60: sma60Last != null ? `SMA60 ${sma60Last.toFixed(2)}${trendArrow(sma60)}` : null,
+    }
+  }, [sma20, sma60])
 
   useEffect(() => {
     if (!containerRef.current || !candles.length) return
@@ -69,8 +93,18 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
     }, 0)
     candleSeries.setData(candles)
 
+    // 區間最高/最低價直接標在圖上（電視看盤軟體常見做法，不用自己在圖上找高低點）
+    if (candles.length > 0) {
+      const highest = candles.reduce((a, b) => (b.high > a.high ? b : a))
+      const lowest = candles.reduce((a, b) => (b.low < a.low ? b : a))
+      createSeriesMarkers(candleSeries, [
+        { time: highest.time, position: "aboveBar", color: STOCK_UP, shape: "arrowDown", text: highest.high.toFixed(2) },
+        { time: lowest.time, position: "belowBar", color: STOCK_DOWN, shape: "arrowUp", text: lowest.low.toFixed(2) },
+      ])
+    }
+
     const sma20Series = chart.addSeries(LineSeries, {
-      color: "#F59E0B",
+      color: MA_SHORT,
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -79,7 +113,7 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
     sma20Series.setData(sma20)
 
     const sma60Series = chart.addSeries(LineSeries, {
-      color: "#3B82F6",
+      color: MA_LONG,
       lineWidth: 1,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -87,13 +121,33 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
     }, 0)
     sma60Series.setData(sma60)
 
-    // Pane 1 — 成交量
+    // Pane 1 — 成交量 + 均量線（MA5/MA10，跟主圖 SMA20/60 同一套短/長週期配色）
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" },
       priceScaleId: "vol",
     }, 1)
     volumeSeries.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0 } })
     volumeSeries.setData(volume)
+
+    const volumeSma5Series = chart.addSeries(LineSeries, {
+      color: MA_SHORT,
+      lineWidth: 1,
+      priceScaleId: "vol",
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    }, 1)
+    volumeSma5Series.setData(volumeSma5)
+
+    const volumeSma10Series = chart.addSeries(LineSeries, {
+      color: MA_LONG,
+      lineWidth: 1,
+      priceScaleId: "vol",
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    }, 1)
+    volumeSma10Series.setData(volumeSma10)
 
     // Pane 2 — RSI(14)
     const rsiSeries = chart.addSeries(LineSeries, {
@@ -156,7 +210,17 @@ export function KlineChart({ candles, volume, sma20, sma60, rsi, macd }: KlineCh
     panes[3]?.setHeight(SUB_H)
 
     return () => chart.remove()
-  }, [candles, volume, sma20, sma60, rsi, macd])
+  }, [candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd])
 
-  return <div ref={containerRef} style={{ height: MAIN_H + SUB_H * 3 }} />
+  return (
+    <div className="relative">
+      {(legend.sma20 || legend.sma60) && (
+        <div className="absolute top-1.5 left-3 z-10 flex gap-3 text-xs tabular-nums pointer-events-none">
+          {legend.sma20 && <span style={{ color: MA_SHORT }}>{legend.sma20}</span>}
+          {legend.sma60 && <span style={{ color: MA_LONG }}>{legend.sma60}</span>}
+        </div>
+      )}
+      <div ref={containerRef} style={{ height: MAIN_H + SUB_H * 3 }} />
+    </div>
+  )
 }
