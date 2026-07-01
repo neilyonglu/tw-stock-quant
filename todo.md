@@ -246,8 +246,17 @@ jobs:
 ## 建皮完成後的下一步（不在本次 todo）
 
 建皮完成 = 介面框架就緒，但資料是假的。
-下一步是 **Phase 1 資料管線**：
-- `src/data/fetcher.py`：twstock 抓歷史 K 線
-- `src/data/store.py`：Parquet 快取
-- `src/api/main.py`：FastAPI 包裝 Python 分析結果，供前端呼叫
-- 完成後把前端的 mock 資料換成真實 API 呼叫
+
+**架構已修正（2026-07-01）**：資料抓取不是後端的工作，是獨立的中台 `data_service/`（FastAPI，見
+`data_service/README.md`）。前端、後端都跟中台要資料，不各自打外部 API。詳見
+`docs/thinking.md` 2026-07-01「拆出資料中台」。
+
+- [x] 中台雛形：`data_service/`，含記憶體 TTL cache，回傳 raw candles/profile/orderbook/
+      market indices/intraday
+- [ ] 後端（隊友另開 branch，之後 merge 回 main）：跟中台要 raw 資料，計算技術指標
+      （SMA/RSI/MACD、K 線型態）、選股評分、投組優化
+- [ ] 後端 merge 回 main 後：刪除 `src/api/get_stock_data.py`（目前的暫時指標計算佔位層），
+      `app/api/stock/[ticker]/route.ts` 改打後端 API
+- [ ] 中台快取升級成持久化（Parquet/SQLite），取代目前的記憶體 TTL cache
+- [ ] 選股結果頁（Step 4）、市場總覽頁剩餘 mock 欄位（三大法人、市場廣度、排行榜等）：
+      等後端把計算邏輯接上後，一起把前端 mock 換成真實 API 呼叫

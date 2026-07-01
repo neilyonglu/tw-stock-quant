@@ -2,6 +2,7 @@ import type {
   FuturesData,
   MarketOverviewData,
   MarketRankings,
+  MonthlyRevenue,
   NewsItem,
   StockChipData,
 } from "./types"
@@ -20,6 +21,16 @@ export const mockMarketData: MarketOverviewData = {
   turnover: { value: 3520, volume: 28.6 },
   environment: { verdict: "多頭", intensity: "積極" },
 }
+
+// 月營收——沒有真實來源（Phase 4 才接 CasualMarket /financial/revenue），先 mock
+export const mockMonthlyRevenue: MonthlyRevenue[] = [
+  { month: "2026-01", revenue: 2150.3, yoy: 8.4 },
+  { month: "2026-02", revenue: 1980.1, yoy: 6.1 },
+  { month: "2026-03", revenue: 2310.5, yoy: 11.2 },
+  { month: "2026-04", revenue: 2402.8, yoy: 13.7 },
+  { month: "2026-05", revenue: 2455.0, yoy: 14.9 },
+  { month: "2026-06", revenue: 2510.2, yoy: 15.8 },
+]
 
 // 台指期貨——plan.md 沒有規劃資料來源，先 mock
 export const mockFuturesData: FuturesData = {

@@ -14,6 +14,18 @@
 
 ---
 
+## 架構：中台 / 前端 / 後端
+
+三層分工，**中台**是唯一負責向外部來源（yfinance/twstock/FinMind/...）抓取＋快取資料的地方，前端和後端都跟中台要資料，不各自重打外部 API：
+
+- **中台**（`data_service/`，FastAPI，port 8001）：抓取＋記憶體 TTL cache，只回傳 raw 資料，不算任何技術指標
+- **前端**（`frontend/`）：只負責顯示，跟中台要 raw 資料；`app/api/stock/[ticker]/route.ts` 目前仍暫時外包指標計算（見下方後端狀態）
+- **後端**（隊友另開 branch 開發，之後 merge 回 main）：負責計算——SMA/RSI/MACD、K 線型態、選股評分、投組優化，一樣跟中台要 raw 資料，自己算完回傳
+
+後端 merge 回 main 前，`src/api/get_stock_data.py` 先當「指標計算佔位層」用（跟中台要 raw candles，本地算 SMA/RSI/MACD），merge 完就整支刪除，Route Handler 改打隊友的後端 API。完整脈絡見 `docs/thinking.md` 2026-07-01「拆出資料中台」。
+
+---
+
 ## 文件規範
 
 - README.md（英文）與 README.zh-TW.md（繁中）必須同步更新，每次更新後 commit（本機）
@@ -24,7 +36,7 @@
 
 ---
 
-## 當前狀態（2026-06-30）
+## 當前狀態（2026-07-01）
 
 ### 已完成
 - [x] Python 3.12 + uv、TA-Lib C 函式庫、所有套件
@@ -40,12 +52,15 @@
 - [x] Step 2：個股 K 線分析頁（TradingView 五層疊圖 + 公司名稱、K 線圖/速查指標 Tabs、5分/15分/30分/60分/日/週/月多時間週期）
 - [x] Step 3：市場總覽頁（mock 資料，`lib/types.ts` 定義未來後端合約，見 docs/thinking.md 十四）
 - [x] 對照看盤平台補齊功能：個股分時/基本面/籌碼面/五檔/新聞、大盤分時/櫃買/國際指數/期貨/排行榜/新聞（yfinance/twstock 拿得到的全部真實，拿不到的 mock，見 docs/thinking.md 十八～二十一）
+- [x] 拆出資料中台 `data_service/`（FastAPI + 記憶體 TTL cache），前端 Route Handler 改打中台 HTTP API，不再直接 spawn python subprocess 抓資料（見 docs/thinking.md 2026-07-01）
 - [ ] Step 4：每週選股結果頁（mock 資料）
 
-### 暫緩（Phase 1，等建皮完成後再接）
+### 進行中（後端，隊友負責）
+- [ ] 後端另開 branch 開發，負責計算（技術指標、選股評分、投組優化），跟中台要 raw 資料；merge 回 main 後，`src/api/get_stock_data.py` 的暫時指標計算要整支刪除，改打後端 API
+
+### 暫緩（Phase 1，資料管線的長期強化方向）
 - [ ] `src/data/universe.py`：股票清單
-- [ ] `src/data/fetcher.py`：OHLCV 歷史資料
-- [ ] `src/data/store.py`：Parquet 快取
+- [ ] 中台快取升級成持久化（Parquet/SQLite），取代目前的記憶體 TTL cache
 
 ---
 
@@ -109,5 +124,7 @@
 | 籌碼面用 FinMind | TWSE 官方 API 格式散，FinMind 整合好 |
 | Dashboard 用 Next.js + FastAPI | 目標使用者是一般大眾，需支援手機、有視覺公信力；Streamlit 不符合 |
 | 前端部署 Vercel，後端 Railway | 免費 tier 足夠；Next.js 在 Vercel 一鍵部署 |
-| 建皮期間 API 用 Next.js Route Handler 呼叫 python3 subprocess | 省去 FastAPI 複雜度；Phase 9 再遷移 |
+| 建皮期間指標計算暫用 Next.js Route Handler 呼叫 python3 subprocess | `src/api/get_stock_data.py` 是後端 merge 前的臨時計算佔位層；省去等後端才能顯示指標 |
 | shadcn 4.12 底層是 @base-ui/react（非 Radix UI） | ToggleGroup API 不同：value 是 string[]、active 用 aria-pressed:、無 type="single" |
+| 資料中台獨立成 `data_service/`（FastAPI，非 Phase 9 才做） | 前端＋後端都要跟外部來源要資料，各自抓會有 API 延遲＋重複邏輯；後端現在由隊友另開 branch 開發，中台需要穩定、有文件的 HTTP contract 讓她/他串接，不用等懂前端內部細節 |
+| 中台快取用記憶體 TTL cache，不是 Redis/SQLite | 先解決「完全沒快取、每次都重打外部 API」的核心問題；重啟清空、多實例不共享的缺點先接受，之後有需要再換 |

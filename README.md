@@ -47,6 +47,17 @@ A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui
 
 See [docs/thinking.md](docs/thinking.md) for the full real-vs-mock data inventory per field.
 
+### Architecture: data tier / frontend / backend
+
+Data fetching is owned by an independent **data tier** (`data_service/`, FastAPI, in-memory TTL cache) — both the frontend (display) and the backend (computation, built on a separate branch and merged later) fetch raw data from it instead of hitting external APIs directly. See [data_service/README.md](data_service/README.md) for the API contract.
+
+Local dev needs both the data tier and the frontend running. `./scripts/dev.sh` starts both with one command (Ctrl+C stops both); or run them separately:
+
+```bash
+uv run uvicorn data_service.main:app --reload --port 8001   # data tier
+cd frontend && npm run dev                                   # frontend
+```
+
 ---
 
 ## Roadmap

@@ -1,30 +1,37 @@
 #!/usr/bin/env python3
-"""
-Fetch OHLCV + technical indicators for a Taiwan stock via yfinance.
-Prints JSON to stdout.
+"""技術指標計算佔位層（TEMP）。
+
+這支腳本站在「後端」的暫時替身位置：raw K 線改跟中台（data_service/）要，這裡只算
+SMA/RSI/MACD/K線型態(mock)/latest metrics——這些「計算」本來就該是後端的工作，但隊友
+的後端還在另一條 branch 開發，還沒 merge 回 main。等 merge 完成，
+frontend/src/app/api/stock/[ticker]/route.ts 要改成直接打隊友後端的 API，
+這支腳本要整支刪除；data_service/ 不受影響（JSON 形狀＝合約，見 docs/thinking.md 十四）。
+
 Usage: python3 get_stock_data.py <ticker> [period] [interval]
   ticker:   Taiwan stock code without .TW suffix (e.g. 2330)
   period:   yfinance period string (1mo | 3mo | 6mo | 1y | 2y | 5y | 10y | max), default 6mo
   interval: yfinance interval string (5m | 15m | 30m | 60m | 1d | 1wk | 1mo), default 1d
 """
-import calendar
 import json
+import os
 import sys
+import urllib.request
 
 import pandas as pd
 import twstock
-import yfinance as yf
 
-INTRADAY_INTERVALS = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"}
-
-# 台股慣例：紅漲綠跌（跟美股的 green-up / red-down 相反）
-STOCK_UP = "#EF5350"  # 漲：紅
-STOCK_DOWN = "#26A69A"  # 跌：綠
+DATA_SERVICE_URL = os.environ.get("DATA_SERVICE_URL", "http://localhost:8001")
 
 
 def _company_name(ticker: str) -> str:
     info = twstock.codes.get(ticker)
     return info.name if info else ticker
+
+
+def _fetch_candles(ticker: str, period: str, interval: str) -> dict:
+    url = f"{DATA_SERVICE_URL}/stocks/{ticker}/candles?period={period}&interval={interval}"
+    with urllib.request.urlopen(url, timeout=15) as resp:
+        return json.load(resp)
 
 
 def _ema(series: pd.Series, span: int) -> pd.Series:
@@ -48,51 +55,14 @@ def _macd(close: pd.Series):
     return line, signal, hist
 
 
-def _fmt_time(ts, is_intraday: bool):
-    """Intraday → unix timestamp (秒，圖表才能畫出時分); 日/週/月 → "YYYY-MM-DD"。
-
-    lightweight-charts 一律用 UTC 解讀並顯示 timestamp 軸籤，跟瀏覽器所在時區無關。
-    若直接轉真正的 UTC epoch，台股 09:00 開盤會被顯示成 01:00。這裡改用「假 UTC」：
-    把台北本地的時、分數字直接當成 UTC 算 epoch，圖表上才會顯示台北的盤中時間。
-    """
-    if is_intraday:
-        return calendar.timegm(ts.timetuple())
-    return ts.strftime("%Y-%m-%d")
-
-
-def _to_tv(series: pd.Series, is_intraday: bool) -> list:
-    """Convert pandas Series → [{"time": ..., "value": float}]"""
+def _to_tv(series: pd.Series, times: list) -> list:
+    """Convert pandas Series (index-aligned with `times`) → [{"time": ..., "value": float}]"""
     out = []
-    for ts, val in series.dropna().items():
-        out.append({"time": _fmt_time(ts, is_intraday), "value": round(float(val), 4)})
+    for t, val in zip(times, series):
+        if pd.isna(val):
+            continue
+        out.append({"time": t, "value": round(float(val), 4)})
     return out
-
-
-def _tick_size(price: float) -> float:
-    """TWSE 股票最小跳動單位（簡化版，足夠估算漲跌停價用）。"""
-    if price < 10:
-        return 0.01
-    if price < 50:
-        return 0.05
-    if price < 100:
-        return 0.1
-    if price < 500:
-        return 0.5
-    if price < 1000:
-        return 1.0
-    return 5.0
-
-
-def _limit_prices(prev_close: float) -> tuple[float, float]:
-    """漲跌停價估算：前收盤 ±10%，再依跳動單位取整（漲停無條件捨去、跌停無條件進位，
-    確保估算值不會超過交易所實際的 ±10% 上限）。"""
-    raw_up = prev_close * 1.1
-    raw_down = prev_close * 0.9
-    tick_up = _tick_size(raw_up)
-    tick_down = _tick_size(raw_down)
-    limit_up = (raw_up // tick_up) * tick_up
-    limit_down = -(-raw_down // tick_down) * tick_down
-    return round(limit_up, 2), round(limit_down, 2)
 
 
 # mock：K 線型態辨識（晨星、錘子線、吞噬等）。TA-Lib 的 61 種型態（pattern.py，Phase 2）
@@ -108,43 +78,23 @@ def main():
     ticker = sys.argv[1] if len(sys.argv) > 1 else "2330"
     period = sys.argv[2] if len(sys.argv) > 2 else "6mo"
     interval = sys.argv[3] if len(sys.argv) > 3 else "1d"
-    is_intraday = interval in INTRADAY_INTERVALS
 
-    df = yf.Ticker(f"{ticker}.TW").history(period=period, interval=interval)
-    # 交易日當天還沒收盤、資料還沒結算時，yfinance 會多回傳一筆 OHLC 全是 NaN 的列；
-    # 留著的話 latest price 會是 NaN，json.dumps 印出裸 NaN token，前端 JSON.parse 直接炸掉。
-    df = df.dropna(subset=["Open", "High", "Low", "Close"])
-    if df.empty:
-        print(json.dumps({"error": f"No data found for {ticker}.TW"}))
+    raw = _fetch_candles(ticker, period, interval)
+    if "error" in raw:
+        print(json.dumps({"error": raw["error"]}))
         sys.exit(1)
 
-    close = df["Close"]
-    volume = df["Volume"]
+    candles = raw["candles"]
+    volume_data = raw["volume"]
+    times = [c["time"] for c in candles]
+
+    close = pd.Series([c["close"] for c in candles])
+    volume = pd.Series([v["value"] for v in volume_data])
 
     sma20 = close.rolling(20).mean()
     sma60 = close.rolling(60).mean()
     rsi_vals = _rsi(close)
     macd_line, macd_signal, macd_hist = _macd(close)
-
-    candles = [
-        {
-            "time": _fmt_time(idx, is_intraday),
-            "open": round(float(r["Open"]), 2),
-            "high": round(float(r["High"]), 2),
-            "low": round(float(r["Low"]), 2),
-            "close": round(float(r["Close"]), 2),
-        }
-        for idx, r in df.iterrows()
-    ]
-
-    volume_data = [
-        {
-            "time": _fmt_time(idx, is_intraday),
-            "value": float(r["Volume"]),
-            "color": STOCK_UP if r["Close"] >= r["Open"] else STOCK_DOWN,
-        }
-        for idx, r in df.iterrows()
-    ]
 
     latest_price = float(close.iloc[-1])
     prev_price = float(close.iloc[-2])
@@ -155,20 +105,19 @@ def main():
     latest_sig = float(macd_signal.dropna().iloc[-1])
     vol_avg5 = float(volume.iloc[-6:-1].mean()) if len(volume) >= 6 else float(volume.mean())
     vol_ratio = float(volume.iloc[-1]) / vol_avg5 if vol_avg5 > 0 else 1.0
-    limit_up, limit_down = _limit_prices(prev_price)
 
     result = {
         "ticker": ticker,
         "name": _company_name(ticker),
         "candles": candles,
         "volume": volume_data,
-        "sma20": _to_tv(sma20, is_intraday),
-        "sma60": _to_tv(sma60, is_intraday),
-        "rsi": _to_tv(rsi_vals, is_intraday),
+        "sma20": _to_tv(sma20, times),
+        "sma60": _to_tv(sma60, times),
+        "rsi": _to_tv(rsi_vals, times),
         "macd": {
-            "line": _to_tv(macd_line, is_intraday),
-            "signal": _to_tv(macd_signal, is_intraday),
-            "histogram": _to_tv(macd_hist, is_intraday),
+            "line": _to_tv(macd_line, times),
+            "signal": _to_tv(macd_signal, times),
+            "histogram": _to_tv(macd_hist, times),
         },
         "patterns": _mock_patterns(candles),
         "latest": {
@@ -178,8 +127,8 @@ def main():
             "rsi": round(latest_rsi, 1),
             "macd_crossover": "golden" if latest_macd > latest_sig else "dead",
             "volume_ratio": round(vol_ratio, 2),
-            "limit_up": limit_up,
-            "limit_down": limit_down,
+            "limit_up": raw["limit_up"],
+            "limit_down": raw["limit_down"],
         },
     }
 
