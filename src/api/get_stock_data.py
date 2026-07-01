@@ -95,6 +95,8 @@ def main():
     sma60 = close.rolling(60).mean()
     rsi_vals = _rsi(close)
     macd_line, macd_signal, macd_hist = _macd(close)
+    volume_sma5 = volume.rolling(5).mean()
+    volume_sma10 = volume.rolling(10).mean()
 
     latest_price = float(close.iloc[-1])
     prev_price = float(close.iloc[-2])
@@ -113,6 +115,8 @@ def main():
         "volume": volume_data,
         "sma20": _to_tv(sma20, times),
         "sma60": _to_tv(sma60, times),
+        "volume_sma5": _to_tv(volume_sma5, times),
+        "volume_sma10": _to_tv(volume_sma10, times),
         "rsi": _to_tv(rsi_vals, times),
         "macd": {
             "line": _to_tv(macd_line, times),

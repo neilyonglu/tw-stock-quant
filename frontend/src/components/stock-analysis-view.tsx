@@ -314,6 +314,8 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                   volume={data.volume}
                   sma20={data.sma20}
                   sma60={data.sma60}
+                  volumeSma5={data.volume_sma5}
+                  volumeSma10={data.volume_sma10}
                   rsi={data.rsi}
                   macd={data.macd}
                 />

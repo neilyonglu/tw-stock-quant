@@ -159,6 +159,8 @@ export interface StockData {
   volume: VolumeBar[]
   sma20: TimeValue[]
   sma60: TimeValue[]
+  volume_sma5: TimeValue[] // 成交量 5 日均量線
+  volume_sma10: TimeValue[] // 成交量 10 日均量線
   rsi: TimeValue[]
   macd: MacdPayload
   patterns: CandlePattern[] // mock，見上方說明
