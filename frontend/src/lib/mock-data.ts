@@ -4,6 +4,7 @@ import type {
   MarketRankings,
   MonthlyRevenue,
   NewsItem,
+  ScreeningData,
   StockChipData,
 } from "./types"
 
@@ -106,4 +107,100 @@ export function mockStockNews(name: string): NewsItem[] {
     { time: "2026-06-29T16:45:00+08:00", title: `${name}5 月營收創新高，年增逾 15%`, source: "MoneyDJ" },
     { time: "2026-06-27T09:30:00+08:00", title: `法人連 3 日買超${name}，籌碼面轉強`, source: "工商時報" },
   ]
+}
+
+// 每週選股結果——評分/進場停損/投組配置是「計算」結果，等後端做完才能換真的，先 mock
+export const mockScreeningData: ScreeningData = {
+  updated_at: "2026-07-04T14:00:00+08:00",
+  market_environment: "多頭",
+  results: [
+    {
+      rank: 1,
+      ticker: "2330",
+      name: "台積電",
+      score: 92,
+      reasons: {
+        institutional: "外資連 5 日買超，投信同步加碼",
+        technical: "站上季線，MACD 金叉，量能溫和放大",
+        fundamental: "5 月營收年增 15.8%，本益比仍低於歷史均值",
+      },
+      entry_low: 2480,
+      entry_high: 2520,
+      stop_loss: 2350,
+      stop_loss_pct: -6.0,
+      allocation_pct: 25,
+    },
+    {
+      rank: 2,
+      ticker: "2454",
+      name: "聯發科",
+      score: 85,
+      reasons: {
+        institutional: "投信本週買超居冠",
+        technical: "突破月線壓力，RSI 未過熱",
+        fundamental: "旗艦晶片出貨動能延續，毛利率穩定",
+      },
+      entry_low: 1180,
+      entry_high: 1220,
+      stop_loss: 1100,
+      stop_loss_pct: -7.4,
+      allocation_pct: 20,
+    },
+    {
+      rank: 3,
+      ticker: "2317",
+      name: "鴻海",
+      score: 78,
+      reasons: {
+        institutional: "外資買超，融資餘額同步下降（籌碼乾淨）",
+        technical: "均線多頭排列，成交量比 1.4 倍",
+        fundamental: "AI 伺服器訂單能見度提高",
+      },
+      entry_low: 205,
+      entry_high: 215,
+      stop_loss: 190,
+      stop_loss_pct: -8.5,
+      allocation_pct: 15,
+    },
+    {
+      rank: 4,
+      ticker: "3231",
+      name: "緯創",
+      score: 71,
+      reasons: {
+        institutional: "三大法人近 5 日合計小幅買超",
+        technical: "站上 SMA20，但接近前波高點有壓",
+        fundamental: "AI 伺服器代工受惠，估值合理",
+      },
+      entry_low: 148,
+      entry_high: 156,
+      stop_loss: 138,
+      stop_loss_pct: -9.2,
+      allocation_pct: 10,
+    },
+    {
+      rank: 5,
+      ticker: "2308",
+      name: "台達電",
+      score: 68,
+      reasons: {
+        institutional: "外資小幅買超，投信轉為賣超",
+        technical: "盤整格局，等待方向確認",
+        fundamental: "電源供應器需求穩定，成長性中性",
+      },
+      entry_low: 405,
+      entry_high: 420,
+      stop_loss: 385,
+      stop_loss_pct: -6.0,
+      allocation_pct: 10,
+    },
+  ],
+  allocation: [
+    { name: "台積電", pct: 25 },
+    { name: "聯發科", pct: 20 },
+    { name: "鴻海", pct: 15 },
+    { name: "緯創", pct: 10 },
+    { name: "台達電", pct: 10 },
+    { name: "現金", pct: 20 },
+  ],
 }
