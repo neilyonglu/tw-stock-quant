@@ -47,6 +47,17 @@ uv sync
 
 完整的「哪些欄位是真資料、哪些是 mock」對照表，見 [docs/thinking.md](docs/thinking.md)。
 
+### 架構：中台 / 前端 / 後端
+
+抓資料的工作獨立成一個**中台**（`data_service/`，FastAPI，記憶體 TTL 快取）——前端（顯示）和後端（計算，另開 branch 開發、之後 merge 回 main）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [data_service/README.md](data_service/README.md)。
+
+本機開發中台跟前端要同時跑起來。`./scripts/dev.sh` 一個指令同時啟動兩個（Ctrl+C 會兩個一起關掉）；或分開手動啟動：
+
+```bash
+uv run uvicorn data_service.main:app --reload --port 8001   # 中台
+cd frontend && npm run dev                                   # 前端
+```
+
 ---
 
 ## 開發路線

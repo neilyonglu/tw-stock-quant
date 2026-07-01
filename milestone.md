@@ -28,3 +28,10 @@
 - 市場：大盤分時、櫃買指數、國際指數（真實）、台指期貨、排行榜、新聞快訊、
   成交值/量（mock）
 - 修正多處 yfinance NaN 導致 JSON 解析失敗的 bug
+
+## 2026-07-01 — 拆出資料中台（data_service）
+- 觀念修正：抓資料不是後端的工作，是獨立中台；後端（隊友另開 branch）跟前端都跟中台要資料
+- 新增獨立 FastAPI 服務 `data_service/`，負責抓取＋記憶體 TTL 快取所有真實資料來源
+- 前端 Route Handler 改打中台 HTTP API（不再直接 spawn python subprocess 抓資料）
+- `src/api/get_stock_data.py` 暫時保留當指標計算佔位層，改用中台的 raw candles，
+  等隊友的後端 merge 回 main 後整支刪除

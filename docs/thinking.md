@@ -408,3 +408,35 @@ calendar.timegm(ts.timetuple())  # ts 是 tz-aware 的 Asia/Taipei Timestamp
 ### 二十五、yfinance NaN 直接寫進 JSON 會讓 `JSON.parse` 炸掉
 
 交易日當天還沒收盤、資料還沒結算時，yfinance 會多回傳一筆 OHLC 全是 `NaN` 的列。Python 的 `json.dumps` 預設會把 `NaN` 印成裸 token（不是合法 JSON），前端 `JSON.parse` 解析時直接丟例外，整個 API 回傳「Failed to fetch」。修法：抓資料後立刻 `dropna(subset=["Close", ...])`，影響 `get_stock_data.py`、`get_market_indices.py`、`get_intraday.py` 三支 script。
+
+---
+
+## 2026-07-01 — 拆出資料中台（data_service）
+
+### 二十六、為什麼要拆中台
+
+一開始的假設是「後端會負責抓資料」，但這個觀念不對：前端要顯示、後端要計算，兩邊都需要同樣的原始資料，如果各自去打 yfinance/twstock，會有兩個問題——(1) API 延遲疊加，使用者體感變慢；(2) 抓取邏輯在前後端各寫一份，容易分岔。正確的分工是**中台專職抓取＋快取**，前端和後端都跟中台要資料，不跟外部來源直接打交道。
+
+同時確認了現況：後端這次**交給隊友做**，隊友會開新 branch、之後 merge 回 main（同一個 repo，不是獨立部署）。這代表中台不能只是藏在 Next.js route handler 裡的一段 subprocess 邏輯——隊友沒有理由要去讀 Next.js 內部細節才能拿到資料。中台必須是一個**獨立、有文件的 HTTP contract**，隊友的後端直接打 URL 就能用。
+
+### 二十七、中台做成獨立 FastAPI 服務：`data_service/`
+
+新增 `data_service/`（repo 根目錄，跟 `frontend/`、`src/` 同層），本機用 `uv run uvicorn data_service.main:app --reload --port 8001` 啟動，`/docs` 有 FastAPI 自動產生的互動文件。這是刻意選擇「一個可獨立啟動的服務」而不是「共用一個 python 模組讓兩邊 import」——因為前端是 Node.js 進程、後端是隊友獨立開發的 Python 服務，兩者都無法直接 import 對方的 python 模組，HTTP 是最乾淨的邊界。
+
+Endpoints（詳細列表見 `data_service/README.md`）：`/stocks/{ticker}/candles`、`/stocks/{ticker}/profile`、`/stocks/{ticker}/orderbook`、`/stocks/{ticker}/intraday`、`/market/indices`、`/market/intraday`、`/health`。全部只回傳 **raw 資料**，不算任何技術指標——SMA/RSI/MACD/K線型態/選股評分/投組優化這些是「計算」，屬於後端的工作範圍，不是中台的事。
+
+### 二十八、快取機制：記憶體 TTL cache
+
+現況完全沒有快取（`run-python.ts` 每次都 spawn 新的 python3 subprocess，重新打一次外部 API），這是最需要解決的核心問題。選了最簡單的記憶體 TTL cache（`data_service/cache.py`，字典 + `time.monotonic()` 時間戳），依資料更新頻率分三級：五檔/分時/大盤指數（近即時）30 秒、K 線 60 秒、基本面（變動很慢）1800 秒。缺點是服務重啟會清空、多個服務實例之間不共享——先接受，之後真的有需要（例如多實例部署）再換 Redis 或 SQLite。
+
+### 二十九、哪些邏輯搬中台、哪些暫留前端當「臨時後端」
+
+純抓取（raw candles/volume/漲跌停價、profile、orderbook、market indices、intraday）全部搬進 `data_service/sources/`，原本的 `src/api/get_market_indices.py`、`get_orderbook.py`、`get_stock_profile.py`、`get_intraday.py` 四支已刪除，不再被任何 route handler 呼叫。
+
+`src/api/get_stock_data.py` **沒有刪除**，改造成技術指標計算的暫時佔位層：跟中台的 `/stocks/{ticker}/candles` 要 raw candles（用 `urllib.request`，標準庫，不加新依賴），本地算 SMA20/SMA60/RSI/MACD/mock K線型態/latest metrics。這些計算理論上該是後端的工作，但隊友的後端還沒 merge，先暫時放在這裡讓畫面上的指標繼續能顯示。**等隊友的後端 merge 回 main，這支腳本要整支刪除**，`app/api/stock/[ticker]/route.ts` 改成直接打後端的 API，JSON 形狀不變（沿用十四訂的「Route Handler JSON 形狀＝合約」原則），`data_service/` 完全不受影響。
+
+### 三十、前端改動：`data-service-client.ts` 取代大部分 `run-python.ts` 呼叫
+
+新增 `frontend/src/lib/data-service-client.ts`，包一個 `fetchFromDataService()`，打 `DATA_SERVICE_URL`（預設 `http://localhost:8001`，`frontend/.env.example` 有說明）。`market/indices`、`market/intraday`、`stock/[ticker]/orderbook`、`stock/[ticker]/intraday`、`stock/[ticker]/profile` 五個 route handler 改用這支；`stock/[ticker]/route.ts`（指標計算）維持呼叫 `run-python.ts`，只是腳本內部换成打中台。
+
+`get_stock_profile.py` 原本內建的 `_MOCK_MONTHLY_REVENUE`（月營收，沒有真實來源，等 Phase 4 CasualMarket）搬到 `frontend/src/lib/mock-data.ts` 的 `mockMonthlyRevenue`，因為 profile 現在整支走中台真資料，這是唯一還沒有來源的欄位，不該留在已經刪除的 raw fetch 腳本裡；route handler 呼叫中台拿到真資料後，在 TS 端合併這個 mock 欄位。

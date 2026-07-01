@@ -1,25 +1,18 @@
-#!/usr/bin/env python3
-"""
-抓今日分時走勢（1 分鐘間隔），個股和大盤共用，來自 yfinance，免金鑰。
-對應 frontend IntradaySeries（lib/types.ts）。
-Usage: python3 get_intraday.py <yfinance_symbol>
-  symbol: 完整 yfinance 代碼，個股傳 "2330.TW"，大盤傳 "^TWII"
-"""
+"""今日分時走勢（1 分鐘間隔），個股和大盤共用。搬自舊 src/api/get_intraday.py。"""
 import calendar
-import json
-import sys
 
 import yfinance as yf
 
+from data_service.cache import ttl_cache
 
-def main():
-    symbol = sys.argv[1] if len(sys.argv) > 1 else "2330.TW"
 
+@ttl_cache(seconds=30)
+def fetch_intraday(symbol: str) -> dict:
+    """symbol：完整 yfinance 代碼，個股傳 "2330.TW"，大盤傳 "^TWII"。"""
     ticker = yf.Ticker(symbol)
     intraday = ticker.history(period="1d", interval="1m").dropna(subset=["Close", "Volume"])
     if intraday.empty:
-        print(json.dumps({"error": f"No intraday data for {symbol}"}))
-        sys.exit(1)
+        return {"error": f"No intraday data for {symbol}"}
 
     daily = ticker.history(period="5d", interval="1d").dropna(subset=["Close"])
     prev_close = float(daily["Close"].iloc[-2]) if len(daily) >= 2 else float(intraday["Close"].iloc[0])
@@ -34,16 +27,12 @@ def main():
         cum_vol += vol
         avg_price = (cum_pv / cum_vol) if cum_vol > 0 else price
         points.append({
-            # 跟 get_stock_data.py 的「假 UTC」技巧一樣：lightweight-charts 軸籤一律按 UTC
-            # 顯示，這裡把台北壁鐘時間直接當 UTC 算 epoch，圖表才會顯示台北的盤中時間。
+            # lightweight-charts 軸籤一律按 UTC 顯示，這裡把台北壁鐘時間直接當 UTC
+            # 算 epoch，圖表才會顯示台北的盤中時間（跟 stock.py 的「假 UTC」技巧一樣）。
             "time": calendar.timegm(ts.timetuple()),
             "price": round(price, 2),
             "avg_price": round(avg_price, 2),
             "volume": vol,
         })
 
-    print(json.dumps({"prev_close": round(prev_close, 2), "points": points}))
-
-
-if __name__ == "__main__":
-    main()
+    return {"prev_close": round(prev_close, 2), "points": points}

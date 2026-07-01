@@ -4,9 +4,10 @@ import path from "path"
 
 const execFileAsync = promisify(execFile)
 
-// 建皮期間所有「真實」資料都是 Next.js Route Handler 直接 spawn python3 跑 src/api/*.py，
-// 省去 FastAPI server。Phase 9 換成真正後端時，只改呼叫這支 helper 的 route.ts 內部，
-// 前端元件不用動（詳見 docs/thinking.md 十四）。
+// 抓資料一律走中台（data-service-client.ts 打 data_service/ 的 HTTP API）。這支 helper
+// 現在只剩 get_stock_data.py 在用——那是隊友的後端 merge 回 main 前的技術指標計算佔位層
+// （SMA/RSI/MACD，跟中台要 raw candles 後在本地算），等後端 merge 完就會整支刪除，
+// 屆時這個 helper 也可以一起移除。詳見 docs/thinking.md 2026-07-01「拆出資料中台」。
 export async function runPythonScript<T>(scriptName: string, args: string[]): Promise<T> {
   const script = path.resolve(process.cwd(), "..", "src", "api", scriptName)
   const { stdout } = await execFileAsync("python3", [script, ...args], { timeout: 30_000 })

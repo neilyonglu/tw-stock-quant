@@ -1,12 +1,7 @@
-#!/usr/bin/env python3
-"""
-抓大盤指數 + 國際指數，全部來自 yfinance，免金鑰。
-對應 frontend MarketIndicesData（lib/types.ts）。
-Usage: python3 get_market_indices.py
-"""
-import json
-
+"""大盤 + 國際指數，全部來自 yfinance，免金鑰。搬自舊 src/api/get_market_indices.py。"""
 import yfinance as yf
+
+from data_service.cache import ttl_cache
 
 GLOBAL_INDICES = [
     ("道瓊工業", "^DJI"),
@@ -29,8 +24,9 @@ def _quote(symbol: str) -> dict:
     }
 
 
-def main():
-    result = {
+@ttl_cache(seconds=30)
+def fetch_market_indices() -> dict:
+    return {
         "taiex": _quote("^TWII"),
         "otc": _quote("^TWOII"),
         "global": [
@@ -38,8 +34,3 @@ def main():
             for name, symbol in GLOBAL_INDICES
         ],
     }
-    print(json.dumps(result))
-
-
-if __name__ == "__main__":
-    main()
