@@ -456,3 +456,23 @@ Endpoints（詳細列表見 `data_service/README.md`）：`/stocks/{ticker}/cand
 ### 三十三、recharts Pie 圖第一次渲染是空的（`isAnimationActive`）
 
 用 headless Chrome 截圖驗證投組配置圓餅圖時，DOM 裡 `<g class="recharts-layer recharts-pie">` 底下是空的——外層 `recharts-wrapper`/`recharts-surface` 尺寸都正常（256×256），但扇形沒畫出來。原因是 recharts `Pie` 預設有進場動畫（從 0 度展開），動畫由 JS timer 驅動；在無頭瀏覽器搭配 `--virtual-time-budget` 截圖時，這個 timer 沒有正常推進，畫面停在動畫的第一格（0 個扇形）。真實瀏覽器裡使用者幾乎不會注意到（動畫通常 <1 秒內完成），但這個案例乾脆直接關掉：`<Pie isAnimationActive={false} />`。一次性顯示的靜態圓餅圖本來就不需要進場動畫，順便讓自動化截圖驗證是可信的。
+
+---
+
+## 2026-07-01 — twstock 改回 PyPI 版本
+
+### 三十四、為什麼原本是 editable install，現在為什麼要換回去
+
+`~/proj/tools/twstock`（`mlouielu/twstock` 的本地 clone，透過 `pyproject.toml` 的 `[tool.uv.sources]` 用 editable 模式安裝）從專案建置初期就存在，但決策日誌沒有寫下明確原因，後來使用者決定改回單純的 PyPI 版本（`twstock>=1.5.1`，`dependencies` 裡的版本限制本來就在，只是移除 `[tool.uv.sources]` 的 path 覆寫），改法：`pyproject.toml` 刪掉 `[tool.uv.sources]` 區塊 → `uv sync` → uv 自動把 `.venv` 裡的 editable 連結換成真正的 PyPI wheel。
+
+### 三十五、刪除本地 fork 前，先確認有沒有未 commit 的資料會不見
+
+刪除 `~/proj/tools/twstock` 前用 `git status` 檢查，發現兩支股票代碼表 CSV（`twse_equities.csv`/`tpex_equities.csv`）有未 commit 的修改，多了幾支 2026 年新掛牌的股票（例如 7760、4169、4178）。查了 `twstock/codes/fetch.py` 才知道這是套件內建的 `__update_codes()`（`twstock.codes.fetch.__update_codes`）手動抓 TWSE/TPEx 最新上市櫃清單、直接覆寫套件目錄裡的 CSV 產生的結果——不是「本地才有的資料」，是官方就支援的更新機制，只是 PyPI 發布的版本不會自動跟著更新。所以換成 PyPI 版本後，**在新安裝的套件上重新跑一次 `__update_codes()`** 就能拿回一樣新的代碼表，不需要保留這個 fork。
+
+### 三十六、兩個 python 環境都要更新代碼表，且是各自獨立的安裝
+
+專案其實同時有兩個會用到 twstock 的 python 環境（見十四訂的規則以外的技術債，也是二十記過的老問題）：
+1. `uv run` 用的 `.venv`（`data_service/` 跑在這裡）
+2. Next.js Route Handler `execFile("python3", ...)` 用的系統 `python3`（miniconda，`src/api/get_stock_data.py` 這支暫時的指標計算腳本跑在這裡）
+
+這兩個是完全獨立的 twstock 安裝，`uv sync` 只會換掉第一個。實際測試發現系統 python3 的 twstock 代碼表也是舊的（查不到 7760/4169/4178），於是在系統 `python3` 上也手動跑了一次 `__update_codes()`。以後如果代碼表又過期（有新股票上市卻查不到公司名稱/產業別），兩邊都要各自更新一次。

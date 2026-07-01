@@ -39,4 +39,10 @@
 ## 2026-07-01 — Dashboard Step 4：每週選股結果頁
 - 選股表格（排名/評分/推薦理由/進場/停損/配置%，可排序）+ 投組配置圓餅圖 + CSV 下載（mock 資料）
 - 新裝 shadcn `chart`（recharts）、`progress` 元件
+
+## 2026-07-01 — twstock 改回 PyPI 版本
+- 移除 `pyproject.toml` 的 editable path 覆寫，`~/proj/tools/twstock` 本地 fork 已刪除
+- 刪除前確認本地 fork 有未 commit 的股票代碼表更新（2026 年新掛牌股票），改用套件內建的
+  `__update_codes()` 在新安裝的 PyPI 版本上重新抓一次，資料沒有遺失
+- 兩個獨立的 twstock 安裝（uv venv + 系統 python3／miniconda）都已更新代碼表
 - 修正 recharts Pie 進場動畫在初次渲染時是空的（`isAnimationActive={false}`）

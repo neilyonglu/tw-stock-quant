@@ -40,7 +40,7 @@
 
 ### 已完成
 - [x] Python 3.12 + uv、TA-Lib C 函式庫、所有套件
-- [x] twstock 本地 editable install（`~/proj/tools/twstock`）
+- [x] twstock 改回 PyPI 版本（2026-07-01，見下方工具索引備註）
 - [x] CasualMarket MCP Server（stdio 模式，`claude mcp add`）
 - [x] 8 個 equity-research AI skills + stock-analyst dispatcher
 - [x] GitHub repo、README、LICENSE、.gitignore
@@ -70,7 +70,7 @@
 
 | 工具 | 用途 | 備註 |
 |------|------|------|
-| `twstock` | 台股日 K 線、即時報價 | editable install，`~/proj/tools/twstock` |
+| `twstock` | 台股日 K 線、即時報價 | PyPI 版本（2026-07-01 起，原本的 `~/proj/tools/twstock` editable fork 已刪除）；股票代碼表會過期，需要時手動跑 `twstock.codes.fetch.__update_codes()` 更新 |
 | `CasualMarket` | 財報、月營收、股利（MCP Server） | 已設定，stdio 模式 |
 | `finmind` | 三大法人、融資券、台指期、股東結構 | 免費帳號 600 req/hr |
 | `yfinance` | USD/TWD 匯率（`USDTWD=X`）、美債（`^TNX`） | 免費 |

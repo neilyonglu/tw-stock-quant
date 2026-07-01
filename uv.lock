@@ -3716,7 +3716,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.18.0" },
     { name = "statsmodels", specifier = ">=0.14.6" },
     { name = "ta-lib", specifier = ">=0.6.8" },
-    { name = "twstock", editable = "../tools/twstock" },
+    { name = "twstock", specifier = ">=1.5.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.49.0" },
     { name = "yfinance", specifier = ">=1.4.1" },
 ]
@@ -3896,25 +3896,15 @@ wheels = [
 
 [[package]]
 name = "twstock"
-source = { editable = "../tools/twstock" }
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lxml" },
     { name = "requests" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "lxml" },
-    { name = "requests", specifier = ">=2.33.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "codecov" },
-    { name = "coverage" },
-    { name = "coveralls" },
-    { name = "vcrpy" },
-    { name = "wheel" },
+sdist = { url = "https://files.pythonhosted.org/packages/72/33/27064d83104d6c702d84f1ac51f6a404bd7fbd4631b2f24fb60ec1f07eda/twstock-1.5.1.tar.gz", hash = "sha256:e0105d5ee8717672269b5beb0fb08e27472ff9ed831cdf2dadc9f8e77216c3e9", size = 637913, upload-time = "2026-04-23T20:44:38.005Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/80/084ed74418bbc7fa739383964e473ca889feaba5399690751579b02d6dcb/twstock-1.5.1-py3-none-any.whl", hash = "sha256:e6f445b24b3c4f8f880369363742b4d48b423faa53ace14fdd4b86c0a102abe4", size = 571576, upload-time = "2026-04-23T20:44:39.917Z" },
 ]
 
 [[package]]
