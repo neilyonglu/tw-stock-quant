@@ -52,6 +52,3 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = ["twstock.*", "finmind.*", "backtesting.*", "talib.*"]
 ignore_missing_imports = true
-
-[tool.uv.sources]
-twstock = { path = "../tools/twstock", editable = true }
