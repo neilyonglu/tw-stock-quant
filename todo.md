@@ -166,19 +166,28 @@ K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 Re
 
 ---
 
-## Step 4 — 頁面三：每週選股結果
+## Step 4 — 頁面三：每週選股結果 ✅ 完成（2026-07-01）
 
 > 資料全部 mock，確認表格排版和互動正確。
 
-- [ ] `frontend/src/app/screening/page.tsx`
-- [ ] 頂部：最後更新時間 + 市場環境 badge
-- [ ] 主要表格（shadcn/ui `DataTable`）：
+- [x] `frontend/src/app/screening/page.tsx`
+- [x] 頂部：最後更新時間 + 市場環境 badge
+- [x] 主要表格：
   - 欄位：排名 / 股票 / 評分 / 推薦理由（白話三層摘要）/ 進場價 / 停損 / 配置 %
-  - 至少放 5 筆 mock 資料
-  - 點欄位標題可排序
+  - 5 筆 mock 資料
+  - 排名／評分／配置 % 可點表頭排序（手刻 `useState`，沒裝 `@tanstack/react-table`——
+    只有 3 欄要排序、不需要分頁篩選，裝一個表格函式庫太重）
   - 點股票代碼跳轉到 `/stock/[ticker]`
-- [ ] 表格右側放投組配置圓餅圖（用 Recharts pie chart，mock 數字）
-- [ ] 底部 `下載 CSV` 按鈕（之後再接真實資料）
+- [x] 表格右側放投組配置圓餅圖（shadcn Chart，底層 recharts，mock 數字）
+- [x] 底部 `下載 CSV` 按鈕（純前端 Blob，之後再接真實資料）
+
+**架構**：資料形狀定義在 `lib/types.ts`（`ScreeningData`/`ScreeningResult`），`/api/screening`
+回傳 mock。這份資料是後端（隊友開發中）的計算結果，不經過中台——評分/配置% 本來就不是
+「抓取」得到的 raw 資料。
+
+**已知待辦（跟 Step 3 一樣，留給 Step 5）**：手機寬度（375px）會橫向溢出，因為 Sidebar
+響應式收合還沒做；圓餅圖在手機版會正確跑到表格下方（grid 已經是 `grid-cols-1`），只是
+內容區被固定寬度的 Sidebar 擠壓。
 
 ---
 

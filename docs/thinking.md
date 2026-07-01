@@ -440,3 +440,19 @@ Endpoints（詳細列表見 `data_service/README.md`）：`/stocks/{ticker}/cand
 新增 `frontend/src/lib/data-service-client.ts`，包一個 `fetchFromDataService()`，打 `DATA_SERVICE_URL`（預設 `http://localhost:8001`，`frontend/.env.example` 有說明）。`market/indices`、`market/intraday`、`stock/[ticker]/orderbook`、`stock/[ticker]/intraday`、`stock/[ticker]/profile` 五個 route handler 改用這支；`stock/[ticker]/route.ts`（指標計算）維持呼叫 `run-python.ts`，只是腳本內部换成打中台。
 
 `get_stock_profile.py` 原本內建的 `_MOCK_MONTHLY_REVENUE`（月營收，沒有真實來源，等 Phase 4 CasualMarket）搬到 `frontend/src/lib/mock-data.ts` 的 `mockMonthlyRevenue`，因為 profile 現在整支走中台真資料，這是唯一還沒有來源的欄位，不該留在已經刪除的 raw fetch 腳本裡；route handler 呼叫中台拿到真資料後，在 TS 端合併這個 mock 欄位。
+
+---
+
+## 2026-07-01 — Dashboard Step 4：每週選股結果頁
+
+### 三十一、選股評分/投組配置不經過中台
+
+`ScreeningData`（`lib/types.ts`）整支 mock，`/api/screening` 直接回傳，**沒有**跟中台要任何資料。原因：評分、進場停損、投組配置是「計算」的產出（後端隊友的工作範圍），不是中台該抓的 raw 資料——這是拆中台那次觀念修正的直接應用，不是漏做。
+
+### 三十二、表格排序沒有裝 `@tanstack/react-table`
+
+`ui_plan.md` 原本建議用 shadcn DataTable（TanStack Table），但這頁只有 3 欄（排名/評分/配置%）需要排序，不需要分頁或篩選。改用現有的 `table.tsx` + 一個 `useState` 記錄排序欄位/方向，點表頭切換排序——省一個依賴，之後如果表格複雜度真的提高（例如要分頁、要多欄篩選），再考慮換成 TanStack Table。
+
+### 三十三、recharts Pie 圖第一次渲染是空的（`isAnimationActive`）
+
+用 headless Chrome 截圖驗證投組配置圓餅圖時，DOM 裡 `<g class="recharts-layer recharts-pie">` 底下是空的——外層 `recharts-wrapper`/`recharts-surface` 尺寸都正常（256×256），但扇形沒畫出來。原因是 recharts `Pie` 預設有進場動畫（從 0 度展開），動畫由 JS timer 驅動；在無頭瀏覽器搭配 `--virtual-time-budget` 截圖時，這個 timer 沒有正常推進，畫面停在動畫的第一格（0 個扇形）。真實瀏覽器裡使用者幾乎不會注意到（動畫通常 <1 秒內完成），但這個案例乾脆直接關掉：`<Pie isAnimationActive={false} />`。一次性顯示的靜態圓餅圖本來就不需要進場動畫，順便讓自動化截圖驗證是可信的。

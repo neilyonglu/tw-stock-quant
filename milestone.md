@@ -35,3 +35,8 @@
 - 前端 Route Handler 改打中台 HTTP API（不再直接 spawn python subprocess 抓資料）
 - `src/api/get_stock_data.py` 暫時保留當指標計算佔位層，改用中台的 raw candles，
   等隊友的後端 merge 回 main 後整支刪除
+
+## 2026-07-01 — Dashboard Step 4：每週選股結果頁
+- 選股表格（排名/評分/推薦理由/進場/停損/配置%，可排序）+ 投組配置圓餅圖 + CSV 下載（mock 資料）
+- 新裝 shadcn `chart`（recharts）、`progress` 元件
+- 修正 recharts Pie 進場動畫在初次渲染時是空的（`isAnimationActive={false}`）

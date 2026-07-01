@@ -217,3 +217,32 @@ export interface OrderBookData {
   asks: OrderBookLevel[] // 委賣，由低到高 5 檔
   bids: OrderBookLevel[] // 委買，由高到低 5 檔
 }
+
+// ─── /api/screening ──────────────────────────────────────────────────────────────
+// [mock] 選股評分、進場/停損、投組配置——這些是「計算」的結果，理論上是後端（隊友開發中）
+// 的工作範圍，不是中台該抓的 raw 資料，所以現在整支 mock，等後端做完再換成真資料。
+
+export interface ScreeningResult {
+  rank: number
+  ticker: string
+  name: string
+  score: number // 0–100
+  reasons: { institutional: string; technical: string; fundamental: string } // 三層白話理由
+  entry_low: number
+  entry_high: number
+  stop_loss: number
+  stop_loss_pct: number // 相對進場價的跌幅 %，負數
+  allocation_pct: number // 建議配置比例 %
+}
+
+export interface PortfolioAllocationItem {
+  name: string // 股票名稱或「現金」
+  pct: number
+}
+
+export interface ScreeningData {
+  updated_at: string // ISO 8601
+  market_environment: MarketEnvironment
+  results: ScreeningResult[]
+  allocation: PortfolioAllocationItem[]
+}

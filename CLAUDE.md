@@ -53,7 +53,7 @@
 - [x] Step 3：市場總覽頁（mock 資料，`lib/types.ts` 定義未來後端合約，見 docs/thinking.md 十四）
 - [x] 對照看盤平台補齊功能：個股分時/基本面/籌碼面/五檔/新聞、大盤分時/櫃買/國際指數/期貨/排行榜/新聞（yfinance/twstock 拿得到的全部真實，拿不到的 mock，見 docs/thinking.md 十八～二十一）
 - [x] 拆出資料中台 `data_service/`（FastAPI + 記憶體 TTL cache），前端 Route Handler 改打中台 HTTP API，不再直接 spawn python subprocess 抓資料（見 docs/thinking.md 2026-07-01）
-- [ ] Step 4：每週選股結果頁（mock 資料）
+- [x] Step 4：每週選股結果頁（表格排序、投組配置圓餅圖、CSV 下載，資料 mock）
 
 ### 進行中（後端，隊友負責）
 - [ ] 後端另開 branch 開發，負責計算（技術指標、選股評分、投組優化），跟中台要 raw 資料；merge 回 main 後，`src/api/get_stock_data.py` 的暫時指標計算要整支刪除，改打後端 API
