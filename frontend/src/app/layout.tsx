@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Sidebar } from "@/components/sidebar"
 import "./globals.css"
 
@@ -13,13 +12,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning prevents mismatch when next-themes sets class on hydration
-    <html lang="zh-TW" className={inter.variable} suppressHydrationWarning>
+    <html lang="zh-TW" className={`dark ${inter.variable}`}>
       <body className="flex h-screen bg-background text-foreground antialiased">
-        <ThemeProvider>
-          <Sidebar />
-          <main className="flex-1 overflow-auto">{children}</main>
-        </ThemeProvider>
+        <Sidebar />
+        <main className="flex-1 overflow-auto pb-14 md:pb-0">{children}</main>
       </body>
     </html>
   )

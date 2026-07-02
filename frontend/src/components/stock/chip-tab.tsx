@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
 import type { StockChipData } from "@/lib/types"
+import { formatDate } from "@/lib/utils"
 
 function fmtSigned(n: number) {
   const sign = n >= 0 ? "+" : ""
@@ -70,7 +71,7 @@ export function ChipTab({ ticker }: { ticker: string }) {
           <TableBody>
             {data.institutional.map((row) => (
               <TableRow key={row.date} className="border-zinc-800 hover:bg-zinc-900">
-                <TableCell className="text-zinc-200">{row.date}</TableCell>
+                <TableCell className="text-zinc-200">{formatDate(row.date)}</TableCell>
                 <TableCell className={`text-right tabular-nums ${row.foreign >= 0 ? "text-red-400" : "text-emerald-400"}`}>
                   {fmtSigned(row.foreign)}
                 </TableCell>

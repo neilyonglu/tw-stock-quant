@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
 import type { StockProfile } from "@/lib/types"
+import { formatDate } from "@/lib/utils"
 
 export function ProfileTab({ ticker }: { ticker: string }) {
   const [data, setData] = useState<StockProfile | null>(null)
@@ -93,7 +94,7 @@ export function ProfileTab({ ticker }: { ticker: string }) {
           <TableBody>
             {data.monthly_revenue.map((r) => (
               <TableRow key={r.month} className="border-zinc-800 hover:bg-zinc-900">
-                <TableCell className="text-zinc-200">{r.month}</TableCell>
+                <TableCell className="text-zinc-200">{formatDate(r.month)}</TableCell>
                 <TableCell className="text-right tabular-nums text-zinc-200">{r.revenue.toLocaleString()}</TableCell>
                 <TableCell className={`text-right tabular-nums ${r.yoy >= 0 ? "text-red-400" : "text-emerald-400"}`}>
                   {r.yoy >= 0 ? "+" : ""}{r.yoy.toFixed(1)}%

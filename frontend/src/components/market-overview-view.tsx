@@ -12,6 +12,7 @@ import { FuturesCard } from "@/components/market/futures-card"
 import { RankingsSection } from "@/components/market/rankings-section"
 import { MarketNewsSection } from "@/components/market/news-section"
 import type { BusinessCycleLight, MarketIndicesData, MarketOverviewData } from "@/lib/types"
+import { formatDateTime } from "@/lib/utils"
 
 // 國發會官方景氣對策信號燈的 5 色分級，跟頁面其他地方的「紅漲綠跌」是不同的顏色系統
 // （紅燈＝過熱，不等於「漲」；綠燈＝穩定，不等於「跌」），所以用色點而不是文字顏色，
@@ -68,7 +69,7 @@ export function MarketOverviewView() {
           <h1 className="text-xl font-semibold text-white">台股市場總覽</h1>
           {data && (
             <p className="text-xs text-zinc-500 mt-1">
-              資料時間：{new Date(data.updated_at).toLocaleString("zh-TW")}
+              資料時間：{formatDateTime(data.updated_at)}
             </p>
           )}
         </div>

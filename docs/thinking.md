@@ -494,3 +494,43 @@ lightweight-charts v5 把 marker API 改成外掛形式：`import { createSeries
 ### 三十九、成交量均線重用主圖 SMA 的配色慣例
 
 `get_stock_data.py` 用跟 SMA20/SMA60 一樣的 `volume.rolling(5/10).mean()` 算法加了 `volume_sma5`/`volume_sma10`，畫在成交量子圖（pane 1）上，直接沿用「短週期＝amber、長週期＝blue」這套已經在主圈用過的配色（抽成 `MA_SHORT`/`MA_LONG` 常數），使用者不用重新學一套新顏色語意。這兩條線設定 `priceScaleId: "vol"` 跟成交量長條共用同一個 Y 軸。
+
+---
+
+## 2026-07-02 — Dashboard Step 5：收尾細節（響應式 + 深色主題簡化）
+
+### 四十、拿掉 `next-themes`，深色主題直接寫死在 `<html>`
+
+`ui_plan.md` 原始設計用 `next-themes`（`ThemeProvider` + `attribute="class"` + `defaultTheme="dark"`），但專案從一開始就決定「固定深色，不提供光亮 variant」——`globals.css` 也真的只寫了 `.dark` 沒寫 `:root` 亮色，且沒有任何 toggle UI。這代表 next-themes 的核心價值（系統偏好偵測、明暗切換、SSR/CSR hydration 處理）整套用不到，還多一層「使用者系統是淺色模式時，主題解析邏輯是否還是會導向沒有樣式的狀態」的不必要風險。改成 `layout.tsx` `<html className="dark">` 直接寫死，刪掉 `theme-provider.tsx` 和 `next-themes` 依賴。
+
+### 四十一、Sidebar 響應式：CSS 斷點決定寬度，JS state 只管桌面手動收合
+
+`sidebar.tsx` 原本只有一個手動 collapse 按鈕（任何寬度都能觸發 240px ↔ 56px），跟 `ui_plan.md` 訂的三段斷點（<768px 隱藏、768–1023px 強制 icon-only、≥1024px 完整版）没接上，實測 375px 下主要內容被擠壓。改法：寬度用 Tailwind 斷點類別控制基準（`w-14`，`lg:` 才依 `collapsed` state 切到 `w-14`/`w-60`），文字 label 的顯示邏輯是 `collapsed ? "hidden" : "hidden lg:inline"`——手動 collapse 只在 `lg`（桌面）以上有效，平板寬度不管 state 都強制 icon-only。手機另外渲染一個 `md:hidden` 的底部 fixed nav（3 項圖示＋文字），跟桌面版 aside 是兩個平行的 DOM 節點，不是同一個 aside 用 CSS 硬擠成 bottom bar。
+
+### 四十二、個股分析頁的「左側控制欄」跟全域 nav Sidebar 是兩層不同的東西，也要各自處理響應式
+
+`stock-analysis-view.tsx` 內部自己有一個 `w-56` 固定寬的控制欄（股票代碼／K 線週期／時間區間／技術訊號／五檔報價），跟 `sidebar.tsx` 的全域導覽是分開的兩層。用 Playwright 在 375px 實測發現：全域 Sidebar 改響應式後這層還是固定 224px，把主圖區擠到剩 ~150px，K 線圖上方的 Tabs（分時/K線圖/速查指標/籌碼面/基本面/新聞）直接被裁到畫面外、點不到也看不到——不是視覺上「擠」而已，是功能性壞掉。改成 `flex-col md:flex-row`，控制欄在手機版排到主圖區下方（`order-2 md:order-1` / `order-1 md:order-2`），Tabs 另外包一層 `overflow-x-auto` 讓超寬時可以橫向滑動而不是被裁切。`screening-view.tsx` 的表格也有一樣的裁切問題（進場區間/停損/配置% 欄位在 375px 下完全看不到），修法是表格外層加 `overflow-x-auto`，不動 grid 結構（圓餅圖本來就是 `grid-cols-1` 會自動排到表格下方）。
+
+### 四十三、沒有 `chromium-cli`，改用 npx 裝一次性 `playwright` 到 scratchpad 驗證
+
+環境裡沒有 `/run` skill 預期的 `chromium-cli`，但 `~/.cache/ms-playwright/` 已經有裝過 Chromium 二進位，所以在 scratchpad（不是專案目錄，不進 `package.json`）用 `npm install playwright --no-save` 裝一次性驗證用的 headless 瀏覽器，寫小腳本量 `document.documentElement.scrollWidth` 找橫向溢出、截圖、模擬點擊導覽＋K 線滾輪縮放。用完 `pkill -f "next dev"` 關掉 dev server，scratchpad 產物不影響專案本身。
+
+---
+
+## 2026-07-02 — 圖表縮放邊界、Turbopack 假 hydration 警告、日期格式、色彩一致性
+
+### 四十四、Turbopack persistent cache 造成的假 hydration mismatch，不是程式問題
+
+使用者長時間開著 `next dev`，同一時間我在改檔案，畫面跳出 `disabled={true}`（client）vs `disabled={null}`（server）的 hydration 錯誤，overlay 上還帶著 `(stale)` 標籤。查 `node_modules/next/dist/docs`（`turbopackFileSystemCache.md`）確認 Next 16.1 起 Turbopack 預設對 `next dev` 開啟 persistent filesystem cache（存在 `.next/`），編輯中的原始碼跟快取住的舊編譯結果對不上時就是這個 `(stale)` 標籤在講的事。用乾淨的 Playwright session 重新整理三頁，console 完全沒有錯誤，證實不是真的程式邏輯問題。修法：`pkill -f "next dev"` + `rm -rf .next` 清快取後重開。以後只要看到畫面上出現詭異、跟程式邏輯對不起來的 hydration 警告，先看 Turbopack 是不是有 `(stale)` 標籤，不用急著在程式碼裡找 bug。
+
+### 四十五、圖表縮放下限：`minBarSpacing` 動態算，不能寫死常數
+
+`kline-chart.tsx`／`intraday-chart.tsx`（K 線圖、個股與大盤分時走勢共用）原本沒設 lightweight-charts 的 `timeScale.minBarSpacing`，滑鼠滾輪可以無限縮小，把資料擠成一小坨、兩側留一大片空白背景。新增 `lib/chart-zoom-bound.ts` 的 `boundChartZoom()`：用 `timeScale.width() / dataLength` 算出「剛好把所有資料塞滿可視寬度」的 bar spacing 當作 `minBarSpacing` 下限，同時開 `fixLeftEdge`/`fixRightEdge` 擋住平移超出資料範圍。用 `ResizeObserver` 監聽容器尺寸變化即時重算——資料筆數少（例如分鐘線只抓近 5 個交易日）下限會自動變大，資料多則下限變小，不是寫死一個常數。
+
+### 四十六、日期時間格式統一：`toLocaleString("zh-TW")` 預設格式不可控，要手動指定 `hour12: false`
+
+`toLocaleString("zh-TW")` 不帶 options 預設輸出「2026/7/2 下午1:30:00」——月日沒有補零、12 小時制帶「上午/下午」、還有沒必要的秒數。`lib/utils.ts` 新增 `formatDateTime`（含年，`2026/07/02 13:00`）、`formatTimeShort`（省年份，給新聞列表這種空間有限的地方用）、`formatDate`（純日期字串如 `"2026-06-26"`/`"2026-06"` 直接 `replaceAll("-", "/")`，不用再 new Date() 解析一次，也避免時區偏移风险）。全站所有日期時間顯示（`market-overview-view.tsx`／`screening-view.tsx` 的「資料時間」、`news-list.tsx`、`stock/chip-tab.tsx` 的三大法人日期、`stock/profile-tab.tsx` 的月營收月份）都改用這三支，不要各自呼叫 `toLocaleString`。
+
+### 四十七、MACD 狀態 Badge 顏色跟「紅漲綠跌」慣例反著來，是真的顏色 bug
+
+`stock-analysis-view.tsx` 速查指標 Tab 原本：MACD 金叉（多頭）用 `variant="default"`（中性黑白）、死叉（空頭）用 `variant="destructive"`（紅色）。全站其他地方都是「多頭/上漲用紅、空頭/下跌用綠」（`market-banner.tsx`、`screening-view.tsx`、`order-book.tsx` 都有明確註解），這裡卻讓「空頭」顯示紅色，跟同一頁面上方股價漲跌的紅綠語意直接打架。原因是 shadcn Badge 的 `variant` 系統只有 `destructive`（紅）沒有對應的「綠」，順手就套錯了。修法：`stat-card.tsx` 的 `badge` prop 加一個 `className` 欄位可以蓋掉 variant 預設色，`stock-analysis-view.tsx` 的 MACD／RSI badge 改用 `variant="outline"` + 自訂 `bg-red-400/15 text-red-400` 或 `bg-emerald-400/15 text-emerald-400`，比照 `order-book.tsx` 已經在用的同一組 tint 樣式。順便把「量比」StatCard 原本無條件套 `text-emerald-400`（含義是「放量」，不代表下跌）也改成 `text-amber-400`，避免使用者誤讀成「綠色=偏空」。

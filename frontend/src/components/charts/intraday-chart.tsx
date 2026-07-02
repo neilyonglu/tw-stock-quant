@@ -12,6 +12,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts"
 import type { IntradaySeries } from "@/lib/types"
+import { boundChartZoom } from "@/lib/chart-zoom-bound"
 
 // 台股慣例：紅漲綠跌（跟美股的 green-up / red-down 相反），跟 kline-chart.tsx 一致
 const STOCK_UP = "#EF5350" // 漲：紅
@@ -103,7 +104,13 @@ export function IntradayChart({ data }: { data: IntradaySeries }) {
     panes[0]?.setHeight(MAIN_H)
     if (hasVolume) panes[1]?.setHeight(SUB_H)
 
-    return () => chart.remove()
+    // 縮到最小（最多資料）時，畫面兩側還是要有資料，不能拉出空白
+    const disposeZoomBound = boundChartZoom(chart, containerRef.current, data.points.length)
+
+    return () => {
+      disposeZoomBound()
+      chart.remove()
+    }
   }, [data, hasVolume])
 
   return <div ref={containerRef} style={{ height: hasVolume ? MAIN_H + SUB_H : MAIN_H }} />
