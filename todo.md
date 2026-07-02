@@ -196,12 +196,27 @@ K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 Re
 
 ---
 
-## Step 5 — 收尾細節
+## Step 5 — 收尾細節 ✅ 完成（2026-07-02）
 
-- [ ] 統一深色主題（`dark` class 加到 `html` 標籤）
-- [ ] `layout.tsx` 加 metadata（`title: "台股分析"、description`）
-- [ ] 確認三個頁面在手機尺寸（375px）下都能正常操作
-- [ ] 驗收：三頁都能切換，K 線可以縮放 hover，選股表可點擊跳轉
+- [x] 統一深色主題（`dark` class 加到 `html` 標籤）——拿掉 `next-themes`／`ThemeProvider`，
+      本專案本來就沒有亮色 variant、也沒有 toggle UI，直接在 `layout.tsx` `<html>` 寫死
+      `className="dark"` 更簡單、也不會有系統淺色模式時抓不到色票的風險
+- [x] `layout.tsx` 加 metadata（`title: "台股分析"、description`）——已存在，補勾
+- [x] 確認三個頁面在手機尺寸（375px）下都能正常操作——用 Playwright headless Chromium 實測
+      375px 寬，抓 `scrollWidth` 找橫向溢出，另外肉眼看截圖：
+  - `sidebar.tsx` 改響應式：< 768px 隱藏改底部 fixed nav（3 項圖示＋文字，56px 高）；
+    768–1023px 強制 icon-only（56px 寬，不受手動 collapse 影響）；≥1024px 完整 240px，
+    手動 collapse 按鈕只在桌面顯示
+  - 個股分析頁（`stock-analysis-view.tsx`）左側控制欄原本固定 `w-56`，在 375px 下把主圖區
+    擠到只剩 ~150px、K 線圖 Tabs（分時/K線圖/速查指標/籌碼面/基本面/新聞）被裁到看不到、
+    點不到——改成 `flex-col md:flex-row`，控制欄手機版排到主圖區下方（`order-2 md:order-1`），
+    Tabs 另外包一層 `overflow-x-auto` 讓超寬時可以橫向滑動而不是裁切
+  - 選股結果頁（`screening-view.tsx`）表格在 375px 下同樣被裁到看不到「進場區間/停損/配置%」
+    欄位——表格外層加 `overflow-x-auto`，圓餅圖確認會正確 reflow 到表格下方
+  - 市場總覽頁本來就沒問題，grid 在窄螢幕下 reflow 正常
+- [x] 驗收：三頁都能切換，K 線可以縮放 hover，選股表可點擊跳轉——Playwright 跑過
+      市場總覽→選股→點股票代碼跳轉個股頁→切 K 線圖 Tab→滾輪縮放，全程無 console error；
+      平板寬度（900px）確認 sidebar 強制收成 icon bar
 
 ---
 

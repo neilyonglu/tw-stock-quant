@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Pie, PieChart, Cell } from "recharts"
-import { cn } from "@/lib/utils"
+import { cn, formatDateTime } from "@/lib/utils"
 import type { ScreeningData, ScreeningResult } from "@/lib/types"
 
 // 台股慣例：紅漲綠跌，多頭（看漲）用紅、空頭（看跌）用綠
@@ -135,7 +135,7 @@ export function ScreeningView() {
           <h1 className="text-xl font-semibold text-white">每週選股結果</h1>
           {data && (
             <p className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
-              資料時間：{new Date(data.updated_at).toLocaleString("zh-TW")}
+              資料時間：{formatDateTime(data.updated_at)}
               <span className="text-zinc-700">|</span>
               市場環境：<span className={ENV_TEXT[data.market_environment]}>{data.market_environment}</span>
             </p>
@@ -156,6 +156,7 @@ export function ScreeningView() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           {/* 選股表格 */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-md overflow-hidden">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-zinc-800 hover:bg-transparent">
@@ -213,6 +214,7 @@ export function ScreeningView() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
 
           {/* 投組配置圓餅圖 */}

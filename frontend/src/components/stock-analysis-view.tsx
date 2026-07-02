@@ -162,9 +162,9 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
   const isUp = (latest?.change ?? 0) >= 0
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* ── 左側控制欄 ── */}
-      <aside className="w-56 shrink-0 border-r border-zinc-800 flex flex-col bg-zinc-950 overflow-y-auto">
+    <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden">
+      {/* ── 左側控制欄（手機版排在主圖區下方）── */}
+      <aside className="order-2 md:order-1 md:w-56 md:shrink-0 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-col bg-zinc-950 md:overflow-y-auto">
         <div className="p-4 space-y-4">
           {/* 搜尋 */}
           <div>
@@ -258,7 +258,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
       </aside>
 
       {/* ── 主圖區 ── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="order-1 md:order-2 flex-1 md:overflow-y-auto">
         {/* 標題列 */}
         <div className="px-6 py-4 border-b border-zinc-800 flex items-baseline gap-3">
           <h1 className="text-lg font-semibold text-white">
@@ -284,14 +284,16 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
 
         <div className="p-4">
           <Tabs defaultValue="intraday">
-            <TabsList className="mb-3 bg-zinc-900 border border-zinc-800">
-              <TabsTrigger value="intraday">分時</TabsTrigger>
-              <TabsTrigger value="chart">K 線圖</TabsTrigger>
-              <TabsTrigger value="stats">速查指標</TabsTrigger>
-              <TabsTrigger value="chip">籌碼面</TabsTrigger>
-              <TabsTrigger value="profile">基本面</TabsTrigger>
-              <TabsTrigger value="news">新聞</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto mb-3">
+              <TabsList className="bg-zinc-900 border border-zinc-800 w-max">
+                <TabsTrigger value="intraday">分時</TabsTrigger>
+                <TabsTrigger value="chart">K 線圖</TabsTrigger>
+                <TabsTrigger value="stats">速查指標</TabsTrigger>
+                <TabsTrigger value="chip">籌碼面</TabsTrigger>
+                <TabsTrigger value="profile">基本面</TabsTrigger>
+                <TabsTrigger value="news">新聞</TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* 分時走勢 */}
             <TabsContent value="intraday">
@@ -346,9 +348,9 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                       value={latest.rsi.toString()}
                       badge={
                         latest.rsi > 70
-                          ? { text: "超買", variant: "destructive" }
+                          ? { text: "超買", variant: "outline", className: "bg-red-400/15 text-red-400 border-transparent" }
                           : latest.rsi < 30
-                          ? { text: "超賣", variant: "outline" }
+                          ? { text: "超賣", variant: "outline", className: "bg-emerald-400/15 text-emerald-400 border-transparent" }
                           : { text: "健康", variant: "default" }
                       }
                       hint="RSI < 30 超賣可能反彈；> 70 超買可能拉回；30–70 動能健康"
@@ -358,15 +360,15 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                       value={latest.macd_crossover === "golden" ? "金叉" : "死叉"}
                       badge={
                         latest.macd_crossover === "golden"
-                          ? { text: "多頭", variant: "default" }
-                          : { text: "空頭", variant: "destructive" }
+                          ? { text: "多頭", variant: "outline", className: "bg-red-400/15 text-red-400 border-transparent" }
+                          : { text: "空頭", variant: "outline", className: "bg-emerald-400/15 text-emerald-400 border-transparent" }
                       }
                       hint="MACD 金叉代表短期動能轉強，死叉代表動能轉弱"
                     />
                     <StatCard
                       label="量比（vs 5 日均量）"
                       value={`${latest.volume_ratio.toFixed(2)}x`}
-                      valueClassName={latest.volume_ratio >= 1.5 ? "text-emerald-400" : undefined}
+                      valueClassName={latest.volume_ratio >= 1.5 ? "text-amber-400" : undefined}
                       hint="量比 ≥ 1.5x 表示今日放量，是突破或下跌的重要確認訊號"
                     />
                   </>

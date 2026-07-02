@@ -9,6 +9,8 @@ interface StatCardProps {
   badge?: {
     text: string
     variant?: "default" | "secondary" | "destructive" | "outline"
+    // 蓋掉 variant 預設色，畫面上真的需要紅漲綠跌配色時用（shadcn variant 沒有「綠色」選項）
+    className?: string
   }
   valueClassName?: string
   hint?: string
@@ -29,7 +31,7 @@ export function StatCard({ label, value, sub, badge, valueClassName, hint, dot }
           </span>
           {sub && <span className="text-sm text-zinc-400 tabular-nums">{sub}</span>}
           {badge && (
-            <Badge variant={badge.variant ?? "default"} className="ml-auto text-xs">
+            <Badge variant={badge.variant ?? "default"} className={cn("ml-auto text-xs", badge.className)}>
               {badge.text}
             </Badge>
           )}

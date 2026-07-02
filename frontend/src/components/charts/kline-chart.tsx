@@ -12,6 +12,7 @@ import {
   LineStyle,
 } from "lightweight-charts"
 import type { Candle, VolumeBar, TimeValue, MacdPayload } from "@/lib/types"
+import { boundChartZoom } from "@/lib/chart-zoom-bound"
 
 export type { Candle, VolumeBar, TimeValue, MacdPayload }
 
@@ -209,7 +210,13 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
     panes[2]?.setHeight(SUB_H)
     panes[3]?.setHeight(SUB_H)
 
-    return () => chart.remove()
+    // 縮到最小（最多資料）時，畫面兩側還是要有資料，不能拉出空白
+    const disposeZoomBound = boundChartZoom(chart, containerRef.current, candles.length)
+
+    return () => {
+      disposeZoomBound()
+      chart.remove()
+    }
   }, [candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd])
 
   return (
