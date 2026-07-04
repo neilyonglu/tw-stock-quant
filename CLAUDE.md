@@ -38,8 +38,10 @@
 - README.md（英文）與 README.zh-TW.md（繁中）必須同步更新，更新後 commit（本機）
 - plan.md / todo.md / CLAUDE.md 維持中文
 - 只記錄影響架構或未來會忘記原因的決策；日常維護不寫進文件
-- 大量讀取、掃 repo、批次改檔：先讀 `~/.claude/rules/dispatch.md` 再派 subagent，不要在主對話下場
-- 拿不準「算不算完成」「要不要問使用者」時，讀 `~/.claude/rules/judgment.md`
+- 個人工作制度（以下路徑是屋主本機的個人設定，clone 這個 repo 的其他人不會有這些檔案，**不存在就整段忽略**）：
+  - 大量讀取、掃 repo、批次改檔 → 先讀 `~/.claude/rules/dispatch.md` 再派 subagent
+  - 拿不準「算不算完成」「要不要問使用者」 → 讀 `~/.claude/rules/judgment.md`
+  - 新 session 接手長期工作 → 讀 `.claude/rules/letter.md`（本專案交接信，gitignored）
 
 ## 當前狀態（快照，細節看 todo.md / milestone.md）
 
