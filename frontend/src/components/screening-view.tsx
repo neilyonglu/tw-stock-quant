@@ -117,6 +117,9 @@ export function ScreeningView() {
     }
   }
 
+  const ariaSortFor = (key: SortKey): "ascending" | "descending" | "none" =>
+    key !== sortKey ? "none" : sortDir === "asc" ? "ascending" : "descending"
+
   const sortedResults = useMemo(() => {
     if (!data) return []
     const copy = [...data.results]
@@ -134,7 +137,7 @@ export function ScreeningView() {
         <div>
           <h1 className="text-xl font-semibold text-white">每週選股結果</h1>
           {data && (
-            <p className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
               資料時間：{formatDateTime(data.updated_at)}
               <span className="text-zinc-700">|</span>
               市場環境：<span className={ENV_TEXT[data.market_environment]}>{data.market_environment}</span>
@@ -160,17 +163,17 @@ export function ScreeningView() {
             <Table>
               <TableHeader>
                 <TableRow className="border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-zinc-400">
+                  <TableHead className="text-zinc-400" aria-sort={ariaSortFor("rank")}>
                     <SortButton label="#" sortKey="rank" activeKey={sortKey} dir={sortDir} onClick={() => toggleSort("rank")} />
                   </TableHead>
                   <TableHead className="text-zinc-400">股票</TableHead>
-                  <TableHead className="text-zinc-400">
+                  <TableHead className="text-zinc-400" aria-sort={ariaSortFor("score")}>
                     <SortButton label="評分" sortKey="score" activeKey={sortKey} dir={sortDir} onClick={() => toggleSort("score")} />
                   </TableHead>
                   <TableHead className="text-zinc-400 min-w-48">推薦理由</TableHead>
                   <TableHead className="text-zinc-400">進場區間</TableHead>
                   <TableHead className="text-zinc-400">停損</TableHead>
-                  <TableHead className="text-zinc-400">
+                  <TableHead className="text-zinc-400" aria-sort={ariaSortFor("allocation_pct")}>
                     <SortButton label="配置 %" sortKey="allocation_pct" activeKey={sortKey} dir={sortDir} onClick={() => toggleSort("allocation_pct")} />
                   </TableHead>
                 </TableRow>
@@ -182,7 +185,7 @@ export function ScreeningView() {
                     <TableCell>
                       <Link href={`/stock/${r.ticker}`} className="hover:text-red-400 transition-colors">
                         <span className="font-medium text-white">{r.name}</span>
-                        <span className="text-zinc-500 ml-1.5 tabular-nums">{r.ticker}</span>
+                        <span className="text-muted-foreground ml-1.5 tabular-nums">{r.ticker}</span>
                       </Link>
                     </TableCell>
                     <TableCell>
@@ -191,10 +194,10 @@ export function ScreeningView() {
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-normal">
-                      <ul className="text-xs text-zinc-500 space-y-0.5 leading-snug">
-                        <li><span className="text-zinc-600">法人｜</span>{r.reasons.institutional}</li>
-                        <li><span className="text-zinc-600">技術｜</span>{r.reasons.technical}</li>
-                        <li><span className="text-zinc-600">基本面｜</span>{r.reasons.fundamental}</li>
+                      <ul className="text-xs text-muted-foreground space-y-0.5 leading-snug">
+                        <li><span className="text-zinc-400">法人｜</span>{r.reasons.institutional}</li>
+                        <li><span className="text-zinc-400">技術｜</span>{r.reasons.technical}</li>
+                        <li><span className="text-zinc-400">基本面｜</span>{r.reasons.fundamental}</li>
                       </ul>
                     </TableCell>
                     <TableCell className="tabular-nums text-zinc-300">
@@ -202,7 +205,7 @@ export function ScreeningView() {
                     </TableCell>
                     <TableCell className="tabular-nums">
                       <span className="text-emerald-400">{r.stop_loss}</span>
-                      <span className="text-zinc-500 ml-1">({r.stop_loss_pct}%)</span>
+                      <span className="text-muted-foreground ml-1">({r.stop_loss_pct}%)</span>
                     </TableCell>
                     <TableCell className="min-w-24">
                       <div className="flex items-center gap-2">
@@ -270,7 +273,7 @@ export function ScreeningView() {
         下載 CSV
       </Button>
 
-      <p className={cn("text-xs text-zinc-500")}>
+      <p className={cn("text-xs text-muted-foreground")}>
         評分、進場區間、停損與投組配置是模擬資料，實際策略邏輯還在開發中，不構成投資建議。
       </p>
     </div>

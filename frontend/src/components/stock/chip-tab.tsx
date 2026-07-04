@@ -85,7 +85,7 @@ export function ChipTab({ ticker }: { ticker: string }) {
             ))}
           </TableBody>
         </Table>
-        <p className="text-xs text-zinc-500 mt-2">外資連續買超通常是最值得參考的籌碼訊號，因為外資資金量體最大</p>
+        <p className="text-xs text-muted-foreground mt-2">外資連續買超通常是最值得參考的籌碼訊號，因為外資資金量體最大</p>
       </div>
     </div>
   )

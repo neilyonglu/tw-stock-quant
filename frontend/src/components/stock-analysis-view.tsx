@@ -168,16 +168,23 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
         <div className="p-4 space-y-4">
           {/* 搜尋 */}
           <div>
-            <p className="text-xs text-zinc-500 mb-2">股票代碼</p>
+            <label htmlFor="ticker-input" className="text-xs text-muted-foreground mb-2 block">股票代碼</label>
             <div className="flex gap-1.5">
               <Input
+                id="ticker-input"
                 value={tickerInput}
                 onChange={(e) => setTickerInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 placeholder="2330"
-                className="bg-zinc-900 border-zinc-700 text-sm h-8"
+                className="bg-zinc-900 border-zinc-700 text-sm h-11"
               />
-              <Button size="sm" variant="outline" className="h-8 px-2 border-zinc-700" onClick={handleSearch}>
+              <Button
+                size="sm"
+                variant="outline"
+                aria-label="搜尋股票代碼"
+                className="h-11 w-11 px-0 border-zinc-700 shrink-0"
+                onClick={handleSearch}
+              >
                 <Search size={14} />
               </Button>
             </div>
@@ -185,17 +192,17 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
 
           {/* K 線週期 */}
           <div>
-            <p className="text-xs text-zinc-500 mb-2">K 線週期</p>
+            <p className="text-xs text-muted-foreground mb-2">K 線週期</p>
             <ToggleGroup
               value={[interval]}
               onValueChange={(vals) => { if (vals.length > 0) handleIntervalChange(vals[0]) }}
-              className="grid grid-cols-4 gap-0.5"
+              className="grid grid-cols-4 gap-1"
             >
               {INTERVALS.map(({ label, value }) => (
                 <ToggleGroupItem
                   key={value}
                   value={value}
-                  className="text-xs h-7 aria-pressed:bg-zinc-700 aria-pressed:text-white border border-zinc-800"
+                  className="text-xs h-11 aria-pressed:bg-zinc-700 aria-pressed:text-white border border-zinc-800"
                 >
                   {label}
                 </ToggleGroupItem>
@@ -206,17 +213,17 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {/* 時間區間（僅日/週/月可選；分鐘線固定區間） */}
           {"periods" in activeInterval ? (
             <div>
-              <p className="text-xs text-zinc-500 mb-2">時間區間</p>
+              <p className="text-xs text-muted-foreground mb-2">時間區間</p>
               <ToggleGroup
                 value={[period]}
                 onValueChange={(vals) => { if (vals.length > 0) setPeriod(vals[0]) }}
-                className="grid grid-cols-3 gap-0.5"
+                className="grid grid-cols-3 gap-1"
               >
                 {activeInterval.periods.map(({ label, value }) => (
                   <ToggleGroupItem
                     key={value}
                     value={value}
-                    className="text-xs h-7 aria-pressed:bg-zinc-700 aria-pressed:text-white border border-zinc-800"
+                    className="text-xs h-11 aria-pressed:bg-zinc-700 aria-pressed:text-white border border-zinc-800"
                   >
                     {label}
                   </ToggleGroupItem>
@@ -224,13 +231,13 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               </ToggleGroup>
             </div>
           ) : (
-            <p className="text-xs text-zinc-500 leading-snug">{activeInterval.hint}</p>
+            <p className="text-xs text-muted-foreground leading-snug">{activeInterval.hint}</p>
           )}
 
           {/* 技術訊號 */}
           {data && (
             <div>
-              <p className="text-xs text-zinc-500 mb-2">技術訊號</p>
+              <p className="text-xs text-muted-foreground mb-2">技術訊號</p>
               <div className="space-y-0.5">
                 {buildSignals(data).map((s, i) => (
                   <SignalBadge key={i} level={s.level} label={s.label} desc={s.desc} />
@@ -242,7 +249,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {/* 五檔報價 */}
           {latest && (
             <div>
-              <p className="text-xs text-zinc-500 mb-2">五檔報價</p>
+              <p className="text-xs text-muted-foreground mb-2">五檔報價</p>
               <OrderBook ticker={activeTicker} />
             </div>
           )}
@@ -274,7 +281,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               <span className={`text-sm tabular-nums font-medium ${isUp ? "text-red-400" : "text-emerald-400"}`}>
                 {fmtChange(latest.change, latest.change_pct)}
               </span>
-              <span className="text-xs text-zinc-500 tabular-nums ml-auto">
+              <span className="text-xs text-muted-foreground tabular-nums ml-auto">
                 漲停 <span className="text-red-400">{latest.limit_up}</span>　跌停 <span className="text-emerald-400">{latest.limit_down}</span>
               </span>
             </>
@@ -323,7 +330,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                 />
               )}
               {!loading && error && (
-                <div className="h-215 flex items-center justify-center text-zinc-500">
+                <div className="h-215 flex items-center justify-center text-muted-foreground">
                   無法載入 {activeTicker} 的資料，請確認代碼是否正確
                 </div>
               )}

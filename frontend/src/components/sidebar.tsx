@@ -32,14 +32,15 @@ export function Sidebar() {
               href="https://github.com/neilyonglu/tw-stock-quant"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-[10px] text-muted-foreground hover:text-zinc-300 transition-colors"
             >
               by neilyonglu
             </a>
           </div>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:block p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-auto"
+            aria-label={collapsed ? "展開側欄" : "收合側欄"}
+            className="hidden lg:flex items-center justify-center h-11 w-11 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-auto"
           >
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
@@ -54,9 +55,10 @@ export function Sidebar() {
                 key={href}
                 href={href}
                 title={label}
-                className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors ${
+                aria-label={label}
+                className={`flex items-center gap-2.5 px-2.5 py-2 min-h-11 rounded-md text-sm transition-colors ${
                   active
-                    ? "bg-zinc-700 text-white font-medium"
+                    ? "bg-sidebar-accent text-sidebar-primary font-medium"
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                 }`}
               >
@@ -68,7 +70,7 @@ export function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className={`${labelClass} px-4 py-3 border-t border-zinc-800 text-xs text-zinc-500`}>
+        <div className={`${labelClass} px-4 py-3 border-t border-zinc-800 text-xs text-muted-foreground`}>
           最後更新：2026/07/02
         </div>
       </aside>
@@ -81,8 +83,9 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              aria-label={label}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] ${
-                active ? "text-white" : "text-zinc-500"
+                active ? "text-sidebar-primary" : "text-muted-foreground"
               }`}
             >
               <Icon size={18} />

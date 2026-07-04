@@ -22,7 +22,7 @@ export function MarketBanner({ verdict, intensity }: MarketBannerProps) {
         style.border
       )}
     >
-      <p className="text-xs text-zinc-500 mb-1">總體環境結論</p>
+      <p className="text-xs text-muted-foreground mb-1">總體環境結論</p>
       <p className="text-lg font-semibold text-white">
         市場環境：<span className={style.text}>{verdict}</span>
         <span className="text-zinc-600 mx-3">|</span>

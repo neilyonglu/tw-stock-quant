@@ -51,3 +51,16 @@
 - 主圖左上角 SMA20/SMA60 數值 + 趨勢箭頭文字疊層
 - K 線圖上直接標示區間最高/最低價（`createSeriesMarkers`）
 - 成交量子圖疊 MA5/MA10 均量線
+
+## 2026-07-02 — Dashboard Step 5：收尾細節
+- 拿掉 `next-themes`，深色主題直接寫死在 `<html>`
+- Sidebar 響應式：手機底部 fixed nav／平板 icon bar／桌面完整版
+- 375px 版面修正（個股分析頁控制欄、選股結果頁表格改 `overflow-x-auto`）
+- 圖表縮放下限、日期時間格式統一、MACD 顏色 bug 修正
+
+## 2026-07-04 — UI/UX 稽核與修正（ui-ux-pro-max + ui-styling）
+- 對比不足：15 個檔案的 `text-zinc-500` 改成語意 token `text-muted-foreground`（3.7–4.1:1 → 6.9:1）
+- 觸控目標：搜尋 input/button、K 線週期與時間區間切換、Sidebar 收合按鈕放大到 44×44px
+- 補上 icon-only 按鈕與輸入框的 `aria-label`／`<label>`，選股表格加 `aria-sort`
+- 比對 `ui_plan.md` 發現 emerald 品牌色（`--primary`/`--ring`）從沒被真的做出來，補上並改用對比夠的 emerald-700/emerald-400，Sidebar active 項改用語意 token
+- `ui_plan.md` 補註記：New York/zinc、next-themes、DataTable、stock-up/down 顏色方向等段落已過時

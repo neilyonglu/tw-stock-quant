@@ -29,7 +29,7 @@ export function SignalBadge({ level, label, desc }: SignalBadgeProps) {
       <Icon size={14} className={cn("mt-0.5 shrink-0", colors[level])} />
       <div>
         <p className="text-sm text-zinc-200 leading-tight">{label}</p>
-        {desc && <p className="text-xs text-zinc-500 mt-0.5">{desc}</p>}
+        {desc && <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>}
       </div>
     </div>
   )

@@ -21,7 +21,7 @@ export function IntradayTab({ ticker }: { ticker: string }) {
   }, [ticker])
 
   if (error) {
-    return <div className="h-100 flex items-center justify-center text-zinc-500">{error}（非交易時段可能沒有今日分時資料）</div>
+    return <div className="h-100 flex items-center justify-center text-muted-foreground">{error}（非交易時段可能沒有今日分時資料）</div>
   }
   if (!data) {
     return <Skeleton className="h-100 w-full bg-zinc-900" />
@@ -30,7 +30,7 @@ export function IntradayTab({ ticker }: { ticker: string }) {
   return (
     <div className="space-y-1.5">
       <IntradayChart data={data} />
-      <p className="text-xs text-zinc-500">橘線是累計成交均價；灰色虛線是平盤（昨日收盤價）參考線</p>
+      <p className="text-xs text-muted-foreground">橘線是累計成交均價；灰色虛線是平盤（昨日收盤價）參考線</p>
     </div>
   )
 }

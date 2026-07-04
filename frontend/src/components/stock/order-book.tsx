@@ -20,13 +20,13 @@ export function OrderBook({ ticker }: { ticker: string }) {
   }, [ticker])
 
   if (error) {
-    return <p className="text-xs text-zinc-500">查無即時報價</p>
+    return <p className="text-xs text-muted-foreground">查無即時報價</p>
   }
   if (!data) {
     return <Skeleton className="h-48 w-full bg-zinc-800" />
   }
   if (data.asks.length === 0 && data.bids.length === 0) {
-    return <p className="text-xs text-zinc-500">非交易時段，目前沒有掛單</p>
+    return <p className="text-xs text-muted-foreground">非交易時段，目前沒有掛單</p>
   }
 
   const maxVol = Math.max(1, ...data.asks.map((l) => l.volume), ...data.bids.map((l) => l.volume))
