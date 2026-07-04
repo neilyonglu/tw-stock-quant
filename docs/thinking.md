@@ -562,3 +562,9 @@ shadcn Button/ToggleGroup 在這個專案（`base-nova` style）預設高度就�
 ### 五十二、icon-only 按鈕跟輸入框的語意化標記，全站原本是 0
 
 grep 全專案原本抓不到任何 `aria-label` 或語意化 `<label>`。搜尋按鈕、Sidebar 收合按鈕都只有一個 icon，螢幕閱讀器念不出用途，補上 `aria-label`；股票代碼輸入框原本只有視覺上方的 `<p>` 文字，改成 `<label htmlFor="ticker-input">` 跟 input 的 `id` 對起來。選股結果表格三個可排序欄位（排名/評分/配置%）補上動態的 `aria-sort="ascending"|"descending"|"none"`，讓螢幕閱讀器使用者知道目前排序狀態。K 線圖／圓餅圖（canvas-based）沒有補 screen-reader 摘要或資料表替代——這是圖表庫的通例取捨（TradingView 本身也不例外），優先度低，這次沒有處理。
+
+## 2026-07-04 — CLAUDE.md 瘦身 + 文件地圖定型
+
+### 五十三、CLAUDE.md 從 132 行收斂到 49 行，長內容抽成 docs/ 引用檔
+
+CLAUDE.md 每個 session 都全額載入，但其中「當前狀態」是只增不減的歷史清單，工具索引、台股速查、決策表三張大表也很少同時用到。抽出：`docs/tools.md`（工具索引）、`docs/taiwan-market-notes.md`（台股速查）、`docs/decisions.md`（決策表）。CLAUDE.md 只留角色、架構、文件地圖、工作規範與三行狀態快照。同時定型「文件地圖」：每份文件唯一職責（todo=待辦、milestone=完成、thinking=為什麼、decisions=決策速查），plan.md 與 ui_plan.md 標為唯讀/凍結，判斷現況一律以 todo.md + milestone.md 為準。目的：消除六份重疊狀態文件造成的「更新漏掉幾份、讀到過時那份」問題。舊版備份在 `.claude/backups/CLAUDE.md.2026-07-04.bak`。另外在 `~/.claude/rules/` 建立跨專案的工作制度（模型調度、判斷 rubric、派工模板、維護協議），由 `~/.claude/CLAUDE.md` 精簡路由指向，細節不屬於本專案文件範圍。

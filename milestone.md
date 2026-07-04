@@ -64,3 +64,8 @@
 - 補上 icon-only 按鈕與輸入框的 `aria-label`／`<label>`，選股表格加 `aria-sort`
 - 比對 `ui_plan.md` 發現 emerald 品牌色（`--primary`/`--ring`）從沒被真的做出來，補上並改用對比夠的 emerald-700/emerald-400，Sidebar active 項改用語意 token
 - `ui_plan.md` 補註記：New York/zinc、next-themes、DataTable、stock-up/down 顏色方向等段落已過時
+
+## 2026-07-04 — CLAUDE.md 瘦身 + 文件地圖定型
+- CLAUDE.md 132 行 → 49 行；工具索引/台股速查/決策表抽成 `docs/tools.md`、`docs/taiwan-market-notes.md`、`docs/decisions.md`
+- 定型文件地圖：每份文件唯一職責，plan.md/ui_plan.md 凍結，現況以 todo.md + milestone.md 為準
+- 跨專案工作制度建立在 `~/.claude/rules/`（調度、判斷、模板、維護），不在 repo 內
