@@ -103,7 +103,7 @@ export function ProfileTab({ ticker }: { ticker: string }) {
             ))}
           </TableBody>
         </Table>
-        <p className="text-xs text-zinc-500 mt-2">月營收 YoY 是最即時的基本面訊號，每月 10 日前公布；YoY &gt; 10% 代表成長動能強</p>
+        <p className="text-xs text-muted-foreground mt-2">月營收 YoY 是最即時的基本面訊號，每月 10 日前公布；YoY &gt; 10% 代表成長動能強</p>
       </div>
     </div>
   )

@@ -68,7 +68,7 @@ export function MarketOverviewView() {
         <div>
           <h1 className="text-xl font-semibold text-white">台股市場總覽</h1>
           {data && (
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               資料時間：{formatDateTime(data.updated_at)}
             </p>
           )}
@@ -181,23 +181,23 @@ export function MarketOverviewView() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-md p-4 flex justify-between">
             <div className="text-center">
               <p className="text-2xl font-semibold tabular-nums text-white">{data.turnover.value.toLocaleString()}</p>
-              <p className="text-xs text-zinc-500 mt-1">成交值（億元）</p>
+              <p className="text-xs text-muted-foreground mt-1">成交值（億元）</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-semibold tabular-nums text-white">{data.turnover.volume}</p>
-              <p className="text-xs text-zinc-500 mt-1">成交量（億股）</p>
+              <p className="text-xs text-muted-foreground mt-1">成交量（億股）</p>
             </div>
             {BREADTH_ITEMS.map(({ key, label }) => (
               <div key={key} className="text-center">
                 <p className="text-2xl font-semibold tabular-nums text-white">
                   {data.breadth[key]}
                 </p>
-                <p className="text-xs text-zinc-500 mt-1">{label}</p>
+                <p className="text-xs text-muted-foreground mt-1">{label}</p>
               </div>
             ))}
           </div>
         )}
-        <p className="text-xs text-zinc-500 mt-2">成交值是當天大家總共花了多少錢買賣股票，越大代表市場越熱絡、籌碼越浮動</p>
+        <p className="text-xs text-muted-foreground mt-2">成交值是當天大家總共花了多少錢買賣股票，越大代表市場越熱絡、籌碼越浮動</p>
       </div>
 
       {/* 排行榜 */}

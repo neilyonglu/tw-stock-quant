@@ -534,3 +534,31 @@ lightweight-charts v5 把 marker API 改成外掛形式：`import { createSeries
 ### 四十七、MACD 狀態 Badge 顏色跟「紅漲綠跌」慣例反著來，是真的顏色 bug
 
 `stock-analysis-view.tsx` 速查指標 Tab 原本：MACD 金叉（多頭）用 `variant="default"`（中性黑白）、死叉（空頭）用 `variant="destructive"`（紅色）。全站其他地方都是「多頭/上漲用紅、空頭/下跌用綠」（`market-banner.tsx`、`screening-view.tsx`、`order-book.tsx` 都有明確註解），這裡卻讓「空頭」顯示紅色，跟同一頁面上方股價漲跌的紅綠語意直接打架。原因是 shadcn Badge 的 `variant` 系統只有 `destructive`（紅）沒有對應的「綠」，順手就套錯了。修法：`stat-card.tsx` 的 `badge` prop 加一個 `className` 欄位可以蓋掉 variant 預設色，`stock-analysis-view.tsx` 的 MACD／RSI badge 改用 `variant="outline"` + 自訂 `bg-red-400/15 text-red-400` 或 `bg-emerald-400/15 text-emerald-400`，比照 `order-book.tsx` 已經在用的同一組 tint 樣式。順便把「量比」StatCard 原本無條件套 `text-emerald-400`（含義是「放量」，不代表下跌）也改成 `text-amber-400`，避免使用者誤讀成「綠色=偏空」。
+
+---
+
+## 2026-07-04 — todo.md 標註「待後端」項目
+
+### 四十八、Step 6／建皮完成後清單，重新盤點哪些真的卡在後端 merge
+
+使用者決定：todo.md 剩下的項目裡，跟後端隊友那條 branch 有明顯依賴關係的先不動。盤點結果——Step 6（GitHub Actions）裡「`main.py` 跑完整選股流程」「驗收手動觸發」兩項卡住，因為選股評分邏輯是後端的工作範圍，`main.py` 現在沒有真正的流程可以跑；workflow 骨架、GitHub secrets 設定、APScheduler 備註這三項不需要後端邏輯，可以先做。「建皮完成後的下一步」裡，刪除 `get_stock_data.py`、mock 欄位換真實 API 這兩項明確卡在後端 merge；但「中台快取升級成持久化」是 `data_service/` 自己的範圍（見十四訂的中台/後端分工），跟後端隊友那條 branch 無關，容易被誤判成「後端還沒好所以也要等」，特別標出來現在就可以做。todo.md 裡在對應項目加 `**待後端**` 標記，避免之後忘記為什麼擱置、或誤把中台的事也一起卡住。
+
+---
+
+## 2026-07-04 — UI/UX 稽核（ui-ux-pro-max + ui-styling）與修正
+
+### 四十九、對比不足是全站系統性問題，根源是用 raw Tailwind class 取代語意 token
+
+用 ui-ux-pro-max 的 accessibility/touch/style 規範逐頁稽核，實測算出 `text-zinc-500` 在 `bg-zinc-900`/`bg-zinc-950` 上的對比只有 3.7–4.1:1（WCAG AA 12px 文字要求 4.5:1），而這個組合幾乎用在全站每個「白話說明」上——`stat-card.tsx`、`signal-badge.tsx`、`sidebar.tsx`、所有 tab 元件的 hint 文字都是。根本原因：元件直接寫死 `text-zinc-500`，沒有用 shadcn 已經定義好、對比更夠的語意 token `text-muted-foreground`（dark mode 對應 zinc-400 等級，實測 6.9:1）。修法：15 個檔案全部把 `text-zinc-500` 換成 `text-muted-foreground`；`screening-view.tsx` 的「法人｜/技術｜/基本面｜」前綴原本用更暗的 `zinc-600`（2.3:1），也一併換成 `zinc-400`。決定不動的：純裝飾性的分隔符號（`market-banner.tsx`/`screening-view.tsx` 的 `|` 分隔線）跟不影響理解的次要圖示色，維持原樣，避免為了跑滿檢查清單而動不需要動的地方。
+
+### 五十、觸控目標過小是設計系統預設值造成的，不是單一元件的錯
+
+shadcn Button/ToggleGroup 在這個專案（`base-nova` style）預設高度就是 h-8/h-7/h-6（24–32px），全部低於 44×44px 的觸控最小建議值。這是 Linear 風格「桌面密集 UI」的合理選擇，但 CLAUDE.md 明講「目標使用者是一般大眾，需支援手機」、Step 5 也做過響應式，這些控制項在手機/平板寬度下一樣會出現。沒有整套改設計系統的預設值（風險/範圍太大），只針對使用者實際會反覆點的三處放大到 h-11（44px）：`stock-analysis-view.tsx` 的股票代碼搜尋 input/button、K 線週期與時間區間 ToggleGroup（間距同時從 `gap-0.5` 加到 `gap-1`）、`sidebar.tsx` 的收合按鈕。用 Playwright 實測 boundingBox 確認三處都變成 44×44px。
+
+### 五十一、`--primary`/`--ring` 曾經是完全去彩度的灰階，emerald 品牌色從沒被真的做出來
+
+比對 `ui_plan.md` 才發現：計畫書明確定義 `--primary`/`--ring` 用 emerald（CTA、Sidebar active 項強調色），但 `globals.css` 實際的 dark mode 值是 `oklch(... 0 0)`——chroma 為 0，純灰階；`sidebar.tsx` 的 active 導航項也直接寫死 `bg-zinc-700 text-white`，完全沒用 `--accent`/`--primary` token。等於這條設計決策從 token 定義到元件實作都沒被執行，也沒有任何 thinking.md 記錄說明原因，判斷是單純漏做。修法沒有照抄 ui_plan 寫的 `142 76% 36%`（emerald-600）：直接拿它當文字色在深色底上實測只有 3.77:1，不夠。改用 emerald-700（`oklch(0.508 0.118 165.612)`）當 `--primary`（白字 5.49:1）、emerald-500 當 `--ring`；Sidebar active 項改用專門給側欄設計的語意 token `bg-sidebar-accent text-sidebar-primary`，`--sidebar-primary` 設成 emerald-400（`oklch(0.765 0.177 163.223)`），在 `--sidebar-accent` 深底上實測 7.75:1。`ui_plan.md` 對應段落加了註記，說明實際數值跟計畫書不同但同樣是 emerald 色系、且是為了通過對比才選的。
+
+### 五十二、icon-only 按鈕跟輸入框的語意化標記，全站原本是 0
+
+grep 全專案原本抓不到任何 `aria-label` 或語意化 `<label>`。搜尋按鈕、Sidebar 收合按鈕都只有一個 icon，螢幕閱讀器念不出用途，補上 `aria-label`；股票代碼輸入框原本只有視覺上方的 `<p>` 文字，改成 `<label htmlFor="ticker-input">` 跟 input 的 `id` 對起來。選股結果表格三個可排序欄位（排名/評分/配置%）補上動態的 `aria-sort="ascending"|"descending"|"none"`，讓螢幕閱讀器使用者知道目前排序狀態。K 線圖／圓餅圖（canvas-based）沒有補 screen-reader 摘要或資料表替代——這是圖表庫的通例取捨（TradingView 本身也不例外），優先度低，這次沒有處理。

@@ -37,7 +37,7 @@ export function StatCard({ label, value, sub, badge, valueClassName, hint, dot }
           )}
         </div>
         {hint && (
-          <p className="text-xs text-zinc-500 mt-2 leading-snug">{hint}</p>
+          <p className="text-xs text-muted-foreground mt-2 leading-snug">{hint}</p>
         )}
       </CardContent>
     </Card>

@@ -21,7 +21,7 @@ export function MarketIntradaySection() {
   return (
     <div>
       <p className="text-sm text-zinc-400 mb-2">加權指數分時走勢</p>
-      {error && <div className="h-50 flex items-center justify-center text-zinc-500 text-sm">{error}（非交易時段可能沒有今日資料）</div>}
+      {error && <div className="h-50 flex items-center justify-center text-muted-foreground text-sm">{error}（非交易時段可能沒有今日資料）</div>}
       {!error && !data && <Skeleton className="h-100 w-full bg-zinc-900" />}
       {data && <IntradayChart data={data} />}
     </div>

@@ -220,9 +220,20 @@ K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 Re
 
 ---
 
+# 下一階段（Step 6 以後，不算這次建皮範圍）
+
+> Step 0～5 = 這次「Dashboard 建皮」的全部範圍，已經完成。以下 Step 6 和「建皮完成後
+> 的下一步」都是之後才要做的事，大部分卡在後端 merge，先列在這裡當備忘，不是這次要
+> 推進的工作。
+
 ## Step 6 — 排程：GitHub Actions
 
 > 排程跑在 GitHub 雲端，每週五收盤後自動執行，電腦關著也沒問題，完全免費。
+
+**待後端（2026-07-04）**：這步大部分卡在後端的選股評分邏輯還沒 merge——`main.py`
+沒有真正的選股流程可以跑，GitHub Actions 驗收也就無法驗證。可以先做的只有 workflow
+骨架、secrets 設定、APScheduler 備註這三項不需要後端邏輯的部分；「main.py 跑完整流程」
+和「驗收手動觸發」要等後端 merge 回 main 才能繼續。
 
 ### 建立 workflow 檔案
 
@@ -262,8 +273,8 @@ jobs:
   - `FINMIND_TOKEN`
   - `TELEGRAM_BOT_TOKEN`
   - `TELEGRAM_CHAT_ID`
-- [ ] `main.py` 確認能單獨跑完整個選股流程並推播 Telegram
-- [ ] 驗收：在 GitHub Actions 頁面手動觸發，確認跑成功
+- [ ] **待後端** `main.py` 確認能單獨跑完整個選股流程並推播 Telegram（需要後端的選股評分邏輯先 merge）
+- [ ] **待後端** 驗收：在 GitHub Actions 頁面手動觸發，確認跑成功（依賴上一項）
 
 ### APScheduler 的處置
 
@@ -282,10 +293,11 @@ jobs:
 
 - [x] 中台雛形：`data_service/`，含記憶體 TTL cache，回傳 raw candles/profile/orderbook/
       market indices/intraday
-- [ ] 後端（隊友另開 branch，之後 merge 回 main）：跟中台要 raw 資料，計算技術指標
-      （SMA/RSI/MACD、K 線型態）、選股評分、投組優化
-- [ ] 後端 merge 回 main 後：刪除 `src/api/get_stock_data.py`（目前的暫時指標計算佔位層），
+- [ ] **待後端** 後端（隊友另開 branch，之後 merge 回 main）：跟中台要 raw 資料，計算技術指標
+      （SMA/RSI/MACD、K 線型態）、選股評分、投組優化——隊友自己的工作範圍，不是這邊要動的
+- [ ] **待後端** 後端 merge 回 main 後：刪除 `src/api/get_stock_data.py`（目前的暫時指標計算佔位層），
       `app/api/stock/[ticker]/route.ts` 改打後端 API
-- [ ] 中台快取升級成持久化（Parquet/SQLite），取代目前的記憶體 TTL cache
-- [ ] 選股結果頁（Step 4）、市場總覽頁剩餘 mock 欄位（三大法人、市場廣度、排行榜等）：
+- [ ] 中台快取升級成持久化（Parquet/SQLite），取代目前的記憶體 TTL cache——
+      這是中台自己的範圍，跟後端隊友那條 branch 無關，現在就可以做
+- [ ] **待後端** 選股結果頁（Step 4）、市場總覽頁剩餘 mock 欄位（三大法人、市場廣度、排行榜等）：
       等後端把計算邏輯接上後，一起把前端 mock 換成真實 API 呼叫

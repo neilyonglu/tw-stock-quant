@@ -97,12 +97,20 @@ shadcn 使用 **HSL 格式**（不含 `hsl()` wrapper），方便 Tailwind 做 o
     --radius:       0.25rem;         /* Linear-style 極小圓角 */
 
     /* 語意色（股票專用，疊加在 shadcn 上）*/
+    /* 註（2026-07-04）：這裡抄的是 TradingView 美股預設（漲=綠/跌=紅），跟台股「紅漲綠跌」
+       慣例相反。實作已對調成 --stock-up 紅 / --stock-down 綠，見 globals.css 與
+       kline-chart.tsx 註解，這裡的數值已過時，不要照抄。 */
     --stock-up:     174 52% 39%;     /* #26A69A TradingView teal */
     --stock-down:   4 79% 62%;       /* #EF5350 TradingView red */
     --stock-warn:   38 92% 50%;      /* #F59E0B amber */
     --stock-info:   217 91% 60%;     /* #3B82F6 blue */
 
     /* primary = emerald（CTA / active nav）*/
+    /* 註（2026-07-04）：這個決策原本沒有被落實——`globals.css` 一度是完全去彩度的灰階
+       `--primary`/`--ring`，Sidebar active 項也寫死 `bg-zinc-700 text-white`，沒有用
+       token。已補上：`--primary` 改 emerald-700（白字對比 5.49:1）、`--ring` 用
+       emerald-500、Sidebar active 項改用 `--sidebar-primary`（emerald-400）+
+       `--sidebar-accent`，不是這裡寫的 emerald-600 hex，但同樣是 emerald 色系。 */
     --primary:      142 76% 36%;     /* #059669 */
     --primary-foreground: 0 0% 98%;
     --accent:       240 4% 16%;
@@ -148,6 +156,10 @@ npx shadcn@latest add button card badge alert input select toggle-group \
 ```
 
 > **為什麼選 New York**：sharp corners（`--radius: 0.25rem`）、高對比，視覺上更接近 Linear + TradingView 的精準感。Default style 較圓潤，更適合消費者 app。
+>
+> **註（2026-07-04）**：這段跟本文件開頭「設計方向總結」表格已經矛盾——shadcn 4.x 沒有
+> New York style，實際安裝／`components.json` 是 `style: "base-nova"`、`baseColor: "neutral"`，
+> 這段是撰寫時的舊內容沒更新，不要照做。
 
 ---
 
@@ -178,6 +190,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 > 用 next-themes 而不是 hardcode `className="dark"`，避免 SSR/CSR hydration mismatch。  
 > `defaultTheme="dark"` 確保首次載入就是深色，不閃白。
+>
+> **註（2026-07-04）**：Step 5 已經拿掉 next-themes，`layout.tsx` 直接寫死
+> `className="dark"`——本專案從一開始就沒有亮色 variant、也沒有 toggle UI，next-themes
+> 的核心價值（系統偏好偵測、明暗切換）整套用不到，見 `docs/thinking.md` 第四十條，
+> 是刻意決策，不是漏做。
 
 ---
 
@@ -377,7 +394,7 @@ TradingView lightweight-charts 五層：
 
 | 區塊 | 元件 |
 |------|------|
-| 資料表 | shadcn `DataTable`（TanStack Table）|
+| 資料表 | ~~shadcn `DataTable`（TanStack Table）~~ → 實際用原生 `<table>` + `useState`（見下方註） |
 | 排序 | `ColumnDef` + `getSortedRowModel` |
 | 圓餅圖 | `shadcn Chart`（`npx shadcn@latest add chart`）|
 | 評分徽章 | `Badge`（80+ default / 60–79 secondary / <60 outline）|
@@ -389,6 +406,10 @@ TradingView lightweight-charts 五層：
 - 手機版（< 768px）：圓餅圖移到表格下方，表格橫向捲動（`overflow-x-auto`）
 - 「推薦理由」欄三行分層，`text-xs text-muted-foreground` 做弱化
 - 評分欄用 `tabular-nums` 對齊
+
+**註（2026-07-04）**：排序沒有裝 TanStack Table，改用原生 `<table>` +
+一個 `useState` 記錄排序欄位/方向——這頁只有 3 欄要排序、不需要分頁篩選，裝函式庫太重，
+見 `docs/thinking.md` 第三十二條。
 
 ---
 

@@ -12,9 +12,9 @@ function RankTable({ items, positiveIsUp }: { items: RankedItem[]; positiveIsUp:
       <TableBody>
         {items.map((item, i) => (
           <TableRow key={item.ticker ?? item.name} className="border-zinc-800 hover:bg-zinc-900">
-            <TableCell className="text-zinc-500 w-8">{i + 1}</TableCell>
+            <TableCell className="text-muted-foreground w-8">{i + 1}</TableCell>
             <TableCell className="text-zinc-200">
-              {item.ticker && <span className="text-zinc-500 mr-1.5">{item.ticker}</span>}
+              {item.ticker && <span className="text-muted-foreground mr-1.5">{item.ticker}</span>}
               {item.name}
             </TableCell>
             <TableCell

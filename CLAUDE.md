@@ -36,7 +36,7 @@
 
 ---
 
-## 當前狀態（2026-07-02）
+## 當前狀態（2026-07-04）
 
 ### 已完成
 - [x] Python 3.12 + uv、TA-Lib C 函式庫、所有套件
@@ -55,6 +55,7 @@
 - [x] 拆出資料中台 `data_service/`（FastAPI + 記憶體 TTL cache），前端 Route Handler 改打中台 HTTP API，不再直接 spawn python subprocess 抓資料（見 docs/thinking.md 2026-07-01）
 - [x] Step 4：每週選股結果頁（表格排序、投組配置圓餅圖、CSV 下載，資料 mock）
 - [x] Step 5：收尾細節——拿掉 next-themes 直接寫死深色、Sidebar 響應式（手機底部 nav／平板 icon bar／桌面完整版）、個股頁控制欄與選股表在 375px 下改用 `overflow-x-auto`／stack 避免內容被裁掉看不到（見 docs/thinking.md 2026-07-02）
+- [x] UI/UX 稽核與修正（ui-ux-pro-max + ui-styling）：對比不足（`text-zinc-500` → `text-muted-foreground`）、觸控目標放大到 44px、icon-only 按鈕補 aria-label、選股表格補 aria-sort、emerald 品牌色（`--primary`/`--ring`/Sidebar active）從沒落實過的問題一併補上（見 docs/thinking.md 2026-07-04）
 
 ### 進行中（後端，隊友負責）
 - [ ] 後端另開 branch 開發，負責計算（技術指標、選股評分、投組優化），跟中台要 raw 資料；merge 回 main 後，`src/api/get_stock_data.py` 的暫時指標計算要整支刪除，改打後端 API
