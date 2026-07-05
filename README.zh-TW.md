@@ -46,7 +46,7 @@ uv sync
 | 4 | 每週選股結果頁 — 可排序表格、投組配置圓餅圖、CSV 下載（mock 資料） | ✅ 完成 |
 | 5 | 收尾細節 — 深色主題寫死（拿掉 `next-themes`，本來就沒有亮色 variant）、Sidebar 響應式（手機底部 nav／平板 icon bar／桌面完整版）、375px 版面修正、圖表縮放下限（不能縮出資料範圍外）、日期時間格式統一成 `zh-TW`、紅漲綠跌色彩審查；後續 UI/UX 無障礙稽核——對比度修正、觸控目標放大到 44px、aria-label／aria-sort、補回 emerald 品牌強調色 | ✅ 完成 |
 
-完整的「哪些欄位是真資料、哪些是 mock」對照表，見 [docs/thinking.md](docs/thinking.md)。
+完整的「哪些欄位是真資料、哪些是 mock」對照表，見 [PROJECT.md](PROJECT.md)。
 
 ### 架構：中台 / 前端 / 後端
 

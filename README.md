@@ -46,7 +46,7 @@ A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui
 | 4 | Weekly screening results page — sortable table, portfolio allocation pie chart, CSV export (mock data) | ✅ Done |
 | 5 | Polish pass — dark theme hardcoded (dropped `next-themes`, no light variant needed), responsive sidebar (mobile bottom nav / tablet icon-bar / desktop full width), mobile layout fixes at 375px, chart zoom lower-bound (can't zoom past the actual data span), unified `zh-TW` date/time formatting, red-up/green-down color audit; follow-up UI/UX accessibility audit — contrast fixes, 44px touch targets, aria-labels/aria-sort, restored the emerald brand accent color | ✅ Done |
 
-See [docs/thinking.md](docs/thinking.md) for the full real-vs-mock data inventory per field.
+See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 
 ### Architecture: data tier / frontend / backend
 

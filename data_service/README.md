@@ -1,7 +1,7 @@
 # 資料中台（data_service）
 
 負責向外部來源（yfinance、twstock）抓取 + 記憶體 TTL 快取資料，前端與後端都跟這裡要資料，
-不要自己重打外部 API。完整背景見 [../docs/thinking.md](../docs/thinking.md) 2026-07-01「拆出資料中台」。
+不要自己重打外部 API。完整背景見 [../PROJECT.md](../PROJECT.md)「架構：中台 / 前端 / 後端」。
 
 ## 啟動
 
@@ -36,4 +36,4 @@ uv run uvicorn data_service.main:app --reload --port 8001
 
 記憶體 TTL cache（`cache.py`），依資料更新頻率分三個等級：近即時資料（五檔/分時/大盤指數）30s、
 K 線 60s、基本面 1800s。重啟服務會清空快取、多個服務實例之間不共享——目前先接受這個限制，
-之後有需要再換 Redis/SQLite。
+之後升級成持久化（Parquet/SQLite，已列在 todo.md）。

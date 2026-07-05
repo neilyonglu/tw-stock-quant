@@ -1,303 +1,44 @@
-# Dashboard 建皮 Todo
+# 待辦
 
-目標：先把三個頁面的介面框架建起來，資料暫時用 yfinance 的台股代碼（如 `2330.TW`）塞假資料，
-之後 Phase 1 資料管線完成後再換成 twstock + FinMind。
+> Dashboard 建皮（Step 0–5）已全部完成，成果見 `PROJECT.md`。Phase 1–8 細節見 `plan.md`。
 
-技術選型：
-- 前端：Next.js 15（App Router）+ Tailwind CSS + shadcn/ui + TradingView lightweight-charts
-- 後端：FastAPI（之後接 Phase 1 資料管線）
-- 部署：Vercel（前端）+ Railway 或 Render（後端）
+## 現在就可以做（不依賴後端）
 
-設計參考：
-- 整體風格：Robinhood（消費者友善，結論優先，一般大眾看得懂）
-- 視覺語言：Linear（深色主題、排版層次乾淨）
-- 圖表空間：TradingView（側欄 + 主圖 + 子圖配置）
+- [ ] 中台快取升級持久化（Parquet/SQLite），取代記憶體 TTL cache——這是 `data_service/` 自己的範圍，跟後端隊友的 branch 無關，不要誤判成要等
+- [ ] GitHub Actions workflow 骨架：建 `.github/workflows/weekly_scan.yml`
 
----
-
-## Step 0 — 建立 Next.js 專案
-
-- [x] 在專案根目錄下建立 `frontend/` 資料夾
-- [x] 初始化 Next.js 15：
-  ```bash
-  npx create-next-app@latest frontend --typescript --tailwind --app
+  ```yaml
+  name: 每週選股掃描
+  on:
+    schedule:
+      - cron: '0 6 * * 5'   # UTC 06:00 = 台灣時間週五 14:00（收盤後）
+    workflow_dispatch:        # 也可手動觸發
+  jobs:
+    scan:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: astral-sh/setup-uv@v3
+        - run: uv sync
+        - run: uv run python main.py
+          env:
+            FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+            TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
   ```
-- [x] 安裝套件：
-  ```bash
-  cd frontend
-  npx shadcn@latest init
-  npm install lightweight-charts lightweight-charts-react-components
-  ```
-  ```bash
-  # Python 端（專案根目錄）
-  uv add yfinance
-  ```
-- [x] 驗證：`npm run dev`，localhost:3000 能開啟
 
----
+- [ ] GitHub repo Settings → Secrets → Actions 新增：`FINMIND_TOKEN`、`TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`
+- [ ] `src/alerts/scheduler.py`（Phase 6 建立時）定位為本機測試用，正式排程走 GitHub Actions
 
-## Step 1 — 建立 app 框架（多頁面結構）
+## 待後端 merge（隊友 branch 合回 main 時逐項核對）
 
-Next.js App Router 資料夾結構：
+- [ ] 刪除 `src/api/get_stock_data.py`（臨時指標計算佔位層）
+- [ ] `app/api/stock/[ticker]/route.ts` 改打後端 API（JSON 形狀不變，前端元件零改動）
+- [ ] `frontend/src/lib/types.ts` 的 mock 合約與真後端回傳對齊
+- [ ] 前端剩餘 mock 欄位換真實 API：選股結果頁、三大法人、市場廣度、排行榜、籌碼 Tab、月營收、K 線型態等（完整清單見 PROJECT.md 真實 vs mock 對照表）
+- [ ] `main.py` 能單獨跑完整選股流程並推播 Telegram
+- [ ] GitHub Actions 手動觸發驗收（依賴上一項）
 
-```
-frontend/src/app/
-├── layout.tsx                  # 全域 layout，含 sidebar 導航
-├── page.tsx                    # 首頁 → redirect 到 /market
-├── market/
-│   └── page.tsx                # 頁面一：市場總覽
-├── stock/
-│   └── [ticker]/
-│       └── page.tsx            # 頁面二：個股 K 線分析
-└── screening/
-    └── page.tsx                # 頁面三：每週選股結果
+## 刻意不做（避免範圍無限擴大）
 
-frontend/src/components/
-├── sidebar.tsx                 # 側欄導航元件
-├── charts/
-│   └── kline-chart.tsx         # 可重用 K 線圖（TradingView lightweight-charts）
-└── ui/                         # shadcn/ui 自動產生的元件
-```
-
-- [x] 建立上述資料夾和空白 page.tsx
-- [x] `layout.tsx` 寫好 sidebar，包含：
-  - 專案名稱（台股分析）
-  - 三頁導航連結
-  - 底部「最後更新時間」
-- [x] sidebar 深色主題（`bg-zinc-900`），高亮當前頁
-- [x] 確認 `npm run dev` 可以跑起來，三個頁面都能切換
-
----
-
-## Step 2 — 頁面二先做：個股 K 線分析（最核心的畫面）
-
-> 先做頁面二是因為它用到最漂亮的圖表元件，建好後整體風格就定了。
-
-K 線圖使用 `lightweight-charts`，參考 TradingView 官方 npm 套件的 React 用法。
-
-參考來源（不一定要照做，但可以對照）：
-- 圖表設定：https://github.com/locupleto/streamlit-lightweight-charts-v5 的 `chart_demo.py`
-  — 底層同為 TradingView lightweight-charts，五層疊圖、子圖高度、指標顏色的設定邏輯可直接對照
-- 台股選股邏輯：https://github.com/kevin801221/stock-strategies-only
-
-- [x] `frontend/src/app/stock/[ticker]/page.tsx`
-- [x] sidebar（頁面內側欄）加一個輸入框：股票代碼（預設 `2330`）
-- [x] 時間區間選擇：1 個月 / 3 個月 / 6 個月 / 1 年（shadcn/ui `ToggleGroup`）
-- [x] 用 yfinance API（Route Handler + python3 subprocess）抓資料，轉成 OHLCV 格式
-- [x] `kline-chart.tsx` 建五層疊圖：
-  - 主圖：K 線 + SMA20（橘）+ SMA60（藍）
-  - 子圖 1：成交量（Volume）
-  - 子圖 2：RSI（14）
-  - 子圖 3：MACD
-- [x] 主圖高度 500px，每個子圖 120px
-- [x] 主圖下方用 shadcn/ui `Card` 顯示速查資訊（4 欄）：
-  - 現價 / 漲跌幅
-  - RSI 數值 + 狀態（超買 / 健康 / 超賣），加顏色 badge
-  - MACD 狀態（金叉 / 死叉）
-  - 成交量 vs 5 日均量比值
-- [x] 每個指標旁邊一句白話說明（對一般大眾）
-
-**追加（2026-06-30）**：
-- [x] 標題列代碼旁顯示公司名稱（twstock 本地查表）
-- [x] K 線圖／速查指標拆成 Tabs，速查 Card 移到第二分頁
-- [x] K 線週期擴充：5分/15分/30分/60分/日/週/月（分鐘線固定時間區間，日/週/月可選）
-- [x] 十字準心改 Magnet 模式、修正分鐘線時間軸時區 bug（詳見 docs/thinking.md）
-
-**追加（2026-07-01，參考電視看盤軟體畫面）**：
-- [x] 主圖左上角 SMA20/SMA60 數值 + 趨勢箭頭（↑/↓）文字疊層
-- [x] K 線圖上直接標示區間最高/最低價（`createSeriesMarkers`）
-- [x] 成交量子圖疊 MA5/MA10 均量線（跟主圖 SMA 同一套短/長週期配色）
-
----
-
-## Step 3 — 頁面一：市場總覽 ✅ 完成（2026-06-30）
-
-> 資料全部 mock，用固定數字填入，之後再接真實 API。
-
-- [x] `frontend/src/app/market/page.tsx`
-- [x] 頂部 4 個 `Card`（shadcn/ui）橫排：
-  - 加權指數（mock：22,450 +1.2%）
-  - 景氣燈號（mock：綠燈）
-  - USD/TWD（mock：31.8）
-  - 美債 10Y（mock：4.35%）
-- [x] 三大法人區塊（3 欄）：
-  - 外資今日：+85 億
-  - 投信今日：+12 億
-  - 自營商今日：-3 億
-  - 每個欄位加一句白話說明（「外國大資金今天在買，是好訊號」）
-- [x] 市場廣度區塊（5 欄）：漲家數 / 跌家數 / 平盤 / 漲停 / 跌停
-- [x] 底部結論橫幅：「市場環境：多頭　建議操作強度：積極」（無 emoji，用顏色辨識）
-- [x] 加重新整理按鈕（重抓 `/api/market`，目前後面接的還是同一份 mock）
-
-**架構**：資料形狀定義在 `frontend/src/lib/types.ts`（`MarketOverviewData`），就是未來真正後端 API 的合約；`frontend/src/lib/mock-data.ts` 放假資料；`/api/market` Route Handler 回傳。Phase 9 接真後端時只改 Route Handler 內部，前端元件不用動（詳見 docs/thinking.md 十四）。
-
-**已知待辦（留給 Step 5）**：手機寬度（375px）目前會橫向溢出，因為 Sidebar 響應式收合還沒做，個股分析頁也是同樣狀況，等 Step 5 一起處理。
-
----
-
-## 對照看盤平台補齊功能（2026-06-30）
-
-> 對照 Yahoo奇摩股市／Goodinfo／CMoney／HiStock 盤點出的缺口，全部先把介面做出來。
-> 能拿到真資料的（yfinance／twstock，免金鑰）直接接真的；拿不到的先 mock，但型別
-> 合約先定好（`lib/types.ts`），Phase 4/5/6 後端做完只要換 route handler 內部。
-> 完整真實／mock 對照表＋為什麼這樣分，見 docs/thinking.md 十八～二十一。
-
-### 個股分析頁新增
-
-- [x] 分時走勢圖（真實，今日 1 分鐘 K）
-- [x] 漲跌停價顯示（真實計算）
-- [x] K 線型態辨識（mock——TA-Lib 沒裝在 route handler 用的 python 環境，見 thinking.md 二十）
-- [x] 基本面 Tab：本益比/股價淨值比/殖利率/市值/股本/產業別/上市櫃（真實，yfinance + twstock）、近 6 個月營收（mock，Phase 4）
-- [x] 籌碼面 Tab：三大法人近 5 日、融資融券、千張大戶比例（mock，Phase 5）
-- [x] 五檔報價 sidebar 小部件（真實，twstock.realtime）
-- [x] 新聞 Tab（mock）
-
-### 市場總覽頁新增
-
-- [x] 大盤分時走勢圖（真實，加權指數今日 1 分鐘 K）
-- [x] 櫃買指數（真實）
-- [x] 國際指數：道瓊/那斯達克/日經/上證（真實）
-- [x] 台指期貨／外資未平倉（mock——plan.md 沒規劃期貨資料來源）
-- [x] 排行榜 Tabs：類股漲跌幅／成交值／漲幅／跌幅（mock，需全市場掃描，Phase 1+6）
-- [x] 新聞快訊（mock）
-
-### 還沒做、不在這次範圍內
-
-這些業界平台常見、但這次刻意沒做的功能（避免無限擴大範圍）：
-- [ ] 同類股/概念股關聯比較
-- [ ] 注意股/處置股清單
-- [ ] 個股社群討論/投票功能（Yahoo「多空指標」類型）
-- [ ] 警示燈號/警示股標記
-
----
-
-## Step 4 — 頁面三：每週選股結果 ✅ 完成（2026-07-01）
-
-> 資料全部 mock，確認表格排版和互動正確。
-
-- [x] `frontend/src/app/screening/page.tsx`
-- [x] 頂部：最後更新時間 + 市場環境 badge
-- [x] 主要表格：
-  - 欄位：排名 / 股票 / 評分 / 推薦理由（白話三層摘要）/ 進場價 / 停損 / 配置 %
-  - 5 筆 mock 資料
-  - 排名／評分／配置 % 可點表頭排序（手刻 `useState`，沒裝 `@tanstack/react-table`——
-    只有 3 欄要排序、不需要分頁篩選，裝一個表格函式庫太重）
-  - 點股票代碼跳轉到 `/stock/[ticker]`
-- [x] 表格右側放投組配置圓餅圖（shadcn Chart，底層 recharts，mock 數字）
-- [x] 底部 `下載 CSV` 按鈕（純前端 Blob，之後再接真實資料）
-
-**架構**：資料形狀定義在 `lib/types.ts`（`ScreeningData`/`ScreeningResult`），`/api/screening`
-回傳 mock。這份資料是後端（隊友開發中）的計算結果，不經過中台——評分/配置% 本來就不是
-「抓取」得到的 raw 資料。
-
-**已知待辦（跟 Step 3 一樣，留給 Step 5）**：手機寬度（375px）會橫向溢出，因為 Sidebar
-響應式收合還沒做；圓餅圖在手機版會正確跑到表格下方（grid 已經是 `grid-cols-1`），只是
-內容區被固定寬度的 Sidebar 擠壓。
-
----
-
-## Step 5 — 收尾細節 ✅ 完成（2026-07-02）
-
-- [x] 統一深色主題（`dark` class 加到 `html` 標籤）——拿掉 `next-themes`／`ThemeProvider`，
-      本專案本來就沒有亮色 variant、也沒有 toggle UI，直接在 `layout.tsx` `<html>` 寫死
-      `className="dark"` 更簡單、也不會有系統淺色模式時抓不到色票的風險
-- [x] `layout.tsx` 加 metadata（`title: "台股分析"、description`）——已存在，補勾
-- [x] 確認三個頁面在手機尺寸（375px）下都能正常操作——用 Playwright headless Chromium 實測
-      375px 寬，抓 `scrollWidth` 找橫向溢出，另外肉眼看截圖：
-  - `sidebar.tsx` 改響應式：< 768px 隱藏改底部 fixed nav（3 項圖示＋文字，56px 高）；
-    768–1023px 強制 icon-only（56px 寬，不受手動 collapse 影響）；≥1024px 完整 240px，
-    手動 collapse 按鈕只在桌面顯示
-  - 個股分析頁（`stock-analysis-view.tsx`）左側控制欄原本固定 `w-56`，在 375px 下把主圖區
-    擠到只剩 ~150px、K 線圖 Tabs（分時/K線圖/速查指標/籌碼面/基本面/新聞）被裁到看不到、
-    點不到——改成 `flex-col md:flex-row`，控制欄手機版排到主圖區下方（`order-2 md:order-1`），
-    Tabs 另外包一層 `overflow-x-auto` 讓超寬時可以橫向滑動而不是裁切
-  - 選股結果頁（`screening-view.tsx`）表格在 375px 下同樣被裁到看不到「進場區間/停損/配置%」
-    欄位——表格外層加 `overflow-x-auto`，圓餅圖確認會正確 reflow 到表格下方
-  - 市場總覽頁本來就沒問題，grid 在窄螢幕下 reflow 正常
-- [x] 驗收：三頁都能切換，K 線可以縮放 hover，選股表可點擊跳轉——Playwright 跑過
-      市場總覽→選股→點股票代碼跳轉個股頁→切 K 線圖 Tab→滾輪縮放，全程無 console error；
-      平板寬度（900px）確認 sidebar 強制收成 icon bar
-
----
-
-# 下一階段（Step 6 以後，不算這次建皮範圍）
-
-> Step 0～5 = 這次「Dashboard 建皮」的全部範圍，已經完成。以下 Step 6 和「建皮完成後
-> 的下一步」都是之後才要做的事，大部分卡在後端 merge，先列在這裡當備忘，不是這次要
-> 推進的工作。
-
-## Step 6 — 排程：GitHub Actions
-
-> 排程跑在 GitHub 雲端，每週五收盤後自動執行，電腦關著也沒問題，完全免費。
-
-**待後端（2026-07-04）**：這步大部分卡在後端的選股評分邏輯還沒 merge——`main.py`
-沒有真正的選股流程可以跑，GitHub Actions 驗收也就無法驗證。可以先做的只有 workflow
-骨架、secrets 設定、APScheduler 備註這三項不需要後端邏輯的部分；「main.py 跑完整流程」
-和「驗收手動觸發」要等後端 merge 回 main 才能繼續。
-
-### 建立 workflow 檔案
-
-```
-.github/
-└── workflows/
-    ├── weekly_scan.yml      # 每週五 14:00 跑選股（台灣時間）
-    └── premarket.yml        # 每週一至五 08:00 跑盤前快報（選配）
-```
-
-- [ ] 建立 `.github/workflows/` 資料夾
-- [ ] 寫 `weekly_scan.yml`：
-
-```yaml
-name: 每週選股掃描
-
-on:
-  schedule:
-    - cron: '0 6 * * 5'   # UTC 06:00 = 台灣時間週五 14:00（收盤後）
-  workflow_dispatch:        # 也可手動觸發
-
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: uv sync
-      - run: uv run python main.py
-        env:
-          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-```
-
-- [ ] 在 GitHub repo **Settings → Secrets → Actions** 新增三個 secret：
-  - `FINMIND_TOKEN`
-  - `TELEGRAM_BOT_TOKEN`
-  - `TELEGRAM_CHAT_ID`
-- [ ] **待後端** `main.py` 確認能單獨跑完整個選股流程並推播 Telegram（需要後端的選股評分邏輯先 merge）
-- [ ] **待後端** 驗收：在 GitHub Actions 頁面手動觸發，確認跑成功（依賴上一項）
-
-### APScheduler 的處置
-
-- [ ] `src/alerts/scheduler.py` 保留，改成本機開發測試用途
-- [ ] plan.md 備註：正式排程用 GitHub Actions，APScheduler 僅本機測試
-
----
-
-## 建皮完成後的下一步（不在本次 todo）
-
-建皮完成 = 介面框架就緒，但資料是假的。
-
-**架構已修正（2026-07-01）**：資料抓取不是後端的工作，是獨立的中台 `data_service/`（FastAPI，見
-`data_service/README.md`）。前端、後端都跟中台要資料，不各自打外部 API。詳見
-`docs/thinking.md` 2026-07-01「拆出資料中台」。
-
-- [x] 中台雛形：`data_service/`，含記憶體 TTL cache，回傳 raw candles/profile/orderbook/
-      market indices/intraday
-- [ ] **待後端** 後端（隊友另開 branch，之後 merge 回 main）：跟中台要 raw 資料，計算技術指標
-      （SMA/RSI/MACD、K 線型態）、選股評分、投組優化——隊友自己的工作範圍，不是這邊要動的
-- [ ] **待後端** 後端 merge 回 main 後：刪除 `src/api/get_stock_data.py`（目前的暫時指標計算佔位層），
-      `app/api/stock/[ticker]/route.ts` 改打後端 API
-- [ ] 中台快取升級成持久化（Parquet/SQLite），取代目前的記憶體 TTL cache——
-      這是中台自己的範圍，跟後端隊友那條 branch 無關，現在就可以做
-- [ ] **待後端** 選股結果頁（Step 4）、市場總覽頁剩餘 mock 欄位（三大法人、市場廣度、排行榜等）：
-      等後端把計算邏輯接上後，一起把前端 mock 換成真實 API 呼叫
+看盤平台常見但暫不跟進：同類股/概念股比較、注意股/處置股清單、社群討論/多空投票、警示燈號標記。

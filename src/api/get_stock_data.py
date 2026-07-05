@@ -5,7 +5,7 @@
 SMA/RSI/MACD/K線型態(mock)/latest metrics——這些「計算」本來就該是後端的工作，但隊友
 的後端還在另一條 branch 開發，還沒 merge 回 main。等 merge 完成，
 frontend/src/app/api/stock/[ticker]/route.ts 要改成直接打隊友後端的 API，
-這支腳本要整支刪除；data_service/ 不受影響（JSON 形狀＝合約，見 docs/thinking.md 十四）。
+這支腳本要整支刪除；data_service/ 不受影響（JSON 形狀＝合約，見 PROJECT.md「API 合約原則」）。
 
 Usage: python3 get_stock_data.py <ticker> [period] [interval]
   ticker:   Taiwan stock code without .TW suffix (e.g. 2330)
