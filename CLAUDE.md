@@ -22,15 +22,12 @@
 | 檔案 | 職責 | 什麼時候動它 |
 |------|------|------------|
 | `todo.md` | 待辦任務清單 | 完成任務打勾；新任務加進去 |
-| `milestone.md` | 完成了什麼（一節一里程碑） | 每完成一件事加一節 |
-| `docs/thinking.md` | 決策日誌（為什麼這樣做） | 有值得記的決策時加一節 |
-| `docs/decisions.md` | 架構決策速查表 | 新架構決策加一行 |
-| `docs/tools.md` | 工具索引（資料來源、分析套件） | 新增/更換工具時 |
+| `PROJECT.md` | 專案脈絡：架構、已完成、決策、真實/mock 對照、慣例與踩坑 | 完成一件事改寫對應段落（只留最終狀態，不寫流水帳） |
+| `plan.md` | 未來 Phase 藍圖與投資決策框架 | 開新 Phase 時參考；Phase 完成後把該段成果移入 PROJECT.md |
 | `docs/taiwan-market-notes.md` | 台股領域速查 | 幾乎不動 |
-| `plan.md` | Phase 藍圖 | **唯讀參考**，不更新 |
-| `ui_plan.md` | UI 計畫書 | **已凍結的歷史文件**，不更新 |
 
-與其他文件衝突時，todo.md + milestone.md 是現況，其他是過時的。
+與其他文件衝突時，todo.md + PROJECT.md 是現況，其他是過時的。
+（2026-07-05 整併：milestone.md、docs/thinking.md、docs/decisions.md、docs/tools.md、ui_plan.md 已併入 PROJECT.md 後刪除，歷史在 git。）
 
 ## 工作規範
 
@@ -43,8 +40,6 @@
   - 拿不準「算不算完成」「要不要問使用者」 → 讀 `~/.claude/rules/judgment.md`
   - 新 session 接手長期工作 → 讀 `.claude/rules/letter.md`（本專案交接信，gitignored）
 
-## 當前狀態（快照，細節看 todo.md / milestone.md）
+## 當前狀態
 
-- Dashboard 建皮 Step 0～5 全部完成，含 UI/UX 稽核修正（2026-07-04）
-- 進行中：後端由隊友另開 branch 開發，merge 後刪 `src/api/get_stock_data.py`
-- 暫緩（Phase 1）：`src/data/universe.py` 股票清單、中台快取升級持久化（Parquet/SQLite）
+Dashboard 建皮完成；下一個關鍵事件是隊友後端 branch merge（merge 時的待辦清單見 todo.md）。現況細節一律看 todo.md + PROJECT.md，不在這裡重複。

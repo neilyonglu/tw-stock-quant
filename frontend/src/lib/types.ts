@@ -1,6 +1,6 @@
 // 這份檔案是 Dashboard 所有 API 的合約，也是未來真正後端要回傳的形狀。
 // Phase 9 換成真正後端時，只要回傳形狀符合這裡的定義，前端元件完全不用改。
-// 詳見 docs/thinking.md 十四、十五。
+// 詳見 PROJECT.md「API 合約原則」。
 //
 // 每個 interface 上方都標註資料來源：
 //   [真實]  現在就是真資料（yfinance / twstock，免金鑰，建皮期間直接接）

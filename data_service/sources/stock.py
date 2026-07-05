@@ -1,5 +1,5 @@
 """個股 raw 資料：K 線/成交量/基本面/五檔。只做「抓取」，不算 SMA/RSI/MACD 等指標
-（那些是後端該做的計算，見 docs/thinking.md 2026-07-01 中台拆分說明）。
+（那些是後端該做的計算，見 PROJECT.md「架構：中台 / 前端 / 後端」）。
 搬自舊 src/api/{get_stock_data,get_stock_profile,get_orderbook}.py。
 """
 import calendar
