@@ -1,0 +1,217 @@
+"use client"
+
+import { useCallback, useEffect, useState } from "react"
+import { RotateCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { StatCard } from "@/components/stat-card"
+import { MarketBanner } from "@/components/market-banner"
+import { MarketIntradaySection } from "@/components/market/intraday-section"
+import { GlobalIndicesRow } from "@/components/market/global-indices-row"
+import { FuturesCard } from "@/components/market/futures-card"
+import { RankingsSection } from "@/components/market/rankings-section"
+import { MarketNewsSection } from "@/components/market/news-section"
+import type { BusinessCycleLight, MarketIndicesData, MarketOverviewData } from "@/lib/types"
+import { formatDateTime } from "@/lib/utils"
+
+// 國發會官方景氣對策信號燈的 5 色分級，跟頁面其他地方的「紅漲綠跌」是不同的顏色系統
+// （紅燈＝過熱，不等於「漲」；綠燈＝穩定，不等於「跌」），所以用色點而不是文字顏色，
+// 避免使用者誤讀成漲跌方向。
+const LIGHT_DOT: Record<BusinessCycleLight, string> = {
+  red: "bg-red-500",
+  "yellow-red": "bg-amber-500",
+  green: "bg-emerald-500",
+  "yellow-blue": "bg-sky-400",
+  blue: "bg-blue-500",
+}
+
+function fmtChange(change: number, suffix = "") {
+  const sign = change >= 0 ? "+" : ""
+  return `${sign}${change}${suffix}`
+}
+
+const BREADTH_ITEMS: Array<{ key: keyof MarketOverviewData["breadth"]; label: string }> = [
+  { key: "up", label: "上漲家數" },
+  { key: "down", label: "下跌家數" },
+  { key: "flat", label: "平盤家數" },
+  { key: "limit_up", label: "漲停家數" },
+  { key: "limit_down", label: "跌停家數" },
+]
+
+export function MarketOverviewView() {
+  const [data, setData] = useState<MarketOverviewData | null>(null)
+  const [indices, setIndices] = useState<MarketIndicesData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [overviewRes, indicesRes] = await Promise.all([
+        fetch("/api/market"),
+        fetch("/api/market/indices"),
+      ])
+      setData(await overviewRes.json())
+      setIndices(await indicesRes.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  return (
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {/* 標題列 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-white">台股市場總覽</h1>
+          {data && (
+            <p className="text-xs text-muted-foreground mt-1">
+              資料時間：{formatDateTime(data.updated_at)}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-zinc-700"
+          onClick={fetchData}
+          disabled={loading}
+        >
+          <RotateCw size={14} className={loading ? "animate-spin" : ""} />
+          重新整理
+        </Button>
+      </div>
+
+      {/* 大盤分時走勢 */}
+      <MarketIntradaySection />
+
+      {/* 五個指數/指標卡 */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {loading || !data || !indices ? (
+          [...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
+        ) : (
+          <>
+            <StatCard
+              label="加權指數"
+              value={indices.taiex.value.toLocaleString()}
+              sub={`${fmtChange(indices.taiex.change)} (${fmtChange(indices.taiex.change_pct)}%)`}
+              valueClassName={indices.taiex.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              hint="台股大盤的整體溫度計，反映上市公司平均表現"
+            />
+            <StatCard
+              label="櫃買指數"
+              value={indices.otc.value.toLocaleString()}
+              sub={`${fmtChange(indices.otc.change)} (${fmtChange(indices.otc.change_pct)}%)`}
+              valueClassName={indices.otc.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              hint="上櫃公司（規模通常較小）的大盤指數，常用來看中小型股的風向"
+            />
+            <StatCard
+              label="景氣燈號"
+              value={data.business_cycle.label}
+              dot={LIGHT_DOT[data.business_cycle.light]}
+              hint="國發會每月公布，綠燈代表景氣穩定、藍燈代表景氣轉弱。這是獨立的燈號顏色，跟其他卡片的紅漲綠跌無關"
+            />
+            <StatCard
+              label="USD/TWD"
+              value={data.usdtwd.value.toFixed(2)}
+              sub={fmtChange(data.usdtwd.change)}
+              valueClassName={data.usdtwd.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              hint="台幣貶值（數字變大）時，外資較容易撤出台股"
+            />
+            <StatCard
+              label="美債 10Y"
+              value={`${data.us10y.value.toFixed(2)}%`}
+              sub={fmtChange(data.us10y.change)}
+              valueClassName={data.us10y.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              hint="殖利率快速走升，會壓抑高本益比成長股的估值"
+            />
+          </>
+        )}
+      </div>
+
+      {/* 國際指數 */}
+      {loading || !indices ? <Skeleton className="h-20 bg-zinc-900" /> : <GlobalIndicesRow indices={indices.global} />}
+
+      {/* 三大法人 */}
+      <div>
+        <p className="text-sm text-zinc-400 mb-2">三大法人今日買賣超（億元）</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {loading || !data ? (
+            [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
+          ) : (
+            <>
+              <StatCard
+                label="外資"
+                value={`${fmtChange(data.institutional.foreign)} 億`}
+                valueClassName={data.institutional.foreign >= 0 ? "text-red-400" : "text-emerald-400"}
+                hint="外國大資金今天在買，是好訊號；外資是三大法人中影響力最大的"
+              />
+              <StatCard
+                label="投信"
+                value={`${fmtChange(data.institutional.trust)} 億`}
+                valueClassName={data.institutional.trust >= 0 ? "text-red-400" : "text-emerald-400"}
+                hint="本土基金在買，月底作帳行情前常見投信買超"
+              />
+              <StatCard
+                label="自營商"
+                value={`${fmtChange(data.institutional.dealer)} 億`}
+                valueClassName={data.institutional.dealer >= 0 ? "text-red-400" : "text-emerald-400"}
+                hint="券商自有資金的部位，波動較大、參考性較低"
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 台指期貨 */}
+      <div>
+        <p className="text-sm text-zinc-400 mb-2">台指期貨</p>
+        <FuturesCard />
+      </div>
+
+      {/* 市場廣度與成交量 */}
+      <div>
+        <p className="text-sm text-zinc-400 mb-2">市場廣度與成交量</p>
+        {loading || !data ? (
+          <Skeleton className="h-20 bg-zinc-900" />
+        ) : (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-md p-4 flex justify-between">
+            <div className="text-center">
+              <p className="text-2xl font-semibold tabular-nums text-white">{data.turnover.value.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">成交值（億元）</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-semibold tabular-nums text-white">{data.turnover.volume}</p>
+              <p className="text-xs text-muted-foreground mt-1">成交量（億股）</p>
+            </div>
+            {BREADTH_ITEMS.map(({ key, label }) => (
+              <div key={key} className="text-center">
+                <p className="text-2xl font-semibold tabular-nums text-white">
+                  {data.breadth[key]}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">{label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground mt-2">成交值是當天大家總共花了多少錢買賣股票，越大代表市場越熱絡、籌碼越浮動</p>
+      </div>
+
+      {/* 排行榜 */}
+      <RankingsSection />
+
+      {/* 新聞快訊 */}
+      <MarketNewsSection />
+
+      {/* 環境結論橫幅 */}
+      {loading || !data ? (
+        <Skeleton className="h-20 bg-zinc-900" />
+      ) : (
+        <MarketBanner verdict={data.environment.verdict} intensity={data.environment.intensity} />
+      )}
+    </div>
+  )
+}

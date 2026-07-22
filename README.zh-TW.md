@@ -33,12 +33,40 @@ uv sync
 
 ---
 
+## Dashboard
+
+以 **Next.js 16 + Tailwind v4 + shadcn/ui + TradingView lightweight-charts** 建立的網頁分析介面，搭配 Python 資料層。
+
+| 步驟 | 頁面 | 狀態 |
+|------|------|------|
+| 0 | 專案初始化（Next.js + shadcn + lightweight-charts） | ✅ 完成 |
+| 1 | app 框架（側欄 + 三頁路由） | ✅ 完成 |
+| 2 | 個股分析頁 — 五層 K 線圖（SMA 趨勢圖例、高低點標記、成交量均線）、7 種時間週期、分時/基本面/籌碼面/五檔/新聞 Tabs（yfinance/twstock 拿得到的用真資料，拿不到的先 mock） | ✅ 完成 |
+| 3 | 市場總覽頁 — 大盤/國際指數（真資料）、三大法人/市場廣度/排行榜/期貨/新聞（mock，待 Phase 1/4/5/6 後端） | ✅ 完成 |
+| 4 | 每週選股結果頁 — 可排序表格、投組配置圓餅圖、CSV 下載（mock 資料） | ✅ 完成 |
+| 5 | 收尾細節 — 深色主題寫死（拿掉 `next-themes`，本來就沒有亮色 variant）、Sidebar 響應式（手機底部 nav／平板 icon bar／桌面完整版）、375px 版面修正、圖表縮放下限（不能縮出資料範圍外）、日期時間格式統一成 `zh-TW`、紅漲綠跌色彩審查；後續 UI/UX 無障礙稽核——對比度修正、觸控目標放大到 44px、aria-label／aria-sort、補回 emerald 品牌強調色 | ✅ 完成 |
+
+完整的「哪些欄位是真資料、哪些是 mock」對照表，見 [PROJECT.md](PROJECT.md)。
+
+### 架構：中台 / 前端 / 後端
+
+抓資料的工作獨立成一個**中台**（`data_service/`，FastAPI，記憶體 TTL 快取）——前端（顯示）和後端（計算，另開 branch 開發、之後 merge 回 main）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [data_service/README.md](data_service/README.md)。
+
+本機開發中台跟前端要同時跑起來。`./scripts/dev.sh` 一個指令同時啟動兩個（Ctrl+C 會兩個一起關掉）；或分開手動啟動：
+
+```bash
+uv run uvicorn data_service.main:app --reload --port 8001   # 中台
+cd frontend && npm run dev                                   # 前端
+```
+
+---
+
 ## 開發路線
 
 | 階段 | 說明 | 狀態 |
 |------|------|------|
 | 0 | 環境建置 | ✅ 完成 |
-| 1 | 資料管線（twstock → Parquet） | 進行中 |
+| 1 | 資料管線（twstock → Parquet） | 待開始 |
 | 2 | 技術指標（TA-Lib 封裝） | 待開始 |
 | 3 | 策略回測（backtesting.py） | 待開始 |
 | 4 | 基本面整合（CasualMarket） | 待開始 |
@@ -46,7 +74,7 @@ uv sync
 | 6 | 選股系統 + 投組優化 + 排程推播 | 待開始 |
 | 7 | 因子驗證 + 事件研究 | 待開始 |
 | 8 | 情緒面（Google Trends / pytrends） | 待開始 |
-| 9 | Dashboard（Streamlit） | 進行中 |
+| 9 | Dashboard API 遷移（FastAPI） | 待開始 |
 
 ---
 
