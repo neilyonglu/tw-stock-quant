@@ -38,6 +38,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 - **Dashboard 建皮 Step 0–5 全部完成**（2026-06-28 ～ 07-02）：三頁介面、五層 K 線疊圖（K 線+SMA20/60、成交量+MA5/10 均量線、RSI、MACD）、7 種時間週期（5/15/30/60 分、日/週/月）、個股頁 6 個 Tabs（分時/K 線/速查指標/籌碼/基本面/新聞）、五檔報價、選股表格+圓餅圖+CSV 下載、響應式（手機底部 nav／平板 icon bar／桌面完整 sidebar，375px 實測無溢出）。
 - **中台拆分**（2026-07-01）：`data_service/` 上線，前端 Route Handler 改打中台。
 - **UI/UX 無障礙稽核修正**（2026-07-04）：對比度、44px 觸控目標、aria 標記、emerald 品牌色補齊（詳見下方慣例）。
+- **前端 Dashboard 併入 main**（2026-07-22）：`feature/dashboard-ui` 經 PR #1 併回 main（merge commit）。同時 main 設了 branch protection ruleset：改 main 一律走 PR（禁直接 push）、禁 force-push、禁刪除，**不強制 review**（作者可自 merge）。日常流程＝branch → push → PR → merge。
 
 ## 真實 vs mock 資料對照
 
