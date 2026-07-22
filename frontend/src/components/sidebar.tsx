@@ -27,14 +27,14 @@ export function Sidebar() {
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-4 border-b border-zinc-800 min-h-14">
           <div className={`${labelClass} flex-col leading-tight`}>
-            <span className="text-sm font-semibold text-white tracking-tight">台股分析</span>
+            <span className="text-sm font-semibold text-white tracking-tight">台股分析 </span>
             <a
               href="https://github.com/neilyonglu/tw-stock-quant"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[10px] text-muted-foreground hover:text-zinc-300 transition-colors"
             >
-              by neilyonglu
+              GitHub
             </a>
           </div>
           <button
@@ -71,7 +71,7 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className={`${labelClass} px-4 py-3 border-t border-zinc-800 text-xs text-muted-foreground`}>
-          最後更新：2026/07/02
+          最後更新：2026/07/22
         </div>
       </aside>
 
