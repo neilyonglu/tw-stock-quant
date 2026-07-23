@@ -34,6 +34,12 @@ uv run uvicorn data_service.main:app --reload --port 8001
 
 ## 快取
 
-記憶體 TTL cache（`cache.py`），依資料更新頻率分三個等級：近即時資料（五檔/分時/大盤指數）30s、
-K 線 60s、基本面 1800s。重啟服務會清空快取、多個服務實例之間不共享——目前先接受這個限制，
-之後升級成持久化（Parquet/SQLite，已列在 todo.md）。
+兩層：
+
+1. **記憶體 TTL**（`cache.py`）：依資料更新頻率分三級——近即時資料（五檔/分時/大盤指數）30s、
+   K 線 60s、基本面 1800s。重啟清空、多實例不共享。
+2. **SQLite 持久化**（`store.py`，`data/cache.db`，gitignored）：只存歷史日/週/月 K 線。
+   重啟不掉；請求時只向 yfinance 增量要缺口（從庫存倒數 5 根重疊抓起），重疊處 close
+   相對差 >0.1% 視為除權息還原價平移，該股整段重抓覆寫。分鐘 K 等即時資料不落地。
+
+對外 HTTP contract 不受快取層影響，回傳格式與純現抓完全一致。

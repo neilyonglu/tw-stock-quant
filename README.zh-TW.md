@@ -50,7 +50,7 @@ uv sync
 
 ### 架構：中台 / 前端 / 後端
 
-抓資料的工作獨立成一個**中台**（`data_service/`，FastAPI，記憶體 TTL 快取）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [data_service/README.md](data_service/README.md)。
+抓資料的工作獨立成一個**中台**（`data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [data_service/README.md](data_service/README.md)。
 
 本機開發中台跟前端要同時跑起來。`./scripts/dev.sh` 一個指令同時啟動兩個（Ctrl+C 會兩個一起關掉）；或分開手動啟動：
 

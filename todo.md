@@ -5,7 +5,7 @@
 
 ## 現在就可以做（不依賴隊友）
 
-- [ ] 中台快取持久化（SQLite，設計定稿見 plan.md Phase 1a）——`data_service/` 自己的範圍，跟隊友的 branch 無關，不要誤判成要等
+- [x] 中台快取持久化（SQLite）——2026-07-23 完成，最終狀態見 PROJECT.md 架構段
 - [ ] 指標計算層扶正：`src/api/get_stock_data.py` 從臨時佔位改為正式模組（位置與呼叫方式先規劃再動手）；K 線型態辨識一併解決 TA-Lib 環境問題（見 PROJECT.md「兩個 Python 環境」）。Route Handler 的 JSON 形狀不變，前端元件零改動
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）

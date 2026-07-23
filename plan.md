@@ -92,31 +92,9 @@
 
 **目標**：能穩定拿到資料、歷史資料落地本機、批次掃描不打爆外部 API。抓取一律經中台（`data_service/`），`src/` 不直打外部來源。
 
-#### 1a. 中台快取持久化（SQLite，設計定稿 2026-07-23）
+#### 1a. 中台快取持久化 — ✅ 完成（2026-07-23）
 
-現況記憶體 TTL cache 重啟即空。升級為**兩層**：記憶體管秒級即時（五檔/分時/即時指數/分鐘 K，**不落地**——即時資料落地只是存垃圾），SQLite 管歷史（日/週/月 K 線——指標/評分/回測讀最兇的資料）。
-
-- [ ] `data_service/store.py`：SQLite 讀寫層。檔案放 `data/cache.db`（WAL mode、gitignored），schema：
-
-  ```sql
-  CREATE TABLE candles (
-    ticker     TEXT NOT NULL,   -- yfinance 代碼，如 '2330.TW'
-    interval   TEXT NOT NULL,   -- '1d' / '1wk' / '1mo'（分鐘線不落地）
-    ts         TEXT NOT NULL,   -- 交易日 'YYYY-MM-DD'
-    open  REAL NOT NULL, high REAL NOT NULL,
-    low   REAL NOT NULL, close REAL NOT NULL,
-    volume INTEGER NOT NULL,
-    fetched_at TEXT NOT NULL,   -- 寫入時間（UTC ISO）
-    PRIMARY KEY (ticker, interval, ts)
-  ) WITHOUT ROWID;
-  ```
-
-- [ ] `sources/stock.py` K 線函式改三步查找：記憶體 TTL 60s（不變）→ SQLite 查已存區間 → 只跟 yfinance 要缺口（從庫內最後 5 根**重疊**抓起）→ upsert 回存 → 回傳
-  - 重疊 5 根是**除權息偵測**：庫內 close 與新抓 close 相對差 >0.1% → 還原價已平移，該股整段重抓覆寫（台股 7–9 月除權息旺季，這不是邊角案例）
-  - 當日 K 棒盤中會變：upsert 同鍵覆寫，收盤後自然定型
-  - HTTP contract 零改變：回傳 JSON 形狀與改動前逐欄位一致
-- [ ] `data/` 加進 `.gitignore`（快取是可再生的衍生資料）
-- [ ] 驗收：重啟服務後同一支 K 線 API 第二次請求只向 yfinance 要尾巴（日誌可見）；改動前後回傳 JSON diff 為空；`git status` 看不到 `data/`
+SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價抖動、period 左緣語意）見 PROJECT.md 架構段與「資料層」踩坑。
 
 #### 1b. 其餘資料管線
 
