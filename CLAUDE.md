@@ -15,7 +15,7 @@
 
 - **中台** `data_service/`：FastAPI（port 8001）+ 記憶體 TTL cache，只回 raw 資料，不算指標
 - **前端** `frontend/`：Next.js 16 + Tailwind v4 + shadcn/ui（base-nova、底層 @base-ui 非 Radix）+ lightweight-charts，只負責顯示
-- **後端**：隊友另開 branch 開發中，負責所有計算（指標、選股評分、投組優化）。merge 回 main 前，`src/api/get_stock_data.py` 是臨時指標計算佔位層；**merge 後整支刪除**，Route Handler 改打後端 API
+- **後端**（計算層）：技術指標、選股評分、投組優化由**本專案自行開發**；隊友另開 branch 只負責**回測系統**（2026-07-23 確認分工）。`src/api/get_stock_data.py` 是指標計算的起點，待扶正為正式模組（見 todo.md）
 
 ## 文件地圖（每份唯一職責；判斷現況以前兩份為準）
 
@@ -42,4 +42,4 @@
 
 ## 當前狀態
 
-Dashboard 建皮完成；下一個關鍵事件是隊友後端 branch merge（merge 時的待辦清單見 todo.md）。現況細節一律看 todo.md + PROJECT.md，不在這裡重複。
+Dashboard 建皮完成；下一階段是自建計算層（指標→評分→優化）。隊友 branch 只涵蓋回測，merge 時核對清單見 todo.md。現況細節一律看 todo.md + PROJECT.md，不在這裡重複。

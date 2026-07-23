@@ -13,6 +13,7 @@ wheels/
 .env
 
 # 下載的市場資料（不可再散布）
+data/cache.db*
 data/raw/
 data/processed/
 data/chip/
