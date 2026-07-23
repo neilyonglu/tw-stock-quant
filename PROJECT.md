@@ -13,7 +13,7 @@
 
 **中台是唯一向外部來源（yfinance/twstock/FinMind/…）抓資料的地方**，前端和後端都跟中台要資料。理由：前端要顯示、後端要計算，兩邊要的是同一份 raw 資料，各自抓會延遲疊加、邏輯分岔。
 
-- **中台 `data_service/`**：獨立 FastAPI 服務（`uv run uvicorn data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取是記憶體 TTL cache（`cache.py`）分三級：五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；重啟清空、多實例不共享，先接受，升級持久化（Parquet/SQLite）在 todo。Endpoints 見 `data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
+- **中台 `data_service/`**：獨立 FastAPI 服務（`uv run uvicorn data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取是記憶體 TTL cache（`cache.py`）分三級：五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；重啟清空、多實例不共享，先接受，升級持久化（SQLite，設計定稿見 plan.md Phase 1a）在 todo。Endpoints 見 `data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
 - **前端 `frontend/`**：Next.js 16.2.9 + Tailwind v4 + shadcn/ui 4.12（`base-nova` style，底層 @base-ui 非 Radix）+ lightweight-charts v5。只負責顯示。三個頁面：`/market`（市場總覽）、`/stock/[ticker]`（個股分析）、`/screening`（每週選股）。
 - **後端**（計算層）：技術指標、K 線型態、選股評分、投組優化由**本專案自行開發**；隊友另開 branch 只負責**回測系統**（2026-07-23 確認分工）。`src/api/get_stock_data.py`（跟中台要 raw candles，本地算 SMA/RSI/MACD）原定隊友 merge 後刪除，現改為指標層起點，待扶正為正式模組（見 todo.md）。
 - 本機開發：`./scripts/dev.sh` 同時啟動中台＋前端（Ctrl+C 一起關）。
@@ -72,7 +72,8 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | Dashboard 用 Next.js（非 Streamlit） | 目標使用者是一般大眾，需手機支援與視覺公信力 |
 | 部署規劃：前端 Vercel、後端 Railway/Render | 免費 tier 足夠 |
 | 資料中台獨立成 `data_service/`（FastAPI） | 前後端都要 raw 資料；隊友需要穩定的 HTTP contract，不該讀 Next.js 內部細節 |
-| 中台快取先用記憶體 TTL | 先解決「完全沒快取」的核心問題；升級持久化（Parquet/SQLite）在 todo |
+| 中台快取先用記憶體 TTL | 先解決「完全沒快取」的核心問題；升級持久化在 todo |
+| 快取持久化選 SQLite 不選 Parquet | 每日補 K 棒、除權息覆寫都是逐列 upsert，SQLite 天生支援；Parquet 一次寫整檔不適合快取，降級為未來回測匯出格式（2026-07-23，設計見 plan.md Phase 1a） |
 | 指標計算起點在 `src/api/get_stock_data.py`，待扶正為正式模組 | 原定隊友後端涵蓋所有計算、merge 後刪除佔位層；2026-07-23 確認隊友只做回測，指標/評分/優化歸本專案 |
 | 深色主題寫死 `<html className="dark">`，不用 next-themes | 本來就沒有亮色 variant、沒有 toggle UI；系統偏好偵測整套用不到 |
 | 選股表排序手刻 `useState`，不裝 TanStack Table | 只有 3 欄要排序；表格複雜度提高再換 |
