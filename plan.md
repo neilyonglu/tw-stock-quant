@@ -90,15 +90,19 @@
 
 ### Phase 1 — 資料管線（第一優先）
 
-**目標**：能穩定抓到資料、快取在本地、不每次都打 API。
+**目標**：能穩定拿到資料、歷史資料落地本機、批次掃描不打爆外部 API。抓取一律經中台（`data_service/`），`src/` 不直打外部來源。
 
-- [ ] `src/data/universe.py`：股票清單（上市 + 上櫃），從 twstock codes 產生
-- [ ] `src/data/fetcher.py`：twstock 抓歷史 OHLCV，支援起始日期
-- [ ] `src/data/store.py`：Parquet 快取層，支援 `update_if_stale(days=1)`
-- [ ] `src/data/fundamental.py`：CasualMarket MCP 拉財務資料
-- [ ] 驗收：`python -m src.data.fetcher 2330 2454` 產出 `data/raw/` Parquet
+#### 1a. 中台快取持久化 — ✅ 完成（2026-07-23）
 
-**限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep。
+SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價抖動、period 左緣語意）見 PROJECT.md 架構段與「資料層」踩坑。
+
+#### 1b. 其餘資料管線
+
+- [ ] `src/data/universe.py`：股票清單（上市 + 上櫃），從 twstock codes 產生（本地查表，不經中台）；驗收：`python -m src.data.universe` 印出上市/上櫃檔數
+- [ ] ~~`src/data/fetcher.py`、`src/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
+- [ ] `src/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
+
+**限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
 ### Phase 2 — 技術指標模組（第四層）
 
