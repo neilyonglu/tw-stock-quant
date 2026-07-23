@@ -174,15 +174,12 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
     start_str = _serve_start(cutoff, interval) if cutoff is not None else None
     cov = store.coverage(yft, interval)
 
-    need_front_fill = (
-        cov is not None
-        and start_str is not None
-        and start_str < cov[0]
-        and not _front_fill_impossible(yft, interval, cov[0])
-    )
+    # 庫存起點已是資料源的最早資料 → 不管要多早（含 period=max）都不必全抓
+    have_all_history = cov is not None and _front_fill_impossible(yft, interval, cov[0])
+    wants_earlier = start_str is None or (cov is not None and start_str < cov[0])
 
-    if cov is None or start_str is None or need_front_fill:
-        # 全抓：庫是空的／要的區間比庫存更早／period=max。直接回抓到的內容
+    if cov is None or (wants_earlier and not have_all_history):
+        # 全抓：庫是空的／要的區間比庫存更早（含首次 period=max）。直接回抓到的內容
         # （跟改動前的行為逐 byte 一致），寫入 SQLite 是順手的副作用。
         rows = _yf_rows(ticker, interval, False, period=period)
         if not rows:
@@ -190,7 +187,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         store.upsert(yft, interval, rows)
         _maybe_record_source_start(yft, interval, period, cutoff, rows[0]["time"])
         logger.info("%s %s %s: 全抓 %d 根（%s）", yft, interval, period, len(rows),
-                    "庫空" if cov is None else "要補更早區間" if need_front_fill else "period=max")
+                    "庫空" if cov is None else "要補更早區間")
         return _render(rows)
 
     # 增量：從庫存倒數第 TAIL_OVERLAP 根抓起（故意重疊，用來偵測除權息）
@@ -218,6 +215,10 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         full_rows = _yf_rows(ticker, interval, False, start=cov[0])
         if full_rows:
             store.upsert(yft, interval, full_rows)
+        else:
+            # 重抓失敗不能裝沒事：本次回應仍是平移前的舊還原價，誠實記下來，下次請求再試
+            logger.warning("%s %s: 除權息整段重抓失敗（yfinance 回空），本次回應仍為舊還原價",
+                           yft, interval)
     else:
         store.upsert(yft, interval, new_rows)
 

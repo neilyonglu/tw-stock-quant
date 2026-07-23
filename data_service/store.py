@@ -40,6 +40,7 @@ def _conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")  # 未來批次掃描多執行緒寫入時避免 database is locked
     conn.executescript(_SCHEMA)
     return conn
 
