@@ -6,7 +6,12 @@
 ## 現在就可以做（不依賴隊友）
 
 - [x] 中台快取持久化（SQLite）——2026-07-23 完成，最終狀態見 PROJECT.md 架構段
-- [ ] 指標計算層扶正：`src/api/get_stock_data.py` 從臨時佔位改為正式模組（位置與呼叫方式先規劃再動手）；K 線型態辨識一併解決 TA-Lib 環境問題（見 PROJECT.md「兩個 Python 環境」）。Route Handler 的 JSON 形狀不變，前端元件零改動
+- [ ] **👉 下一個：指標計算層扶正**——`src/api/get_stock_data.py` 從臨時佔位改為正式模組。步驟：
+  1. 規劃位置與呼叫方式（`src/indicators/` 模組化 vs 隨 Route Handler 續用 execFile，先出方案再動手）
+  2. SMA/EMA/RSI/MACD 等既有指標搬家＋補驗證（抽樣手算對照，見 judgment 品質底線）
+  3. K 線型態辨識一併解決 TA-Lib 環境問題（見 PROJECT.md「兩個 Python 環境」），mock 換真
+  4. Route Handler 的 JSON 形狀不變，前端元件零改動（合約見 `frontend/src/lib/types.ts`）
+- [ ] 中台支援上櫃股：ticker 目前寫死 `.TW`（`data_service/sources/stock.py`），上櫃股（`.TWO`）抓不到 K 線——全市場掃描前必須修（twstock codes 可查上市/上櫃別，據此選後綴）
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）
 - [ ] `main.py` 能單獨跑完整選股流程並推播 Telegram（依賴指標＋評分完成）
