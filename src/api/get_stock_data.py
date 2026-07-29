@@ -15,6 +15,7 @@ Usage: python3 get_stock_data.py <ticker> [period] [interval]
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 
 import pandas as pd
@@ -30,8 +31,15 @@ def _company_name(ticker: str) -> str:
 
 def _fetch_candles(ticker: str, period: str, interval: str) -> dict:
     url = f"{DATA_SERVICE_URL}/stocks/{ticker}/candles?period={period}&interval={interval}"
-    with urllib.request.urlopen(url, timeout=15) as resp:
-        return json.load(resp)
+    try:
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            return json.load(resp)
+    except urllib.error.HTTPError as e:
+        # 中台查無此股票代碼會回 404，這裡沒接住的話會整支腳本炸掉、前端只看得到
+        # 「Failed to fetch stock data」這種沒意義的訊息，接住改成使用者看得懂的提示。
+        if e.code == 404:
+            return {"error": f"查無股票代碼「{ticker}」，請確認代碼是否正確"}
+        raise
 
 
 def _ema(series: pd.Series, span: int) -> pd.Series:
@@ -81,8 +89,11 @@ def main():
 
     raw = _fetch_candles(ticker, period, interval)
     if "error" in raw:
+        # exit(0)：這是已知、處理過的錯誤（查無代碼），不是腳本壞掉。exit(1) 會讓
+        # Node 的 execFile 把 stdout 整包丟掉（見 run-python.ts），前端就看不到這則
+        # 錯誤訊息，只會拿到通用的「Failed to fetch stock data」。
         print(json.dumps({"error": raw["error"]}))
-        sys.exit(1)
+        sys.exit(0)
 
     candles = raw["candles"]
     volume_data = raw["volume"]

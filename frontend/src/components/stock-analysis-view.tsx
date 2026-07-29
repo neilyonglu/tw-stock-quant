@@ -15,7 +15,7 @@ import { ProfileTab } from "@/components/stock/profile-tab"
 import { ChipTab } from "@/components/stock/chip-tab"
 import { NewsTab } from "@/components/stock/news-tab"
 import type { StockData } from "@/lib/types"
-import { Search, Star } from "lucide-react"
+import { Search, SearchX, Star } from "lucide-react"
 import { useWatchlist, toggleWatchlist } from "@/lib/watchlist"
 import { formatTimeShort } from "@/lib/utils"
 
@@ -306,14 +306,16 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
             {activeTicker}
             {data?.name && <span className="text-zinc-400 font-normal ml-1.5">{data.name}</span>}
           </h1>
-          <button
-            onClick={() => toggleWatchlist(activeTicker)}
-            aria-label={inWatchlist ? "移出自選股" : "加入自選股"}
-            aria-pressed={inWatchlist}
-            className="flex items-center justify-center h-11 w-11 -mx-2.5 rounded-md text-zinc-400 hover:text-amber-400 transition-colors"
-          >
-            <Star size={18} className={inWatchlist ? "fill-amber-400 text-amber-400" : ""} />
-          </button>
+          {!error && (
+            <button
+              onClick={() => toggleWatchlist(activeTicker)}
+              aria-label={inWatchlist ? "移出自選股" : "加入自選股"}
+              aria-pressed={inWatchlist}
+              className="flex items-center justify-center h-11 w-11 -mx-2.5 rounded-md text-zinc-400 hover:text-amber-400 transition-colors"
+            >
+              <Star size={18} className={inWatchlist ? "fill-amber-400 text-amber-400" : ""} />
+            </button>
+          )}
           {loading && <Skeleton className="h-6 w-32 bg-zinc-800" />}
           {!loading && latest && (
             <>
@@ -328,14 +330,20 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               </span>
             </>
           )}
-          {lastUpdated && (
+          {!error && lastUpdated && (
             <span className="text-xs text-muted-foreground tabular-nums">
               更新於 {formatTimeShort(lastUpdated.toISOString())}
             </span>
           )}
-          {error && <span className="text-sm text-red-400">{error}</span>}
         </div>
 
+        {error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center px-6">
+            <SearchX size={32} className="text-zinc-600" />
+            <p className="text-sm text-zinc-200">{error}</p>
+            <p className="text-xs text-muted-foreground">可以到左側重新輸入股票代碼再試一次</p>
+          </div>
+        ) : (
         <div className="p-4">
           <Tabs defaultValue="intraday">
             <div className="overflow-x-auto mb-3">
@@ -446,6 +454,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
             </TabsContent>
           </Tabs>
         </div>
+        )}
       </main>
     </div>
   )
