@@ -102,7 +102,10 @@ def main():
     prev_price = float(close.iloc[-2])
     change = latest_price - prev_price
     change_pct = change / prev_price * 100
-    latest_rsi = float(rsi_vals.dropna().iloc[-1])
+    rsi_dropna = rsi_vals.dropna()
+    # 資料筆數不夠一個 RSI window（14）時 rolling mean 全 NaN——「今日」這種短區間會踩到，
+    # 用 50（中性值）佔位，避免整支腳本炸掉；比空白 UI 誠實一點，不是真訊號但不會誤判超買超賣。
+    latest_rsi = float(rsi_dropna.iloc[-1]) if len(rsi_dropna) > 0 else 50.0
     latest_macd = float(macd_line.dropna().iloc[-1])
     latest_sig = float(macd_signal.dropna().iloc[-1])
     vol_avg5 = float(volume.iloc[-6:-1].mean()) if len(volume) >= 6 else float(volume.mean())

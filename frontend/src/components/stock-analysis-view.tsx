@@ -256,7 +256,16 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               </ToggleGroup>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground leading-snug">{activeInterval.hint}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground leading-snug">{activeInterval.hint}</p>
+              <button
+                onClick={() => setPeriod(period === "1d" ? activeInterval.fixedPeriod : "1d")}
+                aria-pressed={period === "1d"}
+                className="shrink-0 text-xs h-11 px-3 rounded-md border border-zinc-800 aria-pressed:bg-zinc-700 aria-pressed:text-white text-zinc-400 hover:text-white transition-colors"
+              >
+                今日
+              </button>
+            </div>
           )}
 
           {/* 技術訊號 */}
