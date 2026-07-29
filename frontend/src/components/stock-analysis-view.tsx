@@ -15,7 +15,9 @@ import { ProfileTab } from "@/components/stock/profile-tab"
 import { ChipTab } from "@/components/stock/chip-tab"
 import { NewsTab } from "@/components/stock/news-tab"
 import type { StockData } from "@/lib/types"
-import { Search } from "lucide-react"
+import { Search, Star } from "lucide-react"
+import { useWatchlist, toggleWatchlist } from "@/lib/watchlist"
+import { formatTimeShort } from "@/lib/utils"
 
 // ─── K 線週期 / 區間 ──────────────────────────────────────────────────────────
 // 日/週/月：可選資料區間。分鐘線（5/15/30/60分）：Yahoo/yfinance 只給得到近期資料，
@@ -117,16 +119,21 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
   const [data, setData] = useState<StockData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const watchlist = useWatchlist()
+  const inWatchlist = watchlist.includes(activeTicker)
 
   const activeInterval = INTERVALS.find((iv) => iv.value === interval)!
+  // 分鐘線資料跟中台五檔/分時快取同週期（30 秒 TTL），日/週/月線跟中台 K 線快取同週期（60 秒 TTL）
+  const refreshMs = activeInterval.value.endsWith("m") ? 30_000 : 60_000
 
-  const fetchData = useCallback(async (ticker: string, p: string, iv: string) => {
+  const fetchData = useCallback(async (ticker: string, p: string, iv: string, silent = false) => {
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
 
-    setLoading(true)
+    if (!silent) setLoading(true)
     setError(null)
 
     try {
@@ -134,17 +141,35 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? "Unknown error")
       setData(json)
+      setLastUpdated(new Date())
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return
       setError(e instanceof Error ? e.message : "Failed to load data")
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     fetchData(activeTicker, period, interval)
   }, [activeTicker, period, interval, fetchData])
+
+  // 定期背景刷新：分頁在背景時暫停，切回前景立刻補刷一次
+  useEffect(() => {
+    function tick() {
+      if (document.hidden) return
+      fetchData(activeTicker, period, interval, true)
+    }
+    const timer = setInterval(tick, refreshMs)
+    function onVisible() {
+      if (!document.hidden) tick()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [activeTicker, period, interval, refreshMs, fetchData])
 
   function handleSearch() {
     const t = tickerInput.trim().replace(/\.TW$/i, "")
@@ -272,6 +297,14 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
             {activeTicker}
             {data?.name && <span className="text-zinc-400 font-normal ml-1.5">{data.name}</span>}
           </h1>
+          <button
+            onClick={() => toggleWatchlist(activeTicker)}
+            aria-label={inWatchlist ? "移出自選股" : "加入自選股"}
+            aria-pressed={inWatchlist}
+            className="flex items-center justify-center h-11 w-11 -mx-2.5 rounded-md text-zinc-400 hover:text-amber-400 transition-colors"
+          >
+            <Star size={18} className={inWatchlist ? "fill-amber-400 text-amber-400" : ""} />
+          </button>
           {loading && <Skeleton className="h-6 w-32 bg-zinc-800" />}
           {!loading && latest && (
             <>
@@ -285,6 +318,11 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                 漲停 <span className="text-red-400">{latest.limit_up}</span>　跌停 <span className="text-emerald-400">{latest.limit_down}</span>
               </span>
             </>
+          )}
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              更新於 {formatTimeShort(lastUpdated.toISOString())}
+            </span>
           )}
           {error && <span className="text-sm text-red-400">{error}</span>}
         </div>
