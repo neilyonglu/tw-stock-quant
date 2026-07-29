@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { TickerSearch } from "@/components/ticker-search"
 import type { MarketRankings, RankedItem } from "@/lib/types"
 
 function RankRow({ item }: { item: RankedItem }) {
@@ -31,7 +29,6 @@ function RankRow({ item }: { item: RankedItem }) {
 
 export function StockHomeView() {
   const router = useRouter()
-  const [tickerInput, setTickerInput] = useState("")
   const [rankings, setRankings] = useState<MarketRankings | null>(null)
 
   useEffect(() => {
@@ -40,36 +37,16 @@ export function StockHomeView() {
       .then(setRankings)
   }, [])
 
-  function handleSearch() {
-    const t = tickerInput.trim().replace(/\.TW$/i, "")
-    if (t) router.push(`/stock/${t}`)
-  }
-
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-white">個股分析</h1>
-        <p className="text-xs text-muted-foreground mt-1">輸入代碼查個股，或從下面排行榜點進去</p>
+        <p className="text-xs text-muted-foreground mt-1">輸入代碼或名稱查個股，或從下面排行榜點進去</p>
       </div>
 
       {/* 搜尋 */}
-      <div className="flex gap-1.5 max-w-sm">
-        <Input
-          value={tickerInput}
-          onChange={(e) => setTickerInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          placeholder="輸入股票代碼，例如 2330"
-          className="bg-zinc-900 border-zinc-700 text-sm h-11"
-        />
-        <Button
-          size="sm"
-          variant="outline"
-          aria-label="搜尋股票代碼"
-          className="h-11 w-11 px-0 border-zinc-700 shrink-0"
-          onClick={handleSearch}
-        >
-          <Search size={14} />
-        </Button>
+      <div className="max-w-sm">
+        <TickerSearch onSelect={(t) => router.push(`/stock/${t}`)} />
       </div>
 
       {/* 排行榜（示範資料） */}

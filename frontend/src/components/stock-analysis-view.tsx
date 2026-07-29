@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { KlineChart } from "@/components/charts/kline-chart"
@@ -14,8 +12,9 @@ import { IntradayTab } from "@/components/stock/intraday-tab"
 import { ProfileTab } from "@/components/stock/profile-tab"
 import { ChipTab } from "@/components/stock/chip-tab"
 import { NewsTab } from "@/components/stock/news-tab"
+import { TickerSearch } from "@/components/ticker-search"
 import type { StockData } from "@/lib/types"
-import { Search, SearchX, Star } from "lucide-react"
+import { SearchX, Star } from "lucide-react"
 import { useWatchlist, toggleWatchlist } from "@/lib/watchlist"
 import { formatTimeShort } from "@/lib/utils"
 
@@ -112,7 +111,6 @@ function fmtChange(change: number, pct: number) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function StockAnalysisView({ initialTicker }: { initialTicker: string }) {
-  const [tickerInput, setTickerInput] = useState(initialTicker)
   const [activeTicker, setActiveTicker] = useState(initialTicker)
   const [interval, setIntervalValue] = useState<(typeof INTERVALS)[number]["value"]>("1d")
   const [period, setPeriod] = useState("6mo")
@@ -133,7 +131,13 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
     const ctrl = new AbortController()
     abortRef.current = ctrl
 
-    if (!silent) setLoading(true)
+    if (!silent) {
+      setLoading(true)
+      // 換代碼/週期時立刻清掉舊資料——不然轉圈的當下，標題列還會顯示上一支股票的
+      // 名稱/價格，看起來像新代碼查到了舊資料。背景靜默刷新（silent）不清，避免每次
+      // 自動刷新都閃一下。
+      setData(null)
+    }
     setError(null)
 
     try {
@@ -171,11 +175,6 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
     }
   }, [activeTicker, period, interval, refreshMs, fetchData])
 
-  function handleSearch() {
-    const t = tickerInput.trim().replace(/\.TW$/i, "")
-    if (t) setActiveTicker(t)
-  }
-
   function handleIntervalChange(value: string) {
     const iv = INTERVALS.find((i) => i.value === value)
     if (!iv) return
@@ -194,25 +193,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {/* 搜尋 */}
           <div>
             <label htmlFor="ticker-input" className="text-xs text-muted-foreground mb-2 block">股票代碼</label>
-            <div className="flex gap-1.5">
-              <Input
-                id="ticker-input"
-                value={tickerInput}
-                onChange={(e) => setTickerInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="2330"
-                className="bg-zinc-900 border-zinc-700 text-sm h-11"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label="搜尋股票代碼"
-                className="h-11 w-11 px-0 border-zinc-700 shrink-0"
-                onClick={handleSearch}
-              >
-                <Search size={14} />
-              </Button>
-            </div>
+            <TickerSearch id="ticker-input" onSelect={(t) => setActiveTicker(t)} placeholder="2330 或名稱關鍵字" />
           </div>
 
           {/* K 線週期 */}
