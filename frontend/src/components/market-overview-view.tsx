@@ -43,8 +43,8 @@ export function MarketOverviewView() {
   const [indices, setIndices] = useState<MarketIndicesData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [overviewRes, indicesRes] = await Promise.all([
         fetch("/api/market"),
@@ -53,12 +53,29 @@ export function MarketOverviewView() {
       setData(await overviewRes.json())
       setIndices(await indicesRes.json())
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     fetchData()
+  }, [fetchData])
+
+  // 定期背景刷新（指數/報價中台快取 30 秒 TTL），分頁在背景時暫停，切回前景立刻補刷一次
+  useEffect(() => {
+    function tick() {
+      if (document.hidden) return
+      fetchData(true)
+    }
+    const timer = setInterval(tick, 30_000)
+    function onVisible() {
+      if (!document.hidden) tick()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
   }, [fetchData])
 
   return (
@@ -77,7 +94,7 @@ export function MarketOverviewView() {
           variant="outline"
           size="sm"
           className="border-zinc-700"
-          onClick={fetchData}
+          onClick={() => fetchData()}
           disabled={loading}
         >
           <RotateCw size={14} className={loading ? "animate-spin" : ""} />
