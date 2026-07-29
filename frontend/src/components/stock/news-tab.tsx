@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { NewsList } from "@/components/news-list"
+import { MockNotice } from "@/components/mock-badge"
 import type { NewsItem } from "@/lib/types"
 
 export function NewsTab({ ticker, name }: { ticker: string; name?: string }) {
@@ -19,10 +20,16 @@ export function NewsTab({ ticker, name }: { ticker: string; name?: string }) {
   if (!items) {
     return (
       <div className="space-y-2">
+        <MockNotice reason="個股新聞牆要另找來源（Phase 6 規劃 TWSE 重大訊息 RSS）" />
         {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 bg-zinc-900" />)}
       </div>
     )
   }
 
-  return <NewsList items={items} />
+  return (
+    <div className="space-y-2">
+      <MockNotice reason="個股新聞牆要另找來源（Phase 6 規劃 TWSE 重大訊息 RSS）" />
+      <NewsList items={items} />
+    </div>
+  )
 }

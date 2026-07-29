@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
+import { MockNotice } from "@/components/mock-badge"
 import type { StockChipData } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 
@@ -35,6 +36,7 @@ export function ChipTab({ ticker }: { ticker: string }) {
 
   return (
     <div className="space-y-4">
+      <MockNotice reason="等 FinMind 籌碼資料接入（Phase 5）" />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard
           label="融資餘額"

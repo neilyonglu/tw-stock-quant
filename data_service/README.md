@@ -16,6 +16,7 @@ uv run uvicorn data_service.main:app --reload --port 8001
 | Method | Path | 說明 | TTL |
 |---|---|---|---|
 | GET | `/health` | 存活檢查 | — |
+| GET | `/stocks/search?q=` | 依代碼前綴或名稱關鍵字搜尋股票（只回一般股票，排除權證/ETF），回 `[{ticker, name}]` | 3600s |
 | GET | `/stocks/{ticker}/candles?period=&interval=` | raw OHLCV + 成交量 + 漲跌停價（不含技術指標） | 60s |
 | GET | `/stocks/{ticker}/profile` | 產業別/上市櫃別/本益比/股價淨值比/殖利率/EPS/52週高低/市值/股本/分析師目標價 | 1800s |
 | GET | `/stocks/{ticker}/orderbook` | 五檔委買委賣 | 30s |

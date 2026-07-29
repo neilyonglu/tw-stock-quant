@@ -44,14 +44,22 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 - **自選股頁改 App 風格＋個股首頁排行榜＋K 線今日按鈕**（2026-07-29）：自選股頁面改成 iOS 股票 App 卡片式列表（名稱/代碼＋迷你走勢圖 sparkline＋價格/漲跌色塊），走勢圖吃 `/api/stock/[ticker]/intraday`（真實資料）；新增 `/stock` 首頁（未指定代碼時），顯示今日漲跌幅前五名（沿用市場總覽既有的 mock 排行榜資料，畫面明確標示「示範資料，非真實排行」，真資料要等全市場掃描 Phase 1+6），側邊欄「個股分析」改連到這裡而非固定 `/stock/2330`。K 線圖分頁的分鐘線加「今日」快速按鈕（period=1d）。過程中順手修掉 `src/api/get_stock_data.py` 的一個既有 bug：資料筆數不足一個 RSI window（14 根）時 `.dropna().iloc[-1]` 會 IndexError 炸整支腳本（今日這種短區間會踩到），改成不足時退回中性值 50。
 - **查無股票代碼的錯誤畫面**（2026-07-29）：搜尋不存在的代碼時，`get_stock_data.py` 原本會讓中台回的 404 直接讓 `urlopen` 拋出未接住的 `HTTPError`，整支腳本以 exit code 1 死掉；`run-python.ts` 的 `execFile` 一遇到非 0 exit code 就丟掉 stdout，前端只看得到通用的「Failed to fetch stock data」。修法：`_fetch_candles` 接住 404 轉成 `{"error": "查無股票代碼「X」..."}`，且這種「已處理的已知錯誤」改用 `sys.exit(0)`（不是腳本壞掉，只是查無資料，不該讓 stdout 被丟掉）。前端個股頁新增專用的查無代碼畫面（隱藏自選星星、不渲染分頁），取代原本混亂地在標題列塞一行紅字、下面 tabs 照樣試著渲染壞資料。
 - **股票關鍵字搜尋 + 修掉切換代碼時的殘留資料 bug**（2026-07-29）：新增 `/stocks/search`（中台）→ `/api/stock/search`（前端代理），依代碼前綴或名稱關鍵字搜尋，資料源是 twstock.codes 本地代碼表（過濾只留一般股票，排除權證/ETF 等雜訊，1942 檔）。共用元件 `frontend/src/components/ticker-search.tsx`（debounce 200ms、下拉選單、方向鍵/Enter/Esc），個股頁側邊欄與 `/stock` 首頁的搜尋框都換成這個，不再各自維護一份。過程中發現並修掉一個真的 bug：切換股票代碼時 `data` state 沒有立刻清空，導致轉圈載入或查詢失敗的當下，標題列會殘留上一支股票的名稱/價格（看起來像新代碼查到了舊資料）；修法是非背景刷新（非 silent）的 fetch 一開始就清空 `data`，背景自動刷新不清（避免每次刷新都閃爍）。
+- **全 repo 稽核與資料誠實性修正**（2026-07-29）：三份平行稽核（Python / 前端 / 文件）後修掉三條「假資料看起來像真的」——(1) 櫃買指數抓不到卻回 `0`，改成回 `null`＋UI 顯示「—」；(2) K 線型態每支股票都回同一筆假的「錘子線／偏多」，且跟真的 SMA/MACD/RSI 訊號並排顯示，改成不產生型態訊號；(3) 市場總覽六個區塊、籌碼面／新聞整頁、月營收等 mock 沒有任何視覺標示，建立共用 `mock-badge.tsx` 統一標記。做法已寫成上方「真實 vs mock 資料對照」的三條規則。稽核也記錄了未修的問題（白屏防護、漲跌停短區間算錯、race condition 等），見 todo.md。
 
 ## 真實 vs mock 資料對照
 
 **mock 絕對不能看起來像真的**——本系統產出投資決策，錯誤數據是安全問題。判斷標準：yfinance / twstock 免金鑰拿得到的就接真的，拿不到的用 mock 佔位但型別合約先定好。
 
+這條規則有三個具體做法（2026-07-29 稽核後定案，改動 mock 相關畫面時照這個做）：
+
+1. **畫面上每個 mock 區塊都要掛視覺標記**，用共用元件 `frontend/src/components/mock-badge.tsx`：`<MockBadge reason="等什麼資料源" />` 是行內小標籤（`<StatCard>` 直接傳 `mock` / `mockReason` prop），`<MockNotice>` 是整區/整頁都 mock 時的橫幅。
+2. **抓不到資料就回 `null`，不要回 `0` 或任何「看起來合法」的預設值**——呼叫端負責顯示成「—」。捏造的 0 比空白危險得多（櫃買指數就是踩過這個坑）。
+3. **不要生成假的「訊號」或「判斷」**。純數字佔位加標記還能接受，但「錘子線／偏多」這種會被當成建議的假結論一律不做，寧可空白（K 線型態辨識就是為此改成回空陣列）。
+
 | 資料 | 狀態 | 來源 / 等什麼 |
 |------|------|--------------|
-| 加權指數、櫃買指數、國際指數 | **真實** | yfinance `^TWII`/`^TWOII`/`^DJI` 等 |
+| 加權指數、國際指數 | **真實** | yfinance `^TWII`/`^DJI`/`^IXIC`/`^N225`/`000001.SS` |
+| 櫃買指數 | **無資料源** | yfinance `^TWOII` 已查不到（2026-07-29 實測 `^TWOII`/`^TWO`/`^TPEX` 全回 0 筆）。中台回 `null`、UI 顯示「—」，**不捏造 0**。要接真的得另找 TPEx OpenAPI，見 todo.md |
 | 個股/大盤分時走勢（今日 1 分 K） | **真實** | yfinance `period=1d interval=1m` |
 | 個股 K 線（7 種週期） | **真實** | 中台 ← yfinance |
 | 個股 PE/PB/殖利率/市值/EPS/52 週高低/目標價 | **真實** | yfinance `Ticker.info` |
@@ -61,7 +69,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | USD/TWD、美債 10Y | mock（yfinance 其實拿得到，等 `/api/market` 其他欄位一起換） | `USDTWD=X`、`^TNX` |
 | 景氣燈號、市場廣度、三大法人 | mock | Phase 1 + Phase 5（FinMind/data.gov.tw） |
 | 個股籌碼（法人/融資券/大戶）、月營收 | mock | Phase 5 FinMind / Phase 4 CasualMarket |
-| K 線型態辨識 | mock | TA-Lib 不在 route handler 的 python 環境（見上方兩個環境） |
+| K 線型態辨識 | **未啟用（回空陣列）** | 原本固定塞一筆假的「錘子線／偏多」，且跟真訊號並排顯示——已於 2026-07-29 改成不產生任何型態訊號，UI 顯示一行說明。要接真的需 TA-Lib，但它不在 route handler 的 python 環境（見上方兩個環境），指標層扶正時一起解決 |
 | 台指期貨、外資未平倉 | mock | 無免費來源，要另找（券商 API） |
 | 排行榜（類股/成交值/漲跌幅） | mock | 需全市場掃描，Phase 1+6 |
 | 新聞（個股/大盤） | mock | 全市場新聞牆要另找來源 |
