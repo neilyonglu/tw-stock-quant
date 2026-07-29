@@ -41,6 +41,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 - **前端 Dashboard 併入 main**（2026-07-22）：`feature/dashboard-ui` 經 PR #1 併回 main（merge commit）。同時 main 設了 branch protection ruleset：改 main 一律走 PR（禁直接 push）、禁 force-push、禁刪除，**不強制 review**（作者可自 merge）。日常流程＝branch → push → PR → merge。
 - **中台快取持久化**（2026-07-23）：SQLite 兩層快取上線（細節見上方架構段）。驗收：改動前後回傳逐欄位比對、重啟後增量只抓 5 根（日/週/月三種週期實測）、污染庫內 close 觸發除權息路徑自我修復。
 - **自選股清單＋定期自動刷新**（2026-07-29）：前端新增 `/watchlist` 頁面，個股頁標題旁加星星按鈕加入/移除；清單存瀏覽器 localStorage（單機使用，之後要跨裝置同步再換後端資料庫，見 `frontend/src/lib/watchlist.ts`）。市場總覽、個股頁面加背景自動刷新，頻率對齊中台快取 TTL（報價/指數 30 秒、K 線 60 秒），分頁在背景分頁時暫停、切回前景立刻補刷一次。驗收：Playwright 實測加入/移除/清單顯示/自動刷新網路請求時序、console 無錯誤。
+- **自選股頁改 App 風格＋個股首頁排行榜＋K 線今日按鈕**（2026-07-29）：自選股頁面改成 iOS 股票 App 卡片式列表（名稱/代碼＋迷你走勢圖 sparkline＋價格/漲跌色塊），走勢圖吃 `/api/stock/[ticker]/intraday`（真實資料）；新增 `/stock` 首頁（未指定代碼時），顯示今日漲跌幅前五名（沿用市場總覽既有的 mock 排行榜資料，畫面明確標示「示範資料，非真實排行」，真資料要等全市場掃描 Phase 1+6），側邊欄「個股分析」改連到這裡而非固定 `/stock/2330`。K 線圖分頁的分鐘線加「今日」快速按鈕（period=1d）。過程中順手修掉 `src/api/get_stock_data.py` 的一個既有 bug：資料筆數不足一個 RSI window（14 根）時 `.dropna().iloc[-1]` 會 IndexError 炸整支腳本（今日這種短區間會踩到），改成不足時退回中性值 50。
 
 ## 真實 vs mock 資料對照
 
