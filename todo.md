@@ -6,6 +6,7 @@
 ## 現在就可以做（不依賴隊友）
 
 - [x] 中台快取持久化（SQLite）——2026-07-23 完成，最終狀態見 PROJECT.md 架構段
+- [x] 自選股清單＋市場/個股頁面定期自動刷新——2026-07-29 完成（branch `feature/watchlist-live-refresh`），最終狀態見 PROJECT.md
 - [ ] **👉 下一個：指標計算層扶正**——`src/api/get_stock_data.py` 從臨時佔位改為正式模組。步驟：
   1. 規劃位置與呼叫方式（`src/indicators/` 模組化 vs 隨 Route Handler 續用 execFile，先出方案再動手）
   2. SMA/EMA/RSI/MACD 等既有指標搬家＋補驗證（抽樣手算對照，見 judgment 品質底線）
