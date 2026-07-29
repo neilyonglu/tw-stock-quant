@@ -244,6 +244,36 @@ def fetch_candles(ticker: str, period: str, interval: str) -> dict:
     return _render(rows)
 
 
+@ttl_cache(seconds=3600)
+def _stock_index() -> list[tuple[str, str]]:
+    """(代碼, 名稱) 清單，只留一般股票，排除權證/ETF/特別股等——twstock.codes 裡
+    41000+ 筆多數是權證，全部搜尋會回一堆使用者用不到的雜訊。twstock 代碼表本身
+    可能過期（新掛牌查不到），跟 get_stock_data.py 的 _company_name() 用同一份表。
+    """
+    return [(c.code, c.name) for c in twstock.codes.values() if c.type == "股票"]
+
+
+def search_stocks(query: str, limit: int = 8) -> list[dict]:
+    """依代碼前綴或名稱關鍵字搜尋股票。代碼完全符合 > 代碼前綴符合 > 名稱包含，同組內維持原順序。"""
+    q = query.strip()
+    if not q:
+        return []
+
+    def rank(item: tuple[str, str]) -> int:
+        code, name = item
+        if code == q:
+            return 0
+        if code.startswith(q):
+            return 1
+        if q in name:
+            return 2
+        return 3
+
+    matches = [item for item in _stock_index() if rank(item) < 3]
+    matches.sort(key=rank)
+    return [{"ticker": code, "name": name} for code, name in matches[:limit]]
+
+
 @ttl_cache(seconds=1800)
 def fetch_profile(ticker: str) -> dict:
     """產業別/上市櫃別來自 twstock（本地查表），其餘來自 yfinance .info。

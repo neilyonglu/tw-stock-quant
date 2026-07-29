@@ -220,6 +220,14 @@ export interface OrderBookData {
   bids: OrderBookLevel[] // 委買，由高到低 5 檔
 }
 
+// ─── /api/stock/search ────────────────────────────────────────────────────────────
+// [真實] twstock.codes 本地代碼表，依代碼前綴或名稱關鍵字搜尋一般股票（排除權證/ETF/特別股）
+
+export interface TickerSearchResult {
+  ticker: string
+  name: string
+}
+
 // ─── /api/screening ──────────────────────────────────────────────────────────────
 // [mock] 選股評分、進場/停損、投組配置——這些是「計算」的結果，理論上是後端（隊友開發中）
 // 的工作範圍，不是中台該抓的 raw 資料，所以現在整支 mock，等後端做完再換成真資料。
