@@ -8,10 +8,25 @@ import type { FuturesData } from "@/lib/types"
 
 export function FuturesCard() {
   const [data, setData] = useState<FuturesData | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/market/futures").then((res) => res.json()).then(setData)
+    fetch("/api/market/futures")
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? "Unknown error")
+        setData(json)
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load data"))
   }, [])
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
+        暫時無法載入期貨資料（資料服務可能未啟動）
+      </div>
+    )
+  }
 
   if (!data) {
     return (

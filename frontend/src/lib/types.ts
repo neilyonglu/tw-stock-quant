@@ -142,8 +142,10 @@ export interface LatestMetrics {
   rsi: number
   macd_crossover: "golden" | "dead"
   volume_ratio: number
-  limit_up: number // 漲停價，依前收盤 ±10% 估算
-  limit_down: number // 跌停價，同上
+  // 漲跌停價：前一交易日收盤 ±10% 依跳動單位取整。基準一律是「前一交易日」，
+  // 跟目前看的是日線還是 5 分線無關。取不到前收盤時為 null（UI 顯示「—」，不猜數字）。
+  limit_up: number | null
+  limit_down: number | null
 }
 
 // K 線型態（晨星、錘子線、吞噬等）。[mock]：TA-Lib 的 61 種型態辨識（pattern.py，Phase 2）
@@ -182,8 +184,9 @@ export interface MonthlyRevenue {
 export interface StockProfile {
   industry: string // twstock group
   listed_market: "上市" | "上櫃"
-  market_cap: number // 億元
-  shares_outstanding: number // 億股
+  // 缺值一律 null（不是 0）——0 會被讀成「市值真的是 0 億」而不是「查不到」
+  market_cap: number | null // 億元
+  shares_outstanding: number | null // 億股
   pe_ratio: number | null
   pb_ratio: number | null
   dividend_yield: number | null // %

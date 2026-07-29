@@ -43,6 +43,7 @@ export function MarketOverviewView() {
   const [data, setData] = useState<MarketOverviewData | null>(null)
   const [indices, setIndices] = useState<MarketIndicesData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -51,8 +52,14 @@ export function MarketOverviewView() {
         fetch("/api/market"),
         fetch("/api/market/indices"),
       ])
-      setData(await overviewRes.json())
-      setIndices(await indicesRes.json())
+      const [overviewJson, indicesJson] = await Promise.all([overviewRes.json(), indicesRes.json()])
+      if (!overviewRes.ok) throw new Error(overviewJson.error ?? "Unknown error")
+      if (!indicesRes.ok) throw new Error(indicesJson.error ?? "Unknown error")
+      setData(overviewJson)
+      setIndices(indicesJson)
+      setError(null)
+    } catch (e: unknown) {
+      if (!silent) setError(e instanceof Error ? e.message : "Failed to load data")
     } finally {
       if (!silent) setLoading(false)
     }
@@ -103,6 +110,13 @@ export function MarketOverviewView() {
         </Button>
       </div>
 
+      {error ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-24 text-center px-6">
+          <p className="text-sm text-zinc-200">暫時無法載入市場資料</p>
+          <p className="text-xs text-muted-foreground">資料服務可能未啟動，可以按上方「重新整理」再試一次</p>
+        </div>
+      ) : (
+      <>
       {/* 大盤分時走勢 */}
       <MarketIntradaySection />
 
@@ -253,6 +267,8 @@ export function MarketOverviewView() {
         <Skeleton className="h-20 bg-zinc-900" />
       ) : (
         <MarketBanner verdict={data.environment.verdict} intensity={data.environment.intensity} />
+      )}
+      </>
       )}
     </div>
   )

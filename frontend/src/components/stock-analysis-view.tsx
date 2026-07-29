@@ -313,7 +313,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                 {fmtChange(latest.change, latest.change_pct)}
               </span>
               <span className="text-xs text-muted-foreground tabular-nums ml-auto">
-                漲停 <span className="text-red-400">{latest.limit_up}</span>　跌停 <span className="text-emerald-400">{latest.limit_down}</span>
+                漲停 <span className="text-red-400">{latest.limit_up ?? "—"}</span>　跌停 <span className="text-emerald-400">{latest.limit_down ?? "—"}</span>
               </span>
             </>
           )}

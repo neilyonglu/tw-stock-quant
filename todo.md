@@ -10,6 +10,7 @@
 - [x] 自選股頁改 App 風格（sparkline）＋個股首頁排行榜（示範資料）＋K 線今日按鈕——2026-07-29 完成，同上 branch，最終狀態見 PROJECT.md
 - [x] 查無股票代碼錯誤畫面＋股票關鍵字搜尋＋修切換代碼殘留舊資料 bug——2026-07-29 完成，同上 branch，最終狀態見 PROJECT.md
 - [x] 全 repo 稽核＋修掉三條「假資料看起來像真的」——2026-07-29 完成，同上 branch，最終狀態見 PROJECT.md
+- [x] 稽核其餘 11 項全部修完（白屏防護、漲跌停算錯、RSI 演算法、缺值語意、快取加鎖等）——2026-07-29 完成，同上 branch，最終狀態見 PROJECT.md
 - [ ] **👉 下一個：指標計算層扶正**——`src/api/get_stock_data.py` 從臨時佔位改為正式模組。步驟：
   1. 規劃位置與呼叫方式（`src/indicators/` 模組化 vs 隨 Route Handler 續用 execFile，先出方案再動手）
   2. SMA/EMA/RSI/MACD 等既有指標搬家＋補驗證（抽樣手算對照，見 judgment 品質底線）
@@ -45,21 +46,12 @@
 - [ ] `src/alerts/scheduler.py`（Phase 6 建立時）定位為本機測試用，正式排程走 GitHub Actions
 - [ ] GitHub Actions 手動觸發驗收（依賴 `main.py` 完整流程）
 
-## 稽核發現、還沒修的（2026-07-29 全 repo 稽核，依嚴重度排序）
+## 稽核發現（2026-07-29 全 repo 稽核）
 
-當次只修了「假資料看起來像真的」三條（見上方已完成項），以下是同一次稽核記錄下來、還沒處理的：
+三條「假資料看起來像真的」與其餘 11 項全部處理完畢，最終狀態見 PROJECT.md。
+唯一保留為待辦的是需要新資料源的那條：
 
-- [ ] **API 失敗會白屏**：`market-overview-view.tsx` 與 `stock/profile-tab.tsx` 沒檢查 `res.ok` 就把回應塞進 state，中台掛掉時 render 存取 undefined 會整頁崩潰。`stock-analysis-view.tsx` 已有正確寫法可照抄
-- [ ] **漲跌停價短區間會靜默算錯**：`data_service/sources/stock.py` 的 `_render()` 拿「過濾後清單的前一筆」當前收盤價，短區間（如 `period=1d`）過濾後只剩 1 根時會拿今天自己的收盤價當基準，算出錯的漲跌停但不報錯。應改用真正的前一交易日收盤
-- [ ] **只有 1 根 K 棒會 IndexError**：`src/api/get_stock_data.py` 的 `prev_price = close.iloc[-2]`（新股上市首日會踩到），跟已修好的 RSI 是同一類邊界問題
-- [ ] **除權息重抓失敗只寫 log**：`data_service/sources/stock.py` 重抓失敗時 API 回應沒有任何欄位標示「這批是平移前的舊還原價」，呼叫方（含隊友的回測）無從得知。建議回應加一個標記欄位
-- [ ] **缺值語意不一致**：`fetch_profile()` 的 `market_cap`/`shares_outstanding` 缺值回 `0`，同函式其他欄位缺值都回 `None`。`0` 可能被誤讀成真實市值，應統一回 `None`
-- [ ] **切換股票有 race condition**：6 個依 ticker 抓資料的元件（order-book、chip-tab、profile-tab、news-tab、intraday-tab、watchlist-view）沒有 AbortController，快速切換代碼時舊請求可能後到覆蓋新資料
-- [ ] **色票 token 沒人用**：`globals.css` 定義了 `--stock-up`/`--stock-down` 語意色票，但 24 處各自硬寫 `text-red-400`/`text-emerald-400`；`kline-chart.tsx` 與 `intraday-chart.tsx` 還各自重複定義相同 hex 常數
-- [ ] **RSI 演算法與市面平台不一致**：用簡單 rolling mean，市面（TradingView 等）用 Wilder's smoothing，數值對不上會讓人困惑。指標層扶正時一併處理
-- [ ] **中台快取無鎖**：`data_service/cache.py` 的 `ttl_cache` 在並發打同一個未快取 key 時會重複打外部 API（cache stampede），目前單人使用不影響
-- [ ] 清掉沒用到的程式碼：`main.py` 仍是 `Hello from stock-analysis!` 骨架；`frontend/src/lib/watchlist.ts` 有 3 個 export 沒人呼叫
-- [ ] 找櫃買指數的替代資料源（TPEx OpenAPI）——yfinance `^TWOII` 已失效，目前 UI 顯示「—」
+- [ ] 找櫃買指數的替代資料源（TPEx OpenAPI）——yfinance `^TWOII` 已失效（實測 `^TWOII`/`^TWO`/`^TPEX` 全回 0 筆），目前中台回 `null`、UI 誠實顯示「—」
 
 ## 待隊友回測 branch merge（合回 main 時逐項核對）
 

@@ -9,14 +9,20 @@ export function OrderBook({ ticker }: { ticker: string }) {
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    const ctrl = new AbortController()
     setData(null)
     setError(false)
-    fetch(`/api/stock/${ticker}/orderbook`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.error) setError(true)
-        else setData(json)
+    fetch(`/api/stock/${ticker}/orderbook`, { signal: ctrl.signal })
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok || json.error) throw new Error("error")
+        setData(json)
       })
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.name === "AbortError") return
+        setError(true)
+      })
+    return () => ctrl.abort()
   }, [ticker])
 
   if (error) {
