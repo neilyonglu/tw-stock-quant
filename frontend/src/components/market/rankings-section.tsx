@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
+import { MockBadge } from "@/components/mock-badge"
 import type { MarketRankings, RankedItem } from "@/lib/types"
 
 function RankTable({ items, positiveIsUp }: { items: RankedItem[]; positiveIsUp: boolean }) {
@@ -46,7 +47,10 @@ export function RankingsSection() {
 
   return (
     <div>
-      <p className="text-sm text-zinc-400 mb-2">排行榜（mock）</p>
+      <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+        排行榜
+        <MockBadge reason="需全市場掃描（Phase 1 + Phase 6）" />
+      </p>
       <Tabs defaultValue="sector">
         <TabsList className="mb-2 bg-zinc-900 border border-zinc-800">
           <TabsTrigger value="sector">類股漲跌幅</TabsTrigger>

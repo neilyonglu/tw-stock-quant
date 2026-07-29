@@ -47,8 +47,10 @@ export interface GlobalIndex {
 }
 
 export interface MarketIndicesData {
-  taiex: IndexQuote // 加權指數（^TWII）
-  otc: IndexQuote // 櫃買指數（^TWOII）
+  taiex: IndexQuote | null // 加權指數（^TWII）
+  // 櫃買指數：yfinance 的 ^TWOII 已查不到資料，目前一律是 null，UI 顯示「—」。
+  // 拿不到就回 null，不捏造 0——見 PROJECT.md「真實 vs mock 對照」的資料誠實原則。
+  otc: IndexQuote | null
   global: GlobalIndex[]
 }
 

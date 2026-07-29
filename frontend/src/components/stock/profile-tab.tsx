@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
+import { MockBadge } from "@/components/mock-badge"
 import type { StockProfile } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 
@@ -82,7 +83,10 @@ export function ProfileTab({ ticker }: { ticker: string }) {
       </div>
 
       <div>
-        <p className="text-sm text-zinc-400 mb-2">近 6 個月營收</p>
+        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+          近 6 個月營收
+          <MockBadge reason="等 FinMind 月營收資料接入（Phase 5）" />
+        </p>
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">

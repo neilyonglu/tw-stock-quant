@@ -73,13 +73,18 @@ def _to_tv(series: pd.Series, times: list) -> list:
     return out
 
 
-# mock：K 線型態辨識（晨星、錘子線、吞噬等）。TA-Lib 的 61 種型態（pattern.py，Phase 2）
-# 還沒接進這支 script（執行環境沒裝 TA-Lib C 函式庫），先固定回傳近期幾筆假資料占位。
-def _mock_patterns(candles: list) -> list:
-    if len(candles) < 5:
-        return []
-    sample = candles[-5]
-    return [{"time": sample["time"], "name": "錘子線", "signal": "bullish"}]
+def _patterns(candles: list) -> list:
+    """K 線型態辨識（晨星、錘子線、吞噬等），尚未實作。
+
+    這裡刻意回傳空陣列。原本會固定塞一筆「錘子線 / bullish」假資料佔位，但前端把它
+    跟真的 SMA/MACD/RSI 訊號並排顯示、外觀完全一樣，等於每次開個股頁都餵給使用者
+    一個假的多頭訊號——在會影響真實投資決策的系統裡這是安全問題，不是佔位方便性問題。
+    寧可空白，也不要一個看起來合理的假訊號。
+
+    要接真的：TA-Lib 有 61 種型態辨識，但這支腳本跑的 python 環境沒裝 TA-Lib
+    C 函式庫（見 PROJECT.md「兩個 Python 環境」），指標層扶正時一起解決。
+    """
+    return []
 
 
 def main():
@@ -137,7 +142,7 @@ def main():
             "signal": _to_tv(macd_signal, times),
             "histogram": _to_tv(macd_hist, times),
         },
-        "patterns": _mock_patterns(candles),
+        "patterns": _patterns(candles),
         "latest": {
             "price": round(latest_price, 2),
             "change": round(change, 2),
