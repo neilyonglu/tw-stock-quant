@@ -47,10 +47,31 @@ def _ema(series: pd.Series, span: int) -> pd.Series:
 
 
 def _rsi(close: pd.Series, window: int = 14) -> pd.Series:
+    """RSI，用 Wilder's smoothing（TA-Lib、TradingView、券商看盤軟體的標準算法）。
+
+    Wilder 的平滑等價於 alpha = 1/window 的指數移動平均，pandas 用
+    `ewm(alpha=1/window, adjust=False)` 表達；前 window 根用簡單平均當種子。
+    原本用 `rolling(window).mean()`（簡單移動平均）算出來的數字會跟 TradingView
+    差 2～5，使用者拿去對照會以為系統算錯。
+    """
     delta = close.diff()
-    gain = delta.clip(lower=0).rolling(window).mean()
-    loss = (-delta.clip(upper=0)).rolling(window).mean()
-    rs = gain / loss
+    gain = delta.clip(lower=0)
+    loss = (-delta).clip(lower=0)
+
+    avg_gain = pd.Series(index=close.index, dtype="float64")
+    avg_loss = pd.Series(index=close.index, dtype="float64")
+    if len(close) <= window:
+        return avg_gain  # 資料不足一個 window，整段 NaN（呼叫端已處理）
+
+    # 種子＝前 window 根漲跌幅的簡單平均；之後才進入 Wilder 遞迴平滑
+    avg_gain.iloc[window] = gain.iloc[1 : window + 1].mean()
+    avg_loss.iloc[window] = loss.iloc[1 : window + 1].mean()
+    for i in range(window + 1, len(close)):
+        avg_gain.iloc[i] = (avg_gain.iloc[i - 1] * (window - 1) + gain.iloc[i]) / window
+        avg_loss.iloc[i] = (avg_loss.iloc[i - 1] * (window - 1) + loss.iloc[i]) / window
+
+    rs = avg_gain / avg_loss
+    # 全段都沒下跌時 avg_loss=0 → rs=inf → RSI=100，這是定義上的正確值，不是錯誤
     return 100 - 100 / (1 + rs)
 
 
@@ -115,15 +136,20 @@ def main():
     volume_sma10 = volume.rolling(10).mean()
 
     latest_price = float(close.iloc[-1])
-    prev_price = float(close.iloc[-2])
+    # 只有 1 根 K 棒時（新股上市首日、極短區間）沒有前一根可比，漲跌當 0，
+    # 不要 close.iloc[-2] 直接 IndexError 炸掉整支腳本。
+    prev_price = float(close.iloc[-2]) if len(close) >= 2 else latest_price
     change = latest_price - prev_price
-    change_pct = change / prev_price * 100
+    change_pct = (change / prev_price * 100) if prev_price else 0.0
     rsi_dropna = rsi_vals.dropna()
-    # 資料筆數不夠一個 RSI window（14）時 rolling mean 全 NaN——「今日」這種短區間會踩到，
+    # 資料筆數不夠一個 RSI window（14）時會全 NaN——「今日」這種短區間會踩到，
     # 用 50（中性值）佔位，避免整支腳本炸掉；比空白 UI 誠實一點，不是真訊號但不會誤判超買超賣。
     latest_rsi = float(rsi_dropna.iloc[-1]) if len(rsi_dropna) > 0 else 50.0
-    latest_macd = float(macd_line.dropna().iloc[-1])
-    latest_sig = float(macd_signal.dropna().iloc[-1])
+    macd_dropna = macd_line.dropna()
+    sig_dropna = macd_signal.dropna()
+    # 同理：資料太短時 MACD/訊號線也可能全 NaN，兩邊都取不到就當 0（金叉死叉判定為死叉）
+    latest_macd = float(macd_dropna.iloc[-1]) if len(macd_dropna) > 0 else 0.0
+    latest_sig = float(sig_dropna.iloc[-1]) if len(sig_dropna) > 0 else 0.0
     vol_avg5 = float(volume.iloc[-6:-1].mean()) if len(volume) >= 6 else float(volume.mean())
     vol_ratio = float(volume.iloc[-1]) / vol_avg5 if vol_avg5 > 0 else 1.0
 

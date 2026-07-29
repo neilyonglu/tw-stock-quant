@@ -26,6 +26,18 @@ uv run uvicorn data_service.main:app --reload --port 8001
 
 `period`/`interval` 是 yfinance 的字串格式，例如 `period=6mo&interval=1d`、`period=1d&interval=5m`。
 
+### 回傳格式的兩個注意事項（2026-07-29 起）
+
+**1. 拿不到的數值一律是 `null`，不會是 `0`。** 這個系統的產出會影響真實投資決策，捏造一個看起來合法的 `0` 比留白危險。目前已知會是 `null` 的欄位：
+
+- `/market/indices` 的 `otc`（櫃買指數整個物件）——yfinance 的 `^TWOII` 已查不到資料，在找到替代來源（TPEx OpenAPI）前一律 `null`
+- `/stocks/{ticker}/candles` 的 `limit_up` / `limit_down`——取不到前一交易日收盤價時
+- `/stocks/{ticker}/profile` 的各數值欄位（`market_cap`、`shares_outstanding`、`pe_ratio` 等）
+
+**2. `candles` 多了 `stale_adjust` 欄位（布林）。** `true` 代表偵測到除權息、但整段重抓失敗，**這批價格仍是平移前的舊還原價**。拿去跑回測會得到錯的績效，請當作「這次資料不可信、稍後重取」處理。正常情況是 `false`。
+
+另外，`limit_up`/`limit_down` 的計算基準一律是**前一交易日收盤價**，跟查詢的 `interval` 無關（看 5 分線和看日線拿到的漲跌停價相同）。
+
 ## 給後端（計算層）的邊界
 
 中台**只做抓取 + 快取**，不算任何技術指標或評分。SMA/RSI/MACD、K 線型態辨識、選股評分、

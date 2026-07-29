@@ -92,8 +92,40 @@ def _yf_rows(ticker: str, interval: str, is_intraday: bool, **history_kwargs) ->
     ]
 
 
-def _render(rows: list[dict]) -> dict:
-    """row dicts → API 回傳 JSON。四捨五入到 2 位在這裡做（與舊行為一致）。"""
+@ttl_cache(seconds=300)
+def _prev_daily_close(ticker: str) -> float | None:
+    """漲跌停價的計算基準：前一交易日收盤價。
+
+    這是「日」的概念——看 5 分線、週線、月線時，當天的漲跌停價一樣是用前一交易日
+    收盤價算的，不是用前一根 K 棒。所以這裡固定抓日線，不跟著顯示週期走。
+
+    （原本 _render() 直接拿輸出清單的 rows[-2]，等於看 5 分線時用前一根 5 分 K、
+    看月線時用上個月收盤當基準，同一支股票同一天會因為選了不同週期而顯示四種
+    不同的漲跌停價，只有日線碰巧是對的。）
+
+    抓不到就回 None，呼叫端會讓 limit_up/limit_down 也是 null——寧可不顯示，
+    也不要給一個看起來合理的錯價位。
+    """
+    rows = _yf_rows(ticker, "1d", False, period="5d")
+    if not rows:
+        return None
+    today = pd.Timestamp.now(tz="Asia/Taipei").strftime("%Y-%m-%d")
+    if rows[-1]["time"] == today:
+        # 最後一根是今天（盤中或今日已收盤）→ 基準是前一個交易日
+        return rows[-2]["close"] if len(rows) >= 2 else None
+    # 最後一根不是今天（週末/假日/停牌）→ 那根就是最近的完整交易日，它自己是基準
+    return rows[-1]["close"]
+
+
+def _render(rows: list[dict], prev_close: float | None, stale_adjust: bool = False) -> dict:
+    """row dicts → API 回傳 JSON。四捨五入到 2 位在這裡做（與舊行為一致）。
+
+    prev_close 由呼叫端傳入（前一交易日收盤價，見 _prev_daily_close），不從 rows
+    推——rows 是依 period 過濾後的顯示用清單，它的倒數第二根不一定是前一交易日。
+
+    stale_adjust=True 代表偵測到除權息但重抓失敗，這批價格仍是平移前的舊還原價，
+    呼叫端（尤其是回測）應該知道這件事，不要當成正確資料用。
+    """
     candles = [
         {
             "time": r["time"],
@@ -112,13 +144,13 @@ def _render(rows: list[dict]) -> dict:
         }
         for r in rows
     ]
-    prev_price = rows[-2]["close"] if len(rows) >= 2 else rows[-1]["close"]
-    limit_up, limit_down = _limit_prices(prev_price)
+    limit_up, limit_down = _limit_prices(prev_close) if prev_close is not None else (None, None)
     return {
         "candles": candles,
         "volume": volume,
         "limit_up": limit_up,
         "limit_down": limit_down,
+        "stale_adjust": stale_adjust,
     }
 
 
@@ -188,7 +220,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         _maybe_record_source_start(yft, interval, period, cutoff, rows[0]["time"])
         logger.info("%s %s %s: 全抓 %d 根（%s）", yft, interval, period, len(rows),
                     "庫空" if cov is None else "要補更早區間")
-        return _render(rows)
+        return _render(rows, _prev_daily_close(ticker))
 
     # 增量：從庫存倒數第 TAIL_OVERLAP 根抓起（故意重疊，用來偵測除權息）
     overlap_start = store.tail_ts(yft, interval, TAIL_OVERLAP)
@@ -200,7 +232,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         if not rows:
             return {"error": f"No data found for {ticker}.TW"}
         logger.warning("%s %s: yfinance 回空，以庫存 %d 根回應", yft, interval, len(rows))
-        return _render(rows)
+        return _render(rows, _prev_daily_close(ticker))
 
     stored_closes = store.closes_since(yft, interval, overlap_start)
     adjusted = any(
@@ -209,6 +241,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         and abs(r["close"] / stored_closes[r["time"]] - 1) > ADJUST_TOLERANCE
         for r in new_rows
     )
+    stale_adjust = False
     if adjusted:
         # 除權息：還原價整條平移了，庫存跟新資料對不上 → 已存區間整段重抓覆寫
         logger.info("%s %s: 重疊處 close 對不上（除權息還原），整段重抓", yft, interval)
@@ -216,9 +249,12 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         if full_rows:
             store.upsert(yft, interval, full_rows)
         else:
-            # 重抓失敗不能裝沒事：本次回應仍是平移前的舊還原價，誠實記下來，下次請求再試
+            # 重抓失敗不能裝沒事：本次回應仍是平移前的舊還原價。除了記 log，回應本身
+            # 也要帶 stale_adjust 標記——只寫 server log 的話，呼叫端（含隊友的回測
+            # 系統）根本無從得知這批價格是錯的，可能拿去跑出錯的回測績效。
             logger.warning("%s %s: 除權息整段重抓失敗（yfinance 回空），本次回應仍為舊還原價",
                            yft, interval)
+            stale_adjust = True
     else:
         store.upsert(yft, interval, new_rows)
 
@@ -227,7 +263,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         return {"error": f"No data found for {ticker}.TW"}
     logger.info("%s %s %s: 庫存命中，向 yfinance 只要了 %d 根，回 %d 根",
                 yft, interval, period, len(new_rows), len(rows))
-    return _render(rows)
+    return _render(rows, _prev_daily_close(ticker), stale_adjust=stale_adjust)
 
 
 @ttl_cache(seconds=60)
@@ -241,7 +277,7 @@ def fetch_candles(ticker: str, period: str, interval: str) -> dict:
     rows = _yf_rows(ticker, interval, is_intraday, period=period)
     if not rows:
         return {"error": f"No data found for {ticker}.TW"}
-    return _render(rows)
+    return _render(rows, _prev_daily_close(ticker))
 
 
 @ttl_cache(seconds=3600)
@@ -291,8 +327,10 @@ def fetch_profile(ticker: str) -> dict:
     return {
         "industry": industry,
         "listed_market": listed_market,
-        "market_cap": round(market_cap / 1e8, 1) if market_cap else 0,
-        "shares_outstanding": round(shares / 1e8, 2) if shares else 0,
+        # 缺值一律 None（跟本函式其餘欄位一致）。原本回 0 會被畫面顯示成「市值 0 億」，
+        # 看起來像真的查到了一個極小的市值，而不是「查不到」。
+        "market_cap": round(market_cap / 1e8, 1) if market_cap else None,
+        "shares_outstanding": round(shares / 1e8, 2) if shares else None,
         "pe_ratio": round(info["trailingPE"], 2) if info.get("trailingPE") else None,
         "pb_ratio": round(info["priceToBook"], 2) if info.get("priceToBook") else None,
         "dividend_yield": round(info["dividendYield"], 2) if info.get("dividendYield") else None,

@@ -36,10 +36,31 @@ function RankTable({ items, positiveIsUp }: { items: RankedItem[]; positiveIsUp:
 
 export function RankingsSection() {
   const [data, setData] = useState<MarketRankings | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/market/rankings").then((res) => res.json()).then(setData)
+    fetch("/api/market/rankings")
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? "Unknown error")
+        setData(json)
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load data"))
   }, [])
+
+  if (error) {
+    return (
+      <div>
+        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+          排行榜
+          <MockBadge reason="需全市場掃描（Phase 1 + Phase 6）" />
+        </p>
+        <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+          暫時無法載入排行榜（資料服務可能未啟動）
+        </div>
+      </div>
+    )
+  }
 
   if (!data) {
     return <Skeleton className="h-64 w-full bg-zinc-900" />

@@ -35,29 +35,16 @@ function writeRaw(tickers: string[]) {
   window.dispatchEvent(new Event("watchlist-changed"))
 }
 
-export function getWatchlist(): string[] {
-  return readRaw()
-}
-
-export function isInWatchlist(ticker: string): boolean {
-  return readRaw().includes(ticker)
-}
-
-export function addToWatchlist(ticker: string) {
-  const current = readRaw()
-  if (current.includes(ticker)) return
-  writeRaw([...current, ticker])
-}
-
 export function removeFromWatchlist(ticker: string) {
   writeRaw(readRaw().filter((t) => t !== ticker))
 }
 
 export function toggleWatchlist(ticker: string) {
-  if (isInWatchlist(ticker)) {
-    removeFromWatchlist(ticker)
+  const current = readRaw()
+  if (current.includes(ticker)) {
+    writeRaw(current.filter((t) => t !== ticker))
   } else {
-    addToWatchlist(ticker)
+    writeRaw([...current, ticker])
   }
 }
 
@@ -76,5 +63,5 @@ function getServerSnapshot(): string[] {
 }
 
 export function useWatchlist(): string[] {
-  return useSyncExternalStore(subscribe, getWatchlist, getServerSnapshot)
+  return useSyncExternalStore(subscribe, readRaw, getServerSnapshot)
 }

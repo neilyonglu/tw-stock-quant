@@ -30,11 +30,16 @@ function RankRow({ item }: { item: RankedItem }) {
 export function StockHomeView() {
   const router = useRouter()
   const [rankings, setRankings] = useState<MarketRankings | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch("/api/market/rankings")
-      .then((res) => res.json())
-      .then(setRankings)
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) throw new Error()
+        setRankings(json)
+      })
+      .catch(() => setError(true))
   }, [])
 
   return (
@@ -58,7 +63,11 @@ export function StockHomeView() {
           </span>
         </div>
 
-        {!rankings ? (
+        {error ? (
+          <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
+            暫時無法載入排行榜（資料服務可能未啟動）
+          </div>
+        ) : !rankings ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[0, 1].map((i) => (
               <div key={i} className="space-y-2">

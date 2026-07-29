@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Star, X } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -49,7 +49,13 @@ export function WatchlistView() {
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
+  const abortRef = useRef<AbortController | null>(null)
+
   const fetchQuotes = useCallback(async (list: string[], silent = false) => {
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
     if (list.length === 0) {
       setRows({})
       setLoading(false)
@@ -60,8 +66,8 @@ export function WatchlistView() {
       const results = await Promise.all(
         list.map(async (ticker) => {
           const [stockRes, intradayRes] = await Promise.all([
-            fetch(`/api/stock/${ticker}?period=1mo&interval=1d`),
-            fetch(`/api/stock/${ticker}/intraday`),
+            fetch(`/api/stock/${ticker}?period=1mo&interval=1d`, { signal: ctrl.signal }),
+            fetch(`/api/stock/${ticker}/intraday`, { signal: ctrl.signal }),
           ])
           const stock = stockRes.ok ? ((await stockRes.json()) as StockData) : null
           const intraday = intradayRes.ok ? ((await intradayRes.json()) as IntradaySeries) : null
@@ -70,6 +76,8 @@ export function WatchlistView() {
       )
       setRows(Object.fromEntries(results))
       setLastUpdated(new Date())
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === "AbortError") return
     } finally {
       if (!silent) setLoading(false)
     }
