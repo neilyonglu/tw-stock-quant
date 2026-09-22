@@ -148,8 +148,8 @@ export interface LatestMetrics {
   limit_down: number | null
 }
 
-// K 線型態（晨星、錘子線、吞噬等）。[mock]：TA-Lib 的 61 種型態辨識（pattern.py，Phase 2）
-// 還沒接進這支 Dashboard 用的 python script（執行環境沒裝 TA-Lib C 函式庫），先用假資料佔位。
+// K 線型態。[真實]：src/indicators/pattern.py 用 TA-Lib 辨識，只回最近 5 根 K 棒內出現的
+// 晨星／黃昏星／錘子線／上吊線／多頭吞噬／空頭吞噬，沒有就是空陣列。
 export interface CandlePattern {
   time: Time
   name: string
@@ -167,7 +167,7 @@ export interface StockData {
   volume_sma10: TimeValue[] // 成交量 10 日均量線
   rsi: TimeValue[]
   macd: MacdPayload
-  patterns: CandlePattern[] // mock，見上方說明
+  patterns: CandlePattern[]
   latest: LatestMetrics
 }
 

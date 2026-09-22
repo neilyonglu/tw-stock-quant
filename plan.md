@@ -96,21 +96,18 @@
 
 SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價抖動、period 左緣語意）見 PROJECT.md 架構段與「資料層」踩坑。
 
-#### 1b. 其餘資料管線
+#### 1b. 其餘資料管線 — 👉 下一個
 
+- [ ] 中台支援上櫃股：ticker 目前寫死 `.TW`（`data_service/sources/stock.py`），上櫃股要用 `.TWO`（twstock codes 可查上市/上櫃別）；全市場掃描前必須修
 - [ ] `src/data/universe.py`：股票清單（上市 + 上櫃），從 twstock codes 產生（本地查表，不經中台）；驗收：`python -m src.data.universe` 印出上市/上櫃檔數
 - [ ] ~~`src/data/fetcher.py`、`src/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
 - [ ] `src/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
 
 **限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
-### Phase 2 — 技術指標模組（第四層）— 👉 下一個
+### Phase 2 — 技術指標模組（第四層）— ✅ 完成（2026-09-22）
 
-起點是 `src/api/get_stock_data.py`（已有 SMA/EMA/RSI(Wilder)/MACD，把它拆進 `src/indicators/` 就是「指標層扶正」，具體步驟見 todo.md）。TA-Lib 環境障礙已於 2026-09-20 消失（Route Handler 改跑 `.venv`）。
-
-- [ ] `src/indicators/trend.py`（SMA/EMA/MACD）、`momentum.py`（RSI/KD/Williams %R）、`volatility.py`（ATR/布林）、`volume.py`(OBV/量比)、`pattern.py`（TA-Lib 型態，先只接第四層規則用到的晨星/錘子/吞噬）
-- [ ] 統一介面 `add_indicators(df) -> df`；`get_stock_data.py` 縮成薄 CLI wrapper，JSON 合約不變
-- [ ] 驗收：(1) 前端個股頁零改動、畫面一致；(2) 抽樣 2330 的 RSI/MACD 跟 TradingView 對照誤差 <0.5
+`src/indicators/` 上線，最終狀態見 PROJECT.md 架構段。布林 / Williams %R / OBV 刻意沒做（第四層規則沒用到，需要時再加）。
 
 ### Phase 3 — 策略回測（驗證第四層）
 
@@ -182,7 +179,7 @@ FinMind（法人買賣超 / 融資券）
         └── screening/chip.py → 法人買超確認
 
 【第四層：技術面擇時】
-中台 raw candles → add_indicators()（TA-Lib）
+中台 raw candles → src.indicators.add_indicators()（已完成）
         └── screening/technical.py → 買進訊號 → ATR 停損 → 賣出訊號
 
 【整合輸出】
@@ -194,12 +191,13 @@ scorer.py（四層加權評分）
 
 ## 目錄結構（`src/` 藍圖，Phase 1–8 逐步建立）
 
-`frontend/`（前端）與 `data_service/`（中台）已存在；以下是還沒建的計算層：
+`frontend/`（前端）、`data_service/`（中台）、`src/indicators/`（Phase 2）已存在；其餘計算層還沒建：
 
 ```
 src/
-├── data/        # fetcher, store(Parquet), fundamental, chip, macro, universe
-├── indicators/  # trend, momentum, volatility, volume, pattern, health
+├── api/         # get_stock_data（個股頁面用的薄 wrapper，已存在）
+├── data/        # fundamental, chip, macro, universe
+├── indicators/  # trend, momentum, volatility, volume, pattern（已存在）, health（Phase 4）
 ├── strategies/  # base(台股邏輯), ma_cross, rsi_reversal, macd_trend, fundamental_mom
 ├── backtest/    # runner, optimizer, metrics
 ├── screening/   # technical, fundamental, chip, scorer

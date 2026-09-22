@@ -70,8 +70,8 @@ cd frontend && npm run dev                                   # frontend
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
-| 1 | Data pipeline — full-market scan | Pending (K-line cache persistence already shipped, SQLite) |
-| 2 | Technical indicators (TA-Lib) | 👉 Next |
+| 1 | Data pipeline — full-market scan | 👉 Next — remaining: stock universe list + OTC (`.TWO`) support (K-line cache persistence already shipped, SQLite) |
+| 2 | Technical indicators | ✅ Done — `src/indicators/` (SMA/EMA/MACD/RSI/KD/ATR in pandas, candlestick patterns via TA-Lib), 17 tests cross-checked against TA-Lib |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
 | 4 | Fundamental integration (CasualMarket) | Pending |
 | 5 | Chip data + macro context (FinMind) | Pending |

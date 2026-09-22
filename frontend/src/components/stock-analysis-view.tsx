@@ -89,8 +89,7 @@ function buildSignals(data: StockData) {
     signals.push({ level: "warning", label: `量縮 ${latest.volume_ratio}x`, desc: "今日成交量明顯萎縮" })
   }
 
-  // K 線型態辨識目前一律回空陣列（後端還沒接 TA-Lib，見 get_stock_data.py 的 _patterns()）。
-  // 這個迴圈保留著，等接上真實辨識就會自動有值；在那之前不會有任何型態訊號混進這份清單。
+  // K 線型態：後端只回最近 5 根 K 棒內出現的型態（src/indicators/pattern.py），沒出現就是空陣列
   for (const p of data.patterns) {
     signals.push({
       level: p.signal === "bullish" ? "positive" : "negative",
@@ -261,7 +260,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               </div>
               {data.patterns.length === 0 && (
                 <p className="text-xs text-muted-foreground mt-2 leading-snug">
-                  K 線型態辨識（錘子線、吞噬等）尚未啟用，所以這裡只有均線／MACD／RSI／量能訊號。
+                  最近 5 根 K 棒沒有出現晨星、錘子線、吞噬等型態，所以這裡只有均線／MACD／RSI／量能訊號。
                 </p>
               )}
             </div>
