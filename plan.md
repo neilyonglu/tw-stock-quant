@@ -104,11 +104,13 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 **限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
-### Phase 2 — 技術指標模組（第四層）
+### Phase 2 — 技術指標模組（第四層）— 👉 下一個
 
-- [ ] `src/indicators/trend.py`（SMA/EMA/MACD）、`momentum.py`（RSI/KD/Williams %R）、`volatility.py`（ATR/布林）、`volume.py`(OBV/量比)、`pattern.py`（TA-Lib 61 型態）
-- [ ] 統一介面 `add_indicators(df) -> df`
-- [ ] 驗收：notebook 畫出含 MACD、RSI、布林的完整圖
+起點是 `src/api/get_stock_data.py`（已有 SMA/EMA/RSI(Wilder)/MACD，把它拆進 `src/indicators/` 就是「指標層扶正」，具體步驟見 todo.md）。TA-Lib 環境障礙已於 2026-09-20 消失（Route Handler 改跑 `.venv`）。
+
+- [ ] `src/indicators/trend.py`（SMA/EMA/MACD）、`momentum.py`（RSI/KD/Williams %R）、`volatility.py`（ATR/布林）、`volume.py`(OBV/量比)、`pattern.py`（TA-Lib 型態，先只接第四層規則用到的晨星/錘子/吞噬）
+- [ ] 統一介面 `add_indicators(df) -> df`；`get_stock_data.py` 縮成薄 CLI wrapper，JSON 合約不變
+- [ ] 驗收：(1) 前端個股頁零改動、畫面一致；(2) 抽樣 2330 的 RSI/MACD 跟 TradingView 對照誤差 <0.5
 
 ### Phase 3 — 策略回測（驗證第四層）
 
