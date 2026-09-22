@@ -73,9 +73,9 @@ cd frontend && npm run dev                                   # frontend
 
 ## Docker and automatic deployment
 
-This deployment packages the existing main application, including its temporary
-stock calculation script. It does not include the new indicator module from
-`feature/indicators-module`.
+The image packages the frontend, data service and shared `backend/indicators/`
+modules. Stock requests run `python -m backend.api.get_stock_data` in the frontend
+container and return the existing JSON contract.
 
 ```bash
 docker compose -p tw-stock-quant up -d --build --wait
@@ -106,8 +106,8 @@ This optional full smoke check requires a reachable market data source.
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
-| 1 | Data pipeline — full-market scan | Pending (K-line cache persistence already shipped, SQLite) |
-| 2 | Technical indicators (TA-Lib) | 👉 Next |
+| 1 | Data pipeline — full-market scan | 👉 Next — remaining: stock universe list + OTC (`.TWO`) support (K-line cache persistence already shipped, SQLite) |
+| 2 | Technical indicators | ✅ Done — `backend/indicators/` (SMA/EMA/MACD/RSI/KD/ATR in pandas, candlestick patterns via TA-Lib), 17 tests cross-checked against TA-Lib |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
 | 4 | Fundamental integration (CasualMarket) | Pending |
 | 5 | Chip data + macro context (FinMind) | Pending |

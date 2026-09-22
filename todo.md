@@ -8,7 +8,7 @@
 - [x] Python 目錄統一為 backend/api 與 backend/data_service，更新啟動／Docker／測試路徑；Archify 升級 3.1.0，架構說明見 docs/ARCHITECTURE.md
 - [x] 現有 main 的 Docker／CI／tw-stock runner 部署設定（獨立 feature/main-deployment 分支，不帶入指標新功能）
 - [x] main 雲端 CI 與 tw-stock runner 自動部署成功；容器改名 PR #5 已合併，2026-10-13 的 main run 38337855813 成功
-- [ ] 本次目錄整理與架構圖：`refactor/backend-layout` → PR → main；CI 與合併完成後刪除分支
+- [x] 目錄整理與架構圖 PR #6 已合併 main；本機與遠端 refactor/backend-layout 已刪除
 - [x] 中台快取持久化（SQLite）——2026-07-23 完成，最終狀態見 PROJECT.md 架構段
 - [x] 自選股清單＋市場/個股頁面定期自動刷新——2026-07-29 完成（branch `feature/watchlist-live-refresh`），最終狀態見 PROJECT.md
 - [x] 自選股頁改 App 風格（sparkline）＋個股首頁排行榜（示範資料）＋K 線今日按鈕——2026-07-29 完成，同上 branch，最終狀態見 PROJECT.md
@@ -18,10 +18,10 @@
 - [x] Route Handler 改 `uv run` 執行 Python（Windows PATH 踩坑）——2026-09-20 完成，同上 branch；副作用：TA-Lib 環境障礙消失，見 PROJECT.md「Python 環境」
 - [x] `feature/watchlist-live-refresh` 已於 2026-09-22 經 PR #3 合併 main
 - [ ] 決定 `.agents/`（archify skill 本體）與 `skills-lock.json` 要進版控還是 `.gitignore`——目前是 untracked；隊友要共用同一份 skill 就 commit，否則 ignore 各自 `npx skills add`
-- [ ] **👉 下一個功能分支：接續 `feature/indicators-module`（plan.md Phase 2）**——指標模組已有提交 `beb5eb6`，但尚未合併 main。先完成本次目錄整理 PR，再整理此分支：
-  1. 保留指標功能與其測試，排除分支上的舊 Docker／CI 提交 `f004c29`、`d9dced9`，避免覆蓋 main 已完成的部署設定。
-  2. 將 `src/indicators/` 適配為 `backend/indicators/`，計算 wrapper、imports、Python 執行方式與測試同步使用新目錄。
-  3. 驗證 SMA/EMA/RSI/MACD/KD/ATR/量比與 TA-Lib 型態，確認前端合約相容；完成離線測試、Docker build 與完整個股流程後開 PR。
+- [ ] `feature/indicators-module`（Phase 2）完成 rebase 與驗證後，推送並開 PR 合併 main
+  - 指標與測試已適配 backend/indicators，Python 改以 backend.api.get_stock_data 模組執行。
+  - 保留 main 的 Docker／CI 設定，排除原分支上重複的舊部署提交。
+  - CI 改跑 pytest，涵蓋指標測試與既有個股 JSON／資料庫位置檢查。
 - [ ] 中台支援上櫃股：ticker 目前寫死 `.TW`（`backend/data_service/sources/stock.py`），上櫃股（`.TWO`）抓不到 K 線——全市場掃描前必須修（twstock codes 可查上市/上櫃別，據此選後綴）
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）

@@ -15,7 +15,7 @@
 
 - **中台** `backend/data_service/`：FastAPI（port 8001）+ 記憶體 TTL cache，只回 raw 資料，不算指標
 - **前端** `frontend/`：Next.js 16 + Tailwind v4 + shadcn/ui（base-nova、底層 @base-ui 非 Radix）+ lightweight-charts，只負責顯示
-- **後端**（計算層）：技術指標、選股評分、投組優化由**本專案自行開發**；隊友另開 branch 只負責**回測系統**（2026-07-23 確認分工）。`backend/api/get_stock_data.py` 是指標計算的起點，待扶正為正式模組（見 todo.md）
+- **後端**（計算層）：共用指標在 `backend/indicators/`，`backend/api/get_stock_data.py` 是個股 JSON 的薄 wrapper；選股評分與投組優化仍待實作，隊友另開 branch 負責回測（見 todo.md）。
 
 ## 文件地圖（每份唯一職責；判斷現況以前兩份為準）
 

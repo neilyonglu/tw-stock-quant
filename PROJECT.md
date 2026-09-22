@@ -5,8 +5,8 @@
 
 ## Docker 與自動部署
 
-部署設定以現有 main 的程式為基準，保留 `runPythonScript` 與原本的個股計算佔位層；
-不包含 feature/indicators-module 的新指標模組、真實 K 線型態辨識或前端合約變更。
+個股 Route Handler 以 `runPythonModule` 啟動 `backend.api.get_stock_data`，
+共用 `backend/indicators/` 計算指標及真實 K 線型態；前端 JSON 欄位維持原合約。
 `docker-compose.yaml` 以同一個 Node＋Python image 分別跑前端與中台，SQLite 掛 volume。
 正式環境排除 research/dev 依賴，本機 `uv sync` 仍裝原有工具，套件鎖定版本不變。
 `.github/workflows/deploy.yml` 在雲端跑離線測試、Docker build 與服務互通檢查，
@@ -30,7 +30,7 @@ Python 程式集中在 `backend/`：中台為 `backend/data_service/`，個股�
 
 - **中台 `backend/data_service/`**：獨立 FastAPI 服務（`uv run uvicorn backend.data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取兩層：記憶體 TTL（`cache.py`）三級——五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；日/週/月 K 另落地 SQLite（`store.py`，`data/cache.db`，gitignored）——重啟不掉、只向 yfinance 增量要缺口、增量時重疊抓 5 根比對 close 偵測除權息（相對差 >0.1% 即整段重抓覆寫）。分鐘 K 等即時資料不落地。Endpoints 見 `backend/data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
 - **前端 `frontend/`**：Next.js 16.2.9 + Tailwind v4 + shadcn/ui 4.12（`base-nova` style，底層 @base-ui 非 Radix）+ lightweight-charts v5。只負責顯示。三個頁面：`/market`（市場總覽）、`/stock/[ticker]`（個股分析）、`/screening`（每週選股）。
-- **後端**（計算層）：技術指標、K 線型態、選股評分、投組優化由**本專案自行開發**；隊友另開 branch 只負責**回測系統**（2026-07-23 確認分工）。`backend/api/get_stock_data.py`（跟中台要 raw candles，本地算 SMA/RSI/MACD）原定隊友 merge 後刪除，現改為指標層起點，待扶正為正式模組（見 todo.md）。
+- **後端**（計算層）：`backend/indicators/` 提供共用 `add_indicators(df)`，計算 SMA/EMA/RSI/MACD/KD/ATR 與均量；數值指標使用 pandas，TA-Lib 用於最近 5 根 K 棒的型態辨識。`backend/api/get_stock_data.py` 取得中台 raw candles，再組裝前端 JSON。選股評分、投組優化尚未實作；隊友另開 branch 負責回測。
 - 本機開發：`./scripts/dev.sh` 同時啟動中台＋前端（Ctrl+C 一起關）。
 
 ### API 合約原則（接後端時的關鍵）
@@ -94,7 +94,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | USD/TWD、美債 10Y | mock（yfinance 其實拿得到，等 `/api/market` 其他欄位一起換） | `USDTWD=X`、`^TNX` |
 | 景氣燈號、市場廣度、三大法人 | mock | Phase 1 + Phase 5（FinMind/data.gov.tw） |
 | 個股籌碼（法人/融資券/大戶）、月營收 | mock | Phase 5 FinMind / Phase 4 CasualMarket |
-| K 線型態辨識 | **未啟用（回空陣列）** | 原本固定塞一筆假的「錘子線／偏多」，且跟真訊號並排顯示——已於 2026-07-29 改成不產生任何型態訊號，UI 顯示一行說明。TA-Lib 已可用（Route Handler 改跑 `.venv`，見上方「Python 環境」），指標層扶正時接上 |
+| K 線型態辨識 | **真實計算** | `backend/indicators/pattern.py` 用 TA-Lib 辨識晨星／黃昏星／錘子線／上吊線／吞噬，只回最近 5 根；沒有訊號時回空陣列 |
 | 台指期貨、外資未平倉 | mock | 無免費來源，要另找（券商 API） |
 | 排行榜（類股/成交值/漲跌幅） | mock | 需全市場掃描，Phase 1+6 |
 | 新聞（個股/大盤） | mock | 全市場新聞牆要另找來源 |
@@ -112,7 +112,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | 部署規劃：前端 Vercel、後端 Railway/Render | 免費 tier 足夠 |
 | 資料中台獨立成 `backend/data_service/`（FastAPI） | 前後端都要 raw 資料；隊友需要穩定的 HTTP contract，不該讀 Next.js 內部細節 |
 | 快取持久化選 SQLite 不選 Parquet | 每日補 K 棒、除權息覆寫都是逐列 upsert，SQLite 天生支援；Parquet 一次寫整檔不適合快取，降級為未來回測匯出格式（2026-07-23） |
-| 指標計算起點在 `backend/api/get_stock_data.py`，待扶正為正式模組 | 原定隊友後端涵蓋所有計算、merge 後刪除佔位層；2026-07-23 確認隊友只做回測，指標/評分/優化歸本專案 |
+| 指標共用入口在 `backend/indicators/`，個股 wrapper 在 `backend/api/get_stock_data.py` | 個股頁與未來批次掃描共用計算，JSON 組裝不混入資料中台 |
 | 深色主題寫死 `<html className="dark">`，不用 next-themes | 本來就沒有亮色 variant、沒有 toggle UI；系統偏好偵測整套用不到 |
 | 選股表排序手刻 `useState`，不裝 TanStack Table | 只有 3 欄要排序；表格複雜度提高再換 |
 | 正式排程用 GitHub Actions，APScheduler 僅本機測試 | 雲端免費、電腦關著也能跑 |

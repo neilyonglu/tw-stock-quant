@@ -71,8 +71,8 @@ cd frontend && npm run dev                                   # 前端
 
 ## Docker 與自動部署
 
-這份部署設定包裝目前 main 的功能，包括既有個股計算佔位腳本；
-不包含 `feature/indicators-module` 的新指標模組。
+image 包含前端、中台及共用的 `backend/indicators/`。個股請求在前端容器以
+`python -m backend.api.get_stock_data` 執行，回傳既有 JSON 合約。
 
 ```bash
 docker compose -p tw-stock-quant up -d --build --wait
@@ -100,8 +100,8 @@ docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deplo
 | 階段 | 說明 | 狀態 |
 |------|------|------|
 | 0 | 環境建置 | ✅ 完成 |
-| 1 | 資料管線 — 全市場掃描 | 待開始（K 線快取持久化已完成，用 SQLite） |
-| 2 | 技術指標（TA-Lib 封裝） | 👉 下一個 |
+| 1 | 資料管線 — 全市場掃描 | 👉 下一個 — 剩股票清單 + 上櫃股（`.TWO`）支援（K 線快取持久化已完成，用 SQLite） |
+| 2 | 技術指標 | ✅ 完成 — `backend/indicators/`（SMA/EMA/MACD/RSI/KD/ATR 用 pandas，K 線型態用 TA-Lib），17 個測試對照 TA-Lib |
 | 3 | 策略回測（backtesting.py） | 隊友負責（另一條 branch） |
 | 4 | 基本面整合（CasualMarket） | 待開始 |
 | 5 | 籌碼面 + 總體環境（FinMind） | 待開始 |

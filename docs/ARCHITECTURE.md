@@ -2,6 +2,8 @@
 
 [開啟可互動架構圖](../.archify/architecture-tw-stock-quant-20261015-092658/tw-stock-quant.html)
 
+圖檔保留 PR #6 目錄整理時的來源快照；本分支新增的指標模組與型態辨識，以以下目錄及程式為準。
+
 ```text
 tw-stock-quant/
 ├── frontend/                 # Next.js 頁面、元件與 /api Route Handlers
@@ -11,6 +13,7 @@ tw-stock-quant/
 │       └── lib/              # 中台 HTTP client、Python 子程序、型別與示範資料
 ├── backend/                  # Python 程式，與前端共用根目錄的 uv 環境
 │   ├── api/get_stock_data.py # 原有個股計算與前端 JSON 組裝
+│   ├── indicators/           # 共用數值指標與 TA-Lib K 線型態
 │   └── data_service/         # FastAPI raw 資料 API
 │       ├── main.py
 │       ├── sources/          # yfinance／twstock
@@ -29,8 +32,9 @@ tw-stock-quant/
 
 瀏覽器向 Next.js 的 `/api` 請求資料。部分 Route Handler 直接代理中台 HTTP API，
 個股 K 線則由 `run-python.ts` 在前端容器啟動 `backend/api/get_stock_data.py`，
-向中台要 raw candles 後計算 SMA／RSI／MACD，再透過 stdout 回傳 JSON。
-Python 計算層目前仍是原有腳本；沒有帶入其他分支的指標模組或回測功能。
+以 `python -m backend.api.get_stock_data` 向中台要 raw candles，使用
+`backend.indicators.add_indicators` 計算指標，再透過 stdout 回傳 JSON。
+型態辨識使用 TA-Lib，只回最近 5 根 K 棒的訊號；回測功能尚未接入。
 
 中台是唯一抓取外部市場資料的服務。記憶體 TTL 減少重複抓取；歷史日／週／月 K 線
 由 `store.py` 寫入 `data/cache.db`，Docker 掛載 `stock-data` volume 保存。
