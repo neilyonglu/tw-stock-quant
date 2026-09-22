@@ -11,6 +11,7 @@ import { GlobalIndicesRow } from "@/components/market/global-indices-row"
 import { FuturesCard } from "@/components/market/futures-card"
 import { RankingsSection } from "@/components/market/rankings-section"
 import { MarketNewsSection } from "@/components/market/news-section"
+import { MockBadge } from "@/components/mock-badge"
 import type { BusinessCycleLight, MarketIndicesData, MarketOverviewData } from "@/lib/types"
 import { formatDateTime } from "@/lib/utils"
 
@@ -42,23 +43,47 @@ export function MarketOverviewView() {
   const [data, setData] = useState<MarketOverviewData | null>(null)
   const [indices, setIndices] = useState<MarketIndicesData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [overviewRes, indicesRes] = await Promise.all([
         fetch("/api/market"),
         fetch("/api/market/indices"),
       ])
-      setData(await overviewRes.json())
-      setIndices(await indicesRes.json())
+      const [overviewJson, indicesJson] = await Promise.all([overviewRes.json(), indicesRes.json()])
+      if (!overviewRes.ok) throw new Error(overviewJson.error ?? "Unknown error")
+      if (!indicesRes.ok) throw new Error(indicesJson.error ?? "Unknown error")
+      setData(overviewJson)
+      setIndices(indicesJson)
+      setError(null)
+    } catch (e: unknown) {
+      if (!silent) setError(e instanceof Error ? e.message : "Failed to load data")
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     fetchData()
+  }, [fetchData])
+
+  // 定期背景刷新（指數/報價中台快取 30 秒 TTL），分頁在背景時暫停，切回前景立刻補刷一次
+  useEffect(() => {
+    function tick() {
+      if (document.hidden) return
+      fetchData(true)
+    }
+    const timer = setInterval(tick, 30_000)
+    function onVisible() {
+      if (!document.hidden) tick()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
   }, [fetchData])
 
   return (
@@ -77,7 +102,7 @@ export function MarketOverviewView() {
           variant="outline"
           size="sm"
           className="border-zinc-700"
-          onClick={fetchData}
+          onClick={() => fetchData()}
           disabled={loading}
         >
           <RotateCw size={14} className={loading ? "animate-spin" : ""} />
@@ -85,6 +110,13 @@ export function MarketOverviewView() {
         </Button>
       </div>
 
+      {error ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-24 text-center px-6">
+          <p className="text-sm text-zinc-200">暫時無法載入市場資料</p>
+          <p className="text-xs text-muted-foreground">資料服務可能未啟動，可以按上方「重新整理」再試一次</p>
+        </div>
+      ) : (
+      <>
       {/* 大盤分時走勢 */}
       <MarketIntradaySection />
 
@@ -96,22 +128,36 @@ export function MarketOverviewView() {
           <>
             <StatCard
               label="加權指數"
-              value={indices.taiex.value.toLocaleString()}
-              sub={`${fmtChange(indices.taiex.change)} (${fmtChange(indices.taiex.change_pct)}%)`}
-              valueClassName={indices.taiex.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              value={indices.taiex ? indices.taiex.value.toLocaleString() : "—"}
+              sub={
+                indices.taiex
+                  ? `${fmtChange(indices.taiex.change)} (${fmtChange(indices.taiex.change_pct)}%)`
+                  : "暫時取不到資料"
+              }
+              valueClassName={
+                indices.taiex ? (indices.taiex.change >= 0 ? "text-red-400" : "text-emerald-400") : "text-zinc-500"
+              }
               hint="台股大盤的整體溫度計，反映上市公司平均表現"
             />
             <StatCard
               label="櫃買指數"
-              value={indices.otc.value.toLocaleString()}
-              sub={`${fmtChange(indices.otc.change)} (${fmtChange(indices.otc.change_pct)}%)`}
-              valueClassName={indices.otc.change >= 0 ? "text-red-400" : "text-emerald-400"}
-              hint="上櫃公司（規模通常較小）的大盤指數，常用來看中小型股的風向"
+              value={indices.otc ? indices.otc.value.toLocaleString() : "—"}
+              sub={
+                indices.otc
+                  ? `${fmtChange(indices.otc.change)} (${fmtChange(indices.otc.change_pct)}%)`
+                  : "暫無資料來源"
+              }
+              valueClassName={
+                indices.otc ? (indices.otc.change >= 0 ? "text-red-400" : "text-emerald-400") : "text-zinc-500"
+              }
+              hint="上櫃公司（規模通常較小）的大盤指數。yfinance 已查不到櫃買指數，正在找替代來源，所以這裡先留白而不是給你一個假數字"
             />
             <StatCard
               label="景氣燈號"
               value={data.business_cycle.label}
               dot={LIGHT_DOT[data.business_cycle.light]}
+              mock
+              mockReason="等國發會資料源接入（data.gov.tw）"
               hint="國發會每月公布，綠燈代表景氣穩定、藍燈代表景氣轉弱。這是獨立的燈號顏色，跟其他卡片的紅漲綠跌無關"
             />
             <StatCard
@@ -119,6 +165,8 @@ export function MarketOverviewView() {
               value={data.usdtwd.value.toFixed(2)}
               sub={fmtChange(data.usdtwd.change)}
               valueClassName={data.usdtwd.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              mock
+              mockReason="yfinance USDTWD=X 可取得，尚未接上"
               hint="台幣貶值（數字變大）時，外資較容易撤出台股"
             />
             <StatCard
@@ -126,6 +174,8 @@ export function MarketOverviewView() {
               value={`${data.us10y.value.toFixed(2)}%`}
               sub={fmtChange(data.us10y.change)}
               valueClassName={data.us10y.change >= 0 ? "text-red-400" : "text-emerald-400"}
+              mock
+              mockReason="yfinance ^TNX 可取得，尚未接上"
               hint="殖利率快速走升，會壓抑高本益比成長股的估值"
             />
           </>
@@ -137,7 +187,10 @@ export function MarketOverviewView() {
 
       {/* 三大法人 */}
       <div>
-        <p className="text-sm text-zinc-400 mb-2">三大法人今日買賣超（億元）</p>
+        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+          三大法人今日買賣超（億元）
+          <MockBadge reason="等 FinMind 籌碼資料接入（Phase 5）" />
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {loading || !data ? (
             [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
@@ -174,7 +227,10 @@ export function MarketOverviewView() {
 
       {/* 市場廣度與成交量 */}
       <div>
-        <p className="text-sm text-zinc-400 mb-2">市場廣度與成交量</p>
+        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+          市場廣度與成交量
+          <MockBadge reason="等 TWSE OpenAPI 資料源接入（Phase 5）" />
+        </p>
         {loading || !data ? (
           <Skeleton className="h-20 bg-zinc-900" />
         ) : (
@@ -211,6 +267,8 @@ export function MarketOverviewView() {
         <Skeleton className="h-20 bg-zinc-900" />
       ) : (
         <MarketBanner verdict={data.environment.verdict} intensity={data.environment.intensity} />
+      )}
+      </>
       )}
     </div>
   )

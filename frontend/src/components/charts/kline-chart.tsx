@@ -13,16 +13,16 @@ import {
 } from "lightweight-charts"
 import type { Candle, VolumeBar, TimeValue, MacdPayload } from "@/lib/types"
 import { boundChartZoom } from "@/lib/chart-zoom-bound"
+import {
+  STOCK_UP,
+  STOCK_DOWN,
+  MA_SHORT,
+  MA_LONG,
+  RSI_OVERBOUGHT,
+  RSI_OVERSOLD,
+} from "@/lib/chart-colors"
 
 export type { Candle, VolumeBar, TimeValue, MacdPayload }
-
-// 台股慣例：紅漲綠跌（跟美股的 green-up / red-down 相反）
-const STOCK_UP = "#EF5350" // 漲：紅
-const STOCK_DOWN = "#26A69A" // 跌：綠
-
-// 短週期均線＝amber、長週期均線＝blue，主圖 SMA20/60 跟成交量 MA5/10 共用同一套配色慣例
-const MA_SHORT = "#F59E0B"
-const MA_LONG = "#3B82F6"
 
 interface KlineChartProps {
   candles: Candle[]
@@ -160,7 +160,7 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
     rsiSeries.setData(rsi)
     rsiSeries.createPriceLine({
       price: 70,
-      color: "#EF5350",
+      color: RSI_OVERBOUGHT,
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: false,
@@ -168,7 +168,7 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
     })
     rsiSeries.createPriceLine({
       price: 30,
-      color: "#26A69A",
+      color: RSI_OVERSOLD,
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: false,

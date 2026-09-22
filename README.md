@@ -46,7 +46,11 @@ A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui
 | 4 | Weekly screening results page — sortable table, portfolio allocation pie chart, CSV export (mock data) | ✅ Done |
 | 5 | Polish pass — dark theme hardcoded (dropped `next-themes`, no light variant needed), responsive sidebar (mobile bottom nav / tablet icon-bar / desktop full width), mobile layout fixes at 375px, chart zoom lower-bound (can't zoom past the actual data span), unified `zh-TW` date/time formatting, red-up/green-down color audit; follow-up UI/UX accessibility audit — contrast fixes, 44px touch targets, aria-labels/aria-sort, restored the emerald brand accent color | ✅ Done |
 
+| 6 | Watchlist + live refresh — iOS-Stocks-style watchlist with intraday sparklines (stored in browser localStorage), background auto-refresh matching the data tier's cache TTLs (30s quotes / 60s K-line, paused while the tab is hidden), stock landing page with gainer/loser rankings, ticker **and company-name** keyword search with autocomplete, and an explicit "ticker not found" state | ✅ Done |
+
 See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
+
+**Every mocked figure on screen carries a visible "示範資料" (sample data) marker** — this system's output feeds real investment decisions, so sample data must never be mistakable for the real thing. Where a real source is unavailable the UI shows "—" rather than a plausible-looking fabricated number.
 
 ### Architecture: data tier / frontend / backend
 
@@ -66,15 +70,15 @@ cd frontend && npm run dev                                   # frontend
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
-| 1 | Data pipeline (twstock → Parquet) | Pending |
-| 2 | Technical indicators (TA-Lib) | Pending |
-| 3 | Strategy backtesting (backtesting.py) | Pending |
+| 1 | Data pipeline — full-market scan | Pending (K-line cache persistence already shipped, SQLite) |
+| 2 | Technical indicators (TA-Lib) | 👉 Next |
+| 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
 | 4 | Fundamental integration (CasualMarket) | Pending |
 | 5 | Chip data + macro context (FinMind) | Pending |
 | 6 | Stock screener + portfolio optimizer + scheduling | Pending |
 | 7 | Factor validation + event study | Pending |
 | 8 | Sentiment (Google Trends / pytrends) | Pending |
-| 9 | Dashboard API (FastAPI migration) | Pending |
+| 9 | Data service (FastAPI) | ✅ Done — `data_service/` on port 8001 |
 
 ---
 

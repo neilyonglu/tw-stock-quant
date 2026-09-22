@@ -14,9 +14,7 @@ import {
 import type { IntradaySeries } from "@/lib/types"
 import { boundChartZoom } from "@/lib/chart-zoom-bound"
 
-// 台股慣例：紅漲綠跌（跟美股的 green-up / red-down 相反），跟 kline-chart.tsx 一致
-const STOCK_UP = "#EF5350" // 漲：紅
-const STOCK_DOWN = "#26A69A" // 跌：綠
+import { STOCK_UP, STOCK_DOWN } from "@/lib/chart-colors"
 
 const MAIN_H = 300
 const SUB_H = 100

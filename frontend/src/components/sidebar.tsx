@@ -2,11 +2,12 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronLeft, ChevronRight, BarChart2, LineChart, ListFilter } from "lucide-react"
+import { ChevronLeft, ChevronRight, BarChart2, LineChart, ListFilter, Star } from "lucide-react"
 
 const navItems = [
   { label: "市場總覽", href: "/market",     match: "/market",    icon: BarChart2 },
-  { label: "個股分析", href: "/stock/2330", match: "/stock",     icon: LineChart },
+  { label: "個股分析", href: "/stock",      match: "/stock",     icon: LineChart },
+  { label: "自選股",   href: "/watchlist",  match: "/watchlist", icon: Star },
   { label: "每週選股", href: "/screening",  match: "/screening", icon: ListFilter },
 ]
 

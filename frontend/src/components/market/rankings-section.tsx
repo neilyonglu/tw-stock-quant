@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
+import { MockBadge } from "@/components/mock-badge"
 import type { MarketRankings, RankedItem } from "@/lib/types"
 
 function RankTable({ items, positiveIsUp }: { items: RankedItem[]; positiveIsUp: boolean }) {
@@ -35,10 +36,31 @@ function RankTable({ items, positiveIsUp }: { items: RankedItem[]; positiveIsUp:
 
 export function RankingsSection() {
   const [data, setData] = useState<MarketRankings | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/market/rankings").then((res) => res.json()).then(setData)
+    fetch("/api/market/rankings")
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? "Unknown error")
+        setData(json)
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load data"))
   }, [])
+
+  if (error) {
+    return (
+      <div>
+        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+          排行榜
+          <MockBadge reason="需全市場掃描（Phase 1 + Phase 6）" />
+        </p>
+        <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+          暫時無法載入排行榜（資料服務可能未啟動）
+        </div>
+      </div>
+    )
+  }
 
   if (!data) {
     return <Skeleton className="h-64 w-full bg-zinc-900" />
@@ -46,7 +68,10 @@ export function RankingsSection() {
 
   return (
     <div>
-      <p className="text-sm text-zinc-400 mb-2">排行榜（mock）</p>
+      <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+        排行榜
+        <MockBadge reason="需全市場掃描（Phase 1 + Phase 6）" />
+      </p>
       <Tabs defaultValue="sector">
         <TabsList className="mb-2 bg-zinc-900 border border-zinc-800">
           <TabsTrigger value="sector">類股漲跌幅</TabsTrigger>

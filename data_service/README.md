@@ -16,6 +16,7 @@ uv run uvicorn data_service.main:app --reload --port 8001
 | Method | Path | 說明 | TTL |
 |---|---|---|---|
 | GET | `/health` | 存活檢查 | — |
+| GET | `/stocks/search?q=` | 依代碼前綴或名稱關鍵字搜尋股票（只回一般股票，排除權證/ETF），回 `[{ticker, name}]` | 3600s |
 | GET | `/stocks/{ticker}/candles?period=&interval=` | raw OHLCV + 成交量 + 漲跌停價（不含技術指標） | 60s |
 | GET | `/stocks/{ticker}/profile` | 產業別/上市櫃別/本益比/股價淨值比/殖利率/EPS/52週高低/市值/股本/分析師目標價 | 1800s |
 | GET | `/stocks/{ticker}/orderbook` | 五檔委買委賣 | 30s |
@@ -24,6 +25,18 @@ uv run uvicorn data_service.main:app --reload --port 8001
 | GET | `/market/intraday` | 加權指數今日 1 分鐘分時走勢 | 30s |
 
 `period`/`interval` 是 yfinance 的字串格式，例如 `period=6mo&interval=1d`、`period=1d&interval=5m`。
+
+### 回傳格式的兩個注意事項（2026-07-29 起）
+
+**1. 拿不到的數值一律是 `null`，不會是 `0`。** 這個系統的產出會影響真實投資決策，捏造一個看起來合法的 `0` 比留白危險。目前已知會是 `null` 的欄位：
+
+- `/market/indices` 的 `otc`（櫃買指數整個物件）——yfinance 的 `^TWOII` 已查不到資料，在找到替代來源（TPEx OpenAPI）前一律 `null`
+- `/stocks/{ticker}/candles` 的 `limit_up` / `limit_down`——取不到前一交易日收盤價時
+- `/stocks/{ticker}/profile` 的各數值欄位（`market_cap`、`shares_outstanding`、`pe_ratio` 等）
+
+**2. `candles` 多了 `stale_adjust` 欄位（布林）。** `true` 代表偵測到除權息、但整段重抓失敗，**這批價格仍是平移前的舊還原價**。拿去跑回測會得到錯的績效，請當作「這次資料不可信、稍後重取」處理。正常情況是 `false`。
+
+另外，`limit_up`/`limit_down` 的計算基準一律是**前一交易日收盤價**，跟查詢的 `interval` 無關（看 5 分線和看日線拿到的漲跌停價相同）。
 
 ## 給後端（計算層）的邊界
 

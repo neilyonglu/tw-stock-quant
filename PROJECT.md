@@ -25,12 +25,13 @@
 3. 換資料來源（mock → 真後端）只改 Route Handler 內部，JSON 形狀不變，前端元件零改動。
 4. 選股結果（`/api/screening`）**不經過中台**：評分/進場停損/配置% 是計算產出（後端工作範圍），不是中台該抓的 raw 資料。
 
-### 兩個 Python 環境（容易踩的坑）
+### Python 環境（只有一個：`uv run` 的 `.venv`）
 
-1. `uv run` 的 `.venv`：`data_service/` 跑在這裡，TA-Lib **只**裝在這裡。
-2. Next.js Route Handler `execFile("python3", ...)` 用的系統 python3（miniconda）：`src/api/get_stock_data.py` 跑在這裡，**沒有 TA-Lib**（所以 K 線型態辨識目前是 mock）。
+中台 `data_service/` 與 Next.js Route Handler 呼叫的 `src/api/get_stock_data.py` **都跑在專案 `.venv`**——`frontend/src/lib/run-python.ts` 用 `execFile("uv", ["run", "python", ...])` 執行，不再依賴系統 PATH 上的 `python3`（2026-09-20 改）。所以 TA-Lib 在兩邊都可用，K 線型態辨識不再有環境障礙，指標層扶正時直接接 `talib`。
 
-twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別），需要時跑 `twstock.codes.fetch.__update_codes()` 更新——**兩個環境要各自跑一次**。twstock 用 PyPI 版（`>=1.5.1`），原本的本地 editable fork 已刪除。
+踩坑：Windows 上 PATH 的 `python3` 常解析到 Microsoft Store 的 app-execution-alias stub，跑起來沒 stdout 也沒錯誤，只會讓呼叫端 `JSON.parse` 失敗——這就是改用 `uv run` 的原因，不要改回 `python3`。
+
+twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別），需要時跑 `uv run python -c "import twstock; twstock.codes.fetch.__update_codes()"` 更新一次即可。twstock 用 PyPI 版（`>=1.5.1`），原本的本地 editable fork 已刪除。
 
 ## 已完成（快照）
 
@@ -40,14 +41,35 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 - **UI/UX 無障礙稽核修正**（2026-07-04）：對比度、44px 觸控目標、aria 標記、emerald 品牌色補齊（詳見下方慣例）。
 - **前端 Dashboard 併入 main**（2026-07-22）：`feature/dashboard-ui` 經 PR #1 併回 main（merge commit）。同時 main 設了 branch protection ruleset：改 main 一律走 PR（禁直接 push）、禁 force-push、禁刪除，**不強制 review**（作者可自 merge）。日常流程＝branch → push → PR → merge。
 - **中台快取持久化**（2026-07-23）：SQLite 兩層快取上線（細節見上方架構段）。驗收：改動前後回傳逐欄位比對、重啟後增量只抓 5 根（日/週/月三種週期實測）、污染庫內 close 觸發除權息路徑自我修復。
+- **自選股清單＋定期自動刷新**（2026-07-29）：前端新增 `/watchlist` 頁面，個股頁標題旁加星星按鈕加入/移除；清單存瀏覽器 localStorage（單機使用，之後要跨裝置同步再換後端資料庫，見 `frontend/src/lib/watchlist.ts`）。市場總覽、個股頁面加背景自動刷新，頻率對齊中台快取 TTL（報價/指數 30 秒、K 線 60 秒），分頁在背景分頁時暫停、切回前景立刻補刷一次。驗收：Playwright 實測加入/移除/清單顯示/自動刷新網路請求時序、console 無錯誤。
+- **自選股頁改 App 風格＋個股首頁排行榜＋K 線今日按鈕**（2026-07-29）：自選股頁面改成 iOS 股票 App 卡片式列表（名稱/代碼＋迷你走勢圖 sparkline＋價格/漲跌色塊），走勢圖吃 `/api/stock/[ticker]/intraday`（真實資料）；新增 `/stock` 首頁（未指定代碼時），顯示今日漲跌幅前五名（沿用市場總覽既有的 mock 排行榜資料，畫面明確標示「示範資料，非真實排行」，真資料要等全市場掃描 Phase 1+6），側邊欄「個股分析」改連到這裡而非固定 `/stock/2330`。K 線圖分頁的分鐘線加「今日」快速按鈕（period=1d）。過程中順手修掉 `src/api/get_stock_data.py` 的一個既有 bug：資料筆數不足一個 RSI window（14 根）時 `.dropna().iloc[-1]` 會 IndexError 炸整支腳本（今日這種短區間會踩到），改成不足時退回中性值 50。
+- **查無股票代碼的錯誤畫面**（2026-07-29）：搜尋不存在的代碼時，`get_stock_data.py` 原本會讓中台回的 404 直接讓 `urlopen` 拋出未接住的 `HTTPError`，整支腳本以 exit code 1 死掉；`run-python.ts` 的 `execFile` 一遇到非 0 exit code 就丟掉 stdout，前端只看得到通用的「Failed to fetch stock data」。修法：`_fetch_candles` 接住 404 轉成 `{"error": "查無股票代碼「X」..."}`，且這種「已處理的已知錯誤」改用 `sys.exit(0)`（不是腳本壞掉，只是查無資料，不該讓 stdout 被丟掉）。前端個股頁新增專用的查無代碼畫面（隱藏自選星星、不渲染分頁），取代原本混亂地在標題列塞一行紅字、下面 tabs 照樣試著渲染壞資料。
+- **股票關鍵字搜尋 + 修掉切換代碼時的殘留資料 bug**（2026-07-29）：新增 `/stocks/search`（中台）→ `/api/stock/search`（前端代理），依代碼前綴或名稱關鍵字搜尋，資料源是 twstock.codes 本地代碼表（過濾只留一般股票，排除權證/ETF 等雜訊，1942 檔）。共用元件 `frontend/src/components/ticker-search.tsx`（debounce 200ms、下拉選單、方向鍵/Enter/Esc），個股頁側邊欄與 `/stock` 首頁的搜尋框都換成這個，不再各自維護一份。過程中發現並修掉一個真的 bug：切換股票代碼時 `data` state 沒有立刻清空，導致轉圈載入或查詢失敗的當下，標題列會殘留上一支股票的名稱/價格（看起來像新代碼查到了舊資料）；修法是非背景刷新（非 silent）的 fetch 一開始就清空 `data`，背景自動刷新不清（避免每次刷新都閃爍）。
+- **全 repo 稽核與資料誠實性修正**（2026-07-29）：三份平行稽核（Python / 前端 / 文件）後修掉三條「假資料看起來像真的」——(1) 櫃買指數抓不到卻回 `0`，改成回 `null`＋UI 顯示「—」；(2) K 線型態每支股票都回同一筆假的「錘子線／偏多」，且跟真的 SMA/MACD/RSI 訊號並排顯示，改成不產生型態訊號；(3) 市場總覽六個區塊、籌碼面／新聞整頁、月營收等 mock 沒有任何視覺標示，建立共用 `mock-badge.tsx` 統一標記。做法已寫成上方「真實 vs mock 資料對照」的三條規則。稽核也記錄了未修的問題（白屏防護、漲跌停短區間算錯、race condition 等），見下一條。
+- **稽核其餘 11 項全部修完**（2026-07-29）：
+  - **漲跌停價算錯**（影響最大）：`_render()` 原本拿「輸出清單的倒數第二根」當前收盤價，但漲跌停是「日」的概念——看 5 分線時它拿前一根 5 分 K、看月線時拿上個月收盤當基準，同一支股票同一天會因為選了不同週期而顯示四種不同的漲跌停價（實測 2330 得到 2505/2455/2585/2650），只有日線碰巧對。改成新增 `_prev_daily_close()` 固定抓日線算，四種週期實測一致。取不到就回 `null`（合約改為 nullable）。
+  - **RSI 演算法**：原本用簡單移動平均，市面平台（TradingView/券商）用 Wilder's smoothing，數字對不上會讓人以為系統算錯。改用 Wilder（種子＝前 14 根簡單平均，之後遞迴平滑），已對 Wilder 原著範例資料驗證（第 14/15/17 根完全吻合）。
+  - **API 失敗白屏**：12 個元件補上 `res.ok` 檢查與錯誤畫面。另外注意**錯誤畫面不要直接渲染後端回傳的錯誤字串**（會把技術訊息丟給使用者），一律顯示自己寫的中文提示。
+  - **race condition**：6 個依 ticker 抓資料的元件補上 AbortController。
+  - 其餘：`fetch_profile()` 缺值 `0`→`None`（0 會被讀成「市值真的是 0 億」）；除權息重抓失敗時回應新增 `stale_adjust` 標記（原本只寫 server log，呼叫端無從得知這批是舊還原價）；`ttl_cache` 加 per-key 鎖防 cache stampede（實測同 key 並發 20 次只執行 1 次、不同 key 不互相阻塞）；只有 1 根 K 棒時的 IndexError（含 MACD 同類問題）；圖表色碼抽到 `frontend/src/lib/chart-colors.ts`（原本兩個圖表元件各複製一份）；`watchlist.ts` 移除 3 個沒用到的 export。
+  - **刻意沒做**：稽核建議「把 `--stock-up/--stock-down` token 統一到所有漲跌顏色」——實際查證後發現這條建議是錯的。那組 token 是**圖表**用色（#EF5350/#26A69A），而畫面文字用的 `text-red-400`/`text-emerald-400` 是依 WCAG 對比度實測選的，兩者用途不同，硬統一會破壞無障礙合規。改為只把重複的圖表色碼集中，並在 `globals.css` 與 `chart-colors.ts` 兩邊都註記這個區別。
+- **Route Handler 改用 `uv run` 執行 Python**（2026-09-20）：`run-python.ts` 從 `execFile("python3")` 改成 `execFile("uv", ["run", "python", ...])`。直接原因是 Windows PATH 上的 `python3` 會解析到 Store stub 導致靜默失敗；副作用是前端呼叫的腳本從此跑在專案 `.venv`，「兩個 Python 環境、TA-Lib 只在其中一邊」的問題一併消失（見上方「Python 環境」）。
+- **archify 架構圖工具裝進專案**（2026-09-22）：`npx skills add tt-a1i/archify`（專案層級，非全域），落在 `.agents/skills/`，Claude Code 可用 `archify` skill 從文字描述產生可互動的架構圖 HTML。`.agents/` 與 `skills-lock.json` 是否進版控待定（見 todo.md）。
 
 ## 真實 vs mock 資料對照
 
 **mock 絕對不能看起來像真的**——本系統產出投資決策，錯誤數據是安全問題。判斷標準：yfinance / twstock 免金鑰拿得到的就接真的，拿不到的用 mock 佔位但型別合約先定好。
 
+這條規則有三個具體做法（2026-07-29 稽核後定案，改動 mock 相關畫面時照這個做）：
+
+1. **畫面上每個 mock 區塊都要掛視覺標記**，用共用元件 `frontend/src/components/mock-badge.tsx`：`<MockBadge reason="等什麼資料源" />` 是行內小標籤（`<StatCard>` 直接傳 `mock` / `mockReason` prop），`<MockNotice>` 是整區/整頁都 mock 時的橫幅。
+2. **抓不到資料就回 `null`，不要回 `0` 或任何「看起來合法」的預設值**——呼叫端負責顯示成「—」。捏造的 0 比空白危險得多（櫃買指數就是踩過這個坑）。
+3. **不要生成假的「訊號」或「判斷」**。純數字佔位加標記還能接受，但「錘子線／偏多」這種會被當成建議的假結論一律不做，寧可空白（K 線型態辨識就是為此改成回空陣列）。
+
 | 資料 | 狀態 | 來源 / 等什麼 |
 |------|------|--------------|
-| 加權指數、櫃買指數、國際指數 | **真實** | yfinance `^TWII`/`^TWOII`/`^DJI` 等 |
+| 加權指數、國際指數 | **真實** | yfinance `^TWII`/`^DJI`/`^IXIC`/`^N225`/`000001.SS` |
+| 櫃買指數 | **無資料源** | yfinance `^TWOII` 已查不到（2026-07-29 實測 `^TWOII`/`^TWO`/`^TPEX` 全回 0 筆）。中台回 `null`、UI 顯示「—」，**不捏造 0**。要接真的得另找 TPEx OpenAPI，見 todo.md |
 | 個股/大盤分時走勢（今日 1 分 K） | **真實** | yfinance `period=1d interval=1m` |
 | 個股 K 線（7 種週期） | **真實** | 中台 ← yfinance |
 | 個股 PE/PB/殖利率/市值/EPS/52 週高低/目標價 | **真實** | yfinance `Ticker.info` |
@@ -57,7 +79,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | USD/TWD、美債 10Y | mock（yfinance 其實拿得到，等 `/api/market` 其他欄位一起換） | `USDTWD=X`、`^TNX` |
 | 景氣燈號、市場廣度、三大法人 | mock | Phase 1 + Phase 5（FinMind/data.gov.tw） |
 | 個股籌碼（法人/融資券/大戶）、月營收 | mock | Phase 5 FinMind / Phase 4 CasualMarket |
-| K 線型態辨識 | mock | TA-Lib 不在 route handler 的 python 環境（見上方兩個環境） |
+| K 線型態辨識 | **未啟用（回空陣列）** | 原本固定塞一筆假的「錘子線／偏多」，且跟真訊號並排顯示——已於 2026-07-29 改成不產生任何型態訊號，UI 顯示一行說明。TA-Lib 已可用（Route Handler 改跑 `.venv`，見上方「Python 環境」），指標層扶正時接上 |
 | 台指期貨、外資未平倉 | mock | 無免費來源，要另找（券商 API） |
 | 排行榜（類股/成交值/漲跌幅） | mock | 需全市場掃描，Phase 1+6 |
 | 新聞（個股/大盤） | mock | 全市場新聞牆要另找來源 |
@@ -79,6 +101,8 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | 深色主題寫死 `<html className="dark">`，不用 next-themes | 本來就沒有亮色 variant、沒有 toggle UI；系統偏好偵測整套用不到 |
 | 選股表排序手刻 `useState`，不裝 TanStack Table | 只有 3 欄要排序；表格複雜度提高再換 |
 | 正式排程用 GitHub Actions，APScheduler 僅本機測試 | 雲端免費、電腦關著也能跑 |
+| Route Handler 用 `uv run python` 不用系統 `python3` | Windows PATH 的 `python3` 會解析到 Store stub 靜默失敗；順帶讓前後端共用同一個 `.venv`，TA-Lib 兩邊都可用（2026-09-20） |
+| Phase 維持水平順序推進（1→2→…→6），不改成先跑通最小管線 | 2026-09-22 討論後決定；Phase 3 回測是隊友範圍，跳過而非重排 |
 | PTT 情緒分析直接呼叫 Claude API | 不跑本地 NLP 模型 |
 
 ## 前端慣例與踩坑
@@ -119,7 +143,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 
 | 工具 | 用途 | 備註 |
 |------|------|------|
-| `twstock` | 台股 K 線、即時報價、五檔 | PyPI 版；代碼表更新見上方「兩個 Python 環境」 |
+| `twstock` | 台股 K 線、即時報價、五檔 | PyPI 版；代碼表更新見上方「Python 環境」 |
 | `yfinance` | K 線、指數、匯率（`USDTWD=X`）、美債（`^TNX`）、`Ticker.info` | 免金鑰；NaN 坑見上方 |
 | `CasualMarket` | 財報、月營收、股利（MCP Server，stdio） | Phase 4 |
 | `finmind` | 三大法人、融資券、股東結構 | 免費 600 req/hr；Phase 5 |

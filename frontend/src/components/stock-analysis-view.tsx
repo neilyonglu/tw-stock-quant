@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { KlineChart } from "@/components/charts/kline-chart"
@@ -14,8 +12,11 @@ import { IntradayTab } from "@/components/stock/intraday-tab"
 import { ProfileTab } from "@/components/stock/profile-tab"
 import { ChipTab } from "@/components/stock/chip-tab"
 import { NewsTab } from "@/components/stock/news-tab"
+import { TickerSearch } from "@/components/ticker-search"
 import type { StockData } from "@/lib/types"
-import { Search } from "lucide-react"
+import { SearchX, Star } from "lucide-react"
+import { useWatchlist, toggleWatchlist } from "@/lib/watchlist"
+import { formatTimeShort } from "@/lib/utils"
 
 // ─── K 線週期 / 區間 ──────────────────────────────────────────────────────────
 // 日/週/月：可選資料區間。分鐘線（5/15/30/60分）：Yahoo/yfinance 只給得到近期資料，
@@ -88,7 +89,8 @@ function buildSignals(data: StockData) {
     signals.push({ level: "warning", label: `量縮 ${latest.volume_ratio}x`, desc: "今日成交量明顯萎縮" })
   }
 
-  // K 線型態（mock，見 lib/types.ts CandlePattern 說明）
+  // K 線型態辨識目前一律回空陣列（後端還沒接 TA-Lib，見 get_stock_data.py 的 _patterns()）。
+  // 這個迴圈保留著，等接上真實辨識就會自動有值；在那之前不會有任何型態訊號混進這份清單。
   for (const p of data.patterns) {
     signals.push({
       level: p.signal === "bullish" ? "positive" : "negative",
@@ -110,23 +112,33 @@ function fmtChange(change: number, pct: number) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function StockAnalysisView({ initialTicker }: { initialTicker: string }) {
-  const [tickerInput, setTickerInput] = useState(initialTicker)
   const [activeTicker, setActiveTicker] = useState(initialTicker)
   const [interval, setIntervalValue] = useState<(typeof INTERVALS)[number]["value"]>("1d")
   const [period, setPeriod] = useState("6mo")
   const [data, setData] = useState<StockData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const watchlist = useWatchlist()
+  const inWatchlist = watchlist.includes(activeTicker)
 
   const activeInterval = INTERVALS.find((iv) => iv.value === interval)!
+  // 分鐘線資料跟中台五檔/分時快取同週期（30 秒 TTL），日/週/月線跟中台 K 線快取同週期（60 秒 TTL）
+  const refreshMs = activeInterval.value.endsWith("m") ? 30_000 : 60_000
 
-  const fetchData = useCallback(async (ticker: string, p: string, iv: string) => {
+  const fetchData = useCallback(async (ticker: string, p: string, iv: string, silent = false) => {
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
 
-    setLoading(true)
+    if (!silent) {
+      setLoading(true)
+      // 換代碼/週期時立刻清掉舊資料——不然轉圈的當下，標題列還會顯示上一支股票的
+      // 名稱/價格，看起來像新代碼查到了舊資料。背景靜默刷新（silent）不清，避免每次
+      // 自動刷新都閃一下。
+      setData(null)
+    }
     setError(null)
 
     try {
@@ -134,11 +146,12 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? "Unknown error")
       setData(json)
+      setLastUpdated(new Date())
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return
       setError(e instanceof Error ? e.message : "Failed to load data")
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
@@ -146,10 +159,22 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
     fetchData(activeTicker, period, interval)
   }, [activeTicker, period, interval, fetchData])
 
-  function handleSearch() {
-    const t = tickerInput.trim().replace(/\.TW$/i, "")
-    if (t) setActiveTicker(t)
-  }
+  // 定期背景刷新：分頁在背景時暫停，切回前景立刻補刷一次
+  useEffect(() => {
+    function tick() {
+      if (document.hidden) return
+      fetchData(activeTicker, period, interval, true)
+    }
+    const timer = setInterval(tick, refreshMs)
+    function onVisible() {
+      if (!document.hidden) tick()
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [activeTicker, period, interval, refreshMs, fetchData])
 
   function handleIntervalChange(value: string) {
     const iv = INTERVALS.find((i) => i.value === value)
@@ -169,25 +194,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {/* 搜尋 */}
           <div>
             <label htmlFor="ticker-input" className="text-xs text-muted-foreground mb-2 block">股票代碼</label>
-            <div className="flex gap-1.5">
-              <Input
-                id="ticker-input"
-                value={tickerInput}
-                onChange={(e) => setTickerInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="2330"
-                className="bg-zinc-900 border-zinc-700 text-sm h-11"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label="搜尋股票代碼"
-                className="h-11 w-11 px-0 border-zinc-700 shrink-0"
-                onClick={handleSearch}
-              >
-                <Search size={14} />
-              </Button>
-            </div>
+            <TickerSearch id="ticker-input" onSelect={(t) => setActiveTicker(t)} placeholder="2330 或名稱關鍵字" />
           </div>
 
           {/* K 線週期 */}
@@ -231,7 +238,16 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               </ToggleGroup>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground leading-snug">{activeInterval.hint}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground leading-snug">{activeInterval.hint}</p>
+              <button
+                onClick={() => setPeriod(period === "1d" ? activeInterval.fixedPeriod : "1d")}
+                aria-pressed={period === "1d"}
+                className="shrink-0 text-xs h-11 px-3 rounded-md border border-zinc-800 aria-pressed:bg-zinc-700 aria-pressed:text-white text-zinc-400 hover:text-white transition-colors"
+              >
+                今日
+              </button>
+            </div>
           )}
 
           {/* 技術訊號 */}
@@ -243,6 +259,11 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                   <SignalBadge key={i} level={s.level} label={s.label} desc={s.desc} />
                 ))}
               </div>
+              {data.patterns.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-2 leading-snug">
+                  K 線型態辨識（錘子線、吞噬等）尚未啟用，所以這裡只有均線／MACD／RSI／量能訊號。
+                </p>
+              )}
             </div>
           )}
 
@@ -272,6 +293,16 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
             {activeTicker}
             {data?.name && <span className="text-zinc-400 font-normal ml-1.5">{data.name}</span>}
           </h1>
+          {!error && (
+            <button
+              onClick={() => toggleWatchlist(activeTicker)}
+              aria-label={inWatchlist ? "移出自選股" : "加入自選股"}
+              aria-pressed={inWatchlist}
+              className="flex items-center justify-center h-11 w-11 -mx-2.5 rounded-md text-zinc-400 hover:text-amber-400 transition-colors"
+            >
+              <Star size={18} className={inWatchlist ? "fill-amber-400 text-amber-400" : ""} />
+            </button>
+          )}
           {loading && <Skeleton className="h-6 w-32 bg-zinc-800" />}
           {!loading && latest && (
             <>
@@ -282,13 +313,24 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                 {fmtChange(latest.change, latest.change_pct)}
               </span>
               <span className="text-xs text-muted-foreground tabular-nums ml-auto">
-                漲停 <span className="text-red-400">{latest.limit_up}</span>　跌停 <span className="text-emerald-400">{latest.limit_down}</span>
+                漲停 <span className="text-red-400">{latest.limit_up ?? "—"}</span>　跌停 <span className="text-emerald-400">{latest.limit_down ?? "—"}</span>
               </span>
             </>
           )}
-          {error && <span className="text-sm text-red-400">{error}</span>}
+          {!error && lastUpdated && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              更新於 {formatTimeShort(lastUpdated.toISOString())}
+            </span>
+          )}
         </div>
 
+        {error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-24 text-center px-6">
+            <SearchX size={32} className="text-zinc-600" />
+            <p className="text-sm text-zinc-200">{error}</p>
+            <p className="text-xs text-muted-foreground">可以到左側重新輸入股票代碼再試一次</p>
+          </div>
+        ) : (
         <div className="p-4">
           <Tabs defaultValue="intraday">
             <div className="overflow-x-auto mb-3">
@@ -328,11 +370,6 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                   rsi={data.rsi}
                   macd={data.macd}
                 />
-              )}
-              {!loading && error && (
-                <div className="h-215 flex items-center justify-center text-muted-foreground">
-                  無法載入 {activeTicker} 的資料，請確認代碼是否正確
-                </div>
               )}
             </TabsContent>
 
@@ -399,6 +436,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
             </TabsContent>
           </Tabs>
         </div>
+        )}
       </main>
     </div>
   )

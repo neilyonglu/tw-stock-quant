@@ -4,21 +4,41 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
+import { MockBadge } from "@/components/mock-badge"
 import type { StockProfile } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 
 export function ProfileTab({ ticker }: { ticker: string }) {
   const [data, setData] = useState<StockProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const ctrl = new AbortController()
     setLoading(true)
     setData(null)
-    fetch(`/api/stock/${ticker}/profile`)
-      .then((res) => res.json())
-      .then(setData)
+    setError(null)
+    fetch(`/api/stock/${ticker}/profile`, { signal: ctrl.signal })
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? "Unknown error")
+        setData(json)
+      })
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.name === "AbortError") return
+        setError(e instanceof Error ? e.message : "Failed to load data")
+      })
       .finally(() => setLoading(false))
+    return () => ctrl.abort()
   }, [ticker])
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
+        暫時無法載入基本面資料（資料服務可能未啟動）
+      </div>
+    )
+  }
 
   if (loading || !data) {
     return (
@@ -59,12 +79,12 @@ export function ProfileTab({ ticker }: { ticker: string }) {
         />
         <StatCard
           label="市值"
-          value={`${data.market_cap.toLocaleString()} 億`}
+          value={data.market_cap != null ? `${data.market_cap.toLocaleString()} 億` : "—"}
           hint="公司現在市場上值多少錢，數字越大通常代表越穩定、波動較小"
         />
         <StatCard
           label="股本"
-          value={`${data.shares_outstanding.toFixed(2)} 億股`}
+          value={data.shares_outstanding != null ? `${data.shares_outstanding.toFixed(2)} 億股` : "—"}
           hint="公司發行的股票總數，股本越大、股價要上漲所需資金越多"
         />
         <StatCard
@@ -82,7 +102,10 @@ export function ProfileTab({ ticker }: { ticker: string }) {
       </div>
 
       <div>
-        <p className="text-sm text-zinc-400 mb-2">近 6 個月營收</p>
+        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
+          近 6 個月營收
+          <MockBadge reason="等 FinMind 月營收資料接入（Phase 5）" />
+        </p>
         <Table>
           <TableHeader>
             <TableRow className="border-zinc-800 hover:bg-transparent">
