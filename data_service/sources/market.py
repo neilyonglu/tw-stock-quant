@@ -11,10 +11,13 @@ GLOBAL_INDICES = [
 ]
 
 
-def _quote(symbol: str) -> dict:
+def _quote(symbol: str) -> dict | None:
+    """抓不到就回 None，不要回 0——這個系統的產出會影響投資決策，捏造一個看起來
+    合法的 0 比空白危險得多（呼叫端要負責把 None 顯示成「—」之類的缺值樣式）。
+    """
     h = yf.Ticker(symbol).history(period="5d").dropna(subset=["Close"])
     if len(h) < 2:
-        return {"value": 0.0, "change": 0.0, "change_pct": 0.0}
+        return None
     last = float(h["Close"].iloc[-1])
     prev = float(h["Close"].iloc[-2])
     return {
@@ -26,11 +29,15 @@ def _quote(symbol: str) -> dict:
 
 @ttl_cache(seconds=30)
 def fetch_market_indices() -> dict:
+    # 櫃買指數：yfinance 的 ^TWOII 已查不到資料（2026-07-29 實測 ^TWOII/^TWO/^TPEX
+    # 全部回 0 筆），所以 otc 目前一律是 None，前端會顯示「—」。要拿到真的櫃買指數
+    # 得另找來源（TPEx OpenAPI），見 todo.md。
     return {
         "taiex": _quote("^TWII"),
         "otc": _quote("^TWOII"),
         "global": [
-            {"name": name, **{k: v for k, v in _quote(symbol).items() if k != "change"}}
+            {"name": name, **{k: v for k, v in (q or {}).items() if k != "change"}}
             for name, symbol in GLOBAL_INDICES
+            if (q := _quote(symbol)) is not None
         ],
     }

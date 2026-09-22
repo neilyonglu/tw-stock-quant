@@ -18,6 +18,11 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/stocks/search")
+def search_stocks(q: str = ""):
+    return stock.search_stocks(q)
+
+
 @app.get("/stocks/{ticker}/candles")
 def get_candles(ticker: str, period: str = "6mo", interval: str = "1d"):
     data = stock.fetch_candles(ticker, period, interval)

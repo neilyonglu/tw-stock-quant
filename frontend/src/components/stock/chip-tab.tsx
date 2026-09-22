@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
+import { MockNotice } from "@/components/mock-badge"
 import type { StockChipData } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 
@@ -15,15 +16,34 @@ function fmtSigned(n: number) {
 export function ChipTab({ ticker }: { ticker: string }) {
   const [data, setData] = useState<StockChipData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const ctrl = new AbortController()
     setLoading(true)
     setData(null)
-    fetch(`/api/stock/${ticker}/chip`)
-      .then((res) => res.json())
-      .then(setData)
+    setError(null)
+    fetch(`/api/stock/${ticker}/chip`, { signal: ctrl.signal })
+      .then(async (res) => {
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? "Unknown error")
+        setData(json)
+      })
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.name === "AbortError") return
+        setError(e instanceof Error ? e.message : "Failed to load data")
+      })
       .finally(() => setLoading(false))
+    return () => ctrl.abort()
   }, [ticker])
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
+        暫時無法載入籌碼面資料（資料服務可能未啟動）
+      </div>
+    )
+  }
 
   if (loading || !data) {
     return (
@@ -35,6 +55,7 @@ export function ChipTab({ ticker }: { ticker: string }) {
 
   return (
     <div className="space-y-4">
+      <MockNotice reason="等 FinMind 籌碼資料接入（Phase 5）" />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <StatCard
           label="融資餘額"
