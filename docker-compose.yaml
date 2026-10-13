@@ -1,5 +1,6 @@
 services:
   data-service:
+    container_name: tw-stock-quant-data-service
     image: tw-stock-quant:latest
     build: .
     init: true
@@ -16,6 +17,7 @@ services:
       retries: 3
 
   frontend:
+    container_name: tw-stock-quant-frontend
     image: tw-stock-quant:latest
     build: .
     init: true
