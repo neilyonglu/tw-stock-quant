@@ -1,0 +1,17 @@
+.git
+.agents
+.claude
+.codex
+.aws
+.venv
+**/__pycache__
+.*_cache
+.env
+.env.*
+**/.env*
+data
+logs
+frontend/node_modules
+frontend/.next
+frontend/*.tsbuildinfo
+tests

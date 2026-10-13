@@ -5,6 +5,8 @@
 
 ## 現在就可以做（不依賴隊友）
 
+- [x] 現有 main 的 Docker／CI／tw-stock runner 部署設定（獨立 feature/main-deployment 分支，不帶入指標新功能）
+- [ ] 部署設定合併 main 後，驗證雲端 CI 與 server 自動部署成功，操作見 docs/MAINTAINERS.md
 - [x] 中台快取持久化（SQLite）——2026-07-23 完成，最終狀態見 PROJECT.md 架構段
 - [x] 自選股清單＋市場/個股頁面定期自動刷新——2026-07-29 完成（branch `feature/watchlist-live-refresh`），最終狀態見 PROJECT.md
 - [x] 自選股頁改 App 風格（sparkline）＋個股首頁排行榜（示範資料）＋K 線今日按鈕——2026-07-29 完成，同上 branch，最終狀態見 PROJECT.md

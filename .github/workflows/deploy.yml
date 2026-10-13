@@ -1,0 +1,78 @@
+name: Test and deploy stock dashboard
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: stock-ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.9"
+          python-version: "3.12"
+      - name: Test current main with locked dependencies
+        run: |
+          uv sync --locked --no-default-groups --group dev
+          uv run --no-sync python -m unittest discover -s tests -v
+      - name: Build production image
+        run: docker compose build
+      - name: Check container health and data-service connection
+        run: |
+          docker compose up -d --no-build --wait --wait-timeout 120
+          docker compose exec -T frontend python - <<'PY'
+          import json
+          import urllib.request
+          with urllib.request.urlopen('http://127.0.0.1:3000/', timeout=10) as response:
+              assert response.status == 200
+          with urllib.request.urlopen('http://127.0.0.1:3000/api/stock/search?q=2330', timeout=10) as response:
+              assert any(row['ticker'] == '2330' for row in json.load(response))
+          PY
+      - name: Show failure logs
+        if: failure()
+        run: docker compose logs --tail 100
+      - name: Clean up CI containers
+        if: always()
+        run: docker compose down -v
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: [self-hosted, Linux, X64, tw-stock]
+    timeout-minutes: 20
+    concurrency:
+      group: tw-stock-production
+      cancel-in-progress: false
+    env:
+      DEPLOY_DIR: /mnt/ssd/self-proj/tw-stock-quant
+      DEPLOY_SHA: ${{ github.sha }}
+    steps:
+      - name: Deploy the tested commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_DIR"
+          test "$(git branch --show-current)" = main
+          git diff --exit-code --quiet
+          git diff --cached --exit-code --quiet
+          test -z "$(git ls-files .env)"
+          git fetch --no-tags origin "$DEPLOY_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$DEPLOY_SHA"
+          test -z "$(git ls-tree --name-only "$DEPLOY_SHA" -- .env)"
+          git merge --ff-only "$DEPLOY_SHA"
+          test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+          docker compose -p tw-stock-quant build
+          docker compose -p tw-stock-quant up -d --no-build --wait --wait-timeout 120
+          docker compose -p tw-stock-quant ps
