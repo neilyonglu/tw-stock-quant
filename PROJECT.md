@@ -3,6 +3,17 @@
 > 判斷現況以本檔 + `todo.md` 為準。未來 Phase 藍圖見 `plan.md`。
 > 本檔只記「最終狀態」：同一主題後續有修改就直接改寫對應段落，不留流水帳。
 
+## Docker 與自動部署
+
+部署設定以現有 main 的程式為基準，保留 `runPythonScript` 與原本的個股計算佔位層；
+不包含 feature/indicators-module 的新指標模組、真實 K 線型態辨識或前端合約變更。
+`docker-compose.yaml` 以同一個 Node＋Python image 分別跑前端與中台，SQLite 掛 volume。
+正式環境排除 research/dev 依賴，本機 `uv sync` 仍裝原有工具，套件鎖定版本不變。
+`.github/workflows/deploy.yml` 在雲端跑離線測試、Docker build 與服務互通檢查，
+main 通過後交給 `[self-hosted, Linux, X64, tw-stock]` runner，部署到
+`/mnt/ssd/self-proj/tw-stock-quant` 的精確 SHA。設定與驗收見 `docs/MAINTAINERS.md`。
+實際啟用仍需確認 workflow 已合併 main、runner 上線與 server 部署目錄已準備。
+
 ## 目標
 
 台灣股市量化系統：定期掃全市場 → 四層篩選出候選股（總體→基本面→籌碼→技術，見 plan.md）→ 投組優化配置 → GitHub Actions 定時執行 → Telegram 推播。不依賴付費黑盒子，完全自控。

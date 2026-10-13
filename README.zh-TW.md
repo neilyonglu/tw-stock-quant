@@ -65,6 +65,32 @@ cd frontend && npm run dev                                   # 前端
 
 ---
 
+## Docker 與自動部署
+
+這份部署設定包裝目前 main 的功能，包括既有個股計算佔位腳本；
+不包含 `feature/indicators-module` 的新指標模組。
+
+```bash
+docker compose -p tw-stock-quant up -d --build --wait
+```
+
+同一個 Node＋Python image 分別跑前端與中台，只公開 `127.0.0.1:3000`，遠端使用可接
+SSH tunnel 或 HTTPS reverse proxy。SQLite 存於 `stock-data` volume，`down -v` 會刪除；
+本機 `data/cache.db` 不會自動搬入。image 排除 research/dev 依賴，本機 `uv sync` 仍裝原有工具。
+建置需連線 registry 與 Google Fonts，行情需連線外部來源。
+公開部署前需升級 Next.js 16.2.9，它在 npm audit 有 critical 告警。
+
+所有 push 都跑雲端 CI；main 通過後，由 server 的 `tw-stock` self-hosted runner
+部署到 `/mnt/ssd/self-proj/tw-stock-quant`。設定與驗收見 [MAINTAINERS.md](docs/MAINTAINERS.md)。
+
+```bash
+docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deployment.py
+```
+
+此選用的完整檢查需要連到真實行情來源。
+
+---
+
 ## 開發路線
 
 | 階段 | 說明 | 狀態 |

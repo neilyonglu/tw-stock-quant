@@ -65,6 +65,36 @@ cd frontend && npm run dev                                   # frontend
 
 ---
 
+## Docker and automatic deployment
+
+This deployment packages the existing main application, including its temporary
+stock calculation script. It does not include the new indicator module from
+`feature/indicators-module`.
+
+```bash
+docker compose -p tw-stock-quant up -d --build --wait
+```
+
+The shared Node + Python image runs the frontend and data service separately.
+Only `127.0.0.1:3000` is published; use an SSH tunnel or HTTPS reverse proxy for
+remote access. SQLite persists in the `stock-data` volume; `down -v` deletes it.
+Local `data/cache.db` is not automatically migrated. Research/dev dependencies
+are excluded from the image; local `uv sync` still installs the existing tools.
+Builds need access to registries and Google Fonts; live quotes need their sources.
+Before public deployment, update Next.js 16.2.9, which has critical npm audit findings.
+
+All pushes run cloud CI. Successful main runs deploy through the server's
+self-hosted runner labelled `tw-stock`, at `/mnt/ssd/self-proj/tw-stock-quant`.
+See [MAINTAINERS.md](docs/MAINTAINERS.md) for setup and verification.
+
+```bash
+docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deployment.py
+```
+
+This optional full smoke check requires a reachable market data source.
+
+---
+
 ## Roadmap
 
 | Phase | Description | Status |
