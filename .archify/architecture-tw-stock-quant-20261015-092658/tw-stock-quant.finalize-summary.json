@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\candidate.json",
+    "sha256": "604072d2a59bd44416bb54d1582064f795be273e889e88f5308b7bd5b5cfc049",
+    "bytes": 5700
+  },
+  "artifact": {
+    "path": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\tw-stock-quant.html",
+    "sha256": "e5b7e434a0f45607c9b8cf3bd9189b1d6fb6075c8e60165e2315509d713f3052",
+    "bytes": 822308
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\tw-stock-quant.finalize.json",
+    "summaryReceipt": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\tw-stock-quant.finalize-summary.json",
+    "browserCheckReceipt": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\tw-stock-quant.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-15T01:31:38.761Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2862
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "台股分析系統：目前架構",
+    "locale": "zh-TW",
+    "output": ".archify/architecture-tw-stock-quant-20261015-092658/tw-stock-quant.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/neilyonglu/tw-stock-quant.git",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "4caaa819aff69b2f1454b07aa6892fd659145780"
+    }
+  },
+  "components": [
+    {
+      "id": "stock-browser", "type": "frontend", "label": "使用者瀏覽器",
+      "sublabel": "自選股存 localStorage", "pos": [40, 40], "size": [220, 100],
+      "sources": [
+        {"path": "frontend/src/components/stock-analysis-view.tsx", "line": 145, "label": "請求個股 API"},
+        {"path": "frontend/src/lib/watchlist.ts", "line": 14, "end_line": 35, "label": "瀏覽器本機保存"}
+      ]
+    },
+    {
+      "id": "stock-next-api", "type": "backend", "label": "Next.js 頁面與 API",
+      "sublabel": "frontend/src／port 3000", "tag": "部分 API 含示範資料",
+      "pos": [350, 40], "size": [220, 100],
+      "sources": [
+        {"path": "frontend/src/lib/run-python.ts", "line": 15, "end_line": 23, "label": "啟動 Python 與解析 JSON"},
+        {"path": "frontend/src/lib/data-service-client.ts", "line": 4, "end_line": 19, "label": "HTTP 代理中台"},
+        {"path": "frontend/src/app/api/stock/[ticker]/profile/route.ts", "line": 1, "end_line": 22, "label": "真實資料與示範月營收"}
+      ]
+    },
+    {
+      "id": "stock-python-worker", "type": "backend", "label": "Python 個股計算",
+      "sublabel": "backend/api／SMA・RSI・MACD", "pos": [660, 40], "size": [220, 100],
+      "sources": [
+        {"path": "backend/api/get_stock_data.py", "line": 32, "end_line": 42, "label": "HTTP 取得原始 K 線"},
+        {"path": "backend/api/get_stock_data.py", "line": 111, "end_line": 188, "label": "指標計算及 JSON 輸出"},
+        {"path": "Dockerfile", "line": 9, "end_line": 33, "label": "前端容器含 Node 與 Python"}
+      ]
+    },
+    {
+      "id": "stock-data-api", "type": "backend", "label": "FastAPI 資料中台",
+      "sublabel": "backend/data_service／8001", "pos": [660, 330], "size": [220, 100],
+      "sources": [
+        {"path": "backend/data_service/main.py", "line": 21, "end_line": 65, "label": "原始資料 HTTP API"},
+        {"path": "backend/data_service/sources/stock.py", "line": 193, "end_line": 280, "label": "抓取、快取及增量保存"}
+      ]
+    },
+    {
+      "id": "stock-source-providers", "type": "external", "label": "外部行情來源",
+      "sublabel": "yfinance／twstock.realtime", "pos": [970, 330], "size": [220, 100],
+      "sources": [
+        {"path": "backend/data_service/sources/stock.py", "line": 75, "end_line": 91, "label": "yfinance 歷史行情"},
+        {"path": "backend/data_service/sources/stock.py", "line": 354, "end_line": 367, "label": "twstock 五檔報價"},
+        {"path": "backend/data_service/sources/market.py", "line": 14, "end_line": 26, "label": "國際與市場指數"}
+      ]
+    },
+    {
+      "id": "stock-memory-cache", "type": "database", "label": "記憶體 TTL 快取",
+      "sublabel": "重啟清空／同 key 鎖定", "pos": [660, 620], "size": [220, 100],
+      "sources": [
+        {"path": "backend/data_service/cache.py", "line": 13, "end_line": 49, "label": "TTL 與並發快取"}
+      ]
+    },
+    {
+      "id": "stock-candle-volume", "type": "database", "label": "SQLite 歷史 K 線",
+      "sublabel": "data/cache.db／stock-data volume", "pos": [970, 620], "size": [220, 100],
+      "sources": [
+        {"path": "backend/data_service/store.py", "line": 14, "end_line": 44, "label": "資料路徑與 SQLite schema"},
+        {"path": "backend/data_service/store.py", "line": 114, "end_line": 127, "label": "K 線寫入"},
+        {"path": "docker-compose.yaml", "line": 1, "end_line": 40, "label": "服務與持久化 volume"}
+      ]
+    }
+  ],
+  "boundaries": [
+    {"kind": "region", "label": "前端容器：Node ＋ Python", "wraps": ["stock-next-api", "stock-python-worker"], "pad": 20},
+    {"kind": "region", "label": "中台容器：僅內網存取", "wraps": ["stock-data-api", "stock-memory-cache"], "pad": 20}
+  ],
+  "connections": [
+    {"id": "stock-browser-http", "from": "stock-browser", "to": "stock-next-api", "label": "HTTP /api", "variant": "emphasis"},
+    {"id": "stock-python-exec", "from": "stock-next-api", "to": "stock-python-worker", "label": "uv／JSON", "variant": "emphasis"},
+    {"id": "stock-candles-http", "from": "stock-python-worker", "to": "stock-data-api", "label": "HTTP 原始 K 線", "variant": "emphasis"},
+    {"id": "stock-source-fetch", "from": "stock-data-api", "to": "stock-source-providers", "label": "抓取", "variant": "emphasis"},
+    {"id": "stock-proxy-http", "from": "stock-next-api", "to": "stock-data-api", "label": "HTTP 代理"},
+    {"id": "stock-ttl-cache", "from": "stock-data-api", "to": "stock-memory-cache", "label": "查詢／更新"},
+    {"id": "stock-sqlite-write", "from": "stock-data-api", "to": "stock-candle-volume", "label": "SQL"}
+  ],
+  "cards": [
+    {"dot": "cyan", "title": "前端與計算", "items": ["前端容器啟動 Python 子程序，既有指標計算完成後以 stdout 回傳 JSON。"]},
+    {"dot": "emerald", "title": "資料邊界", "items": ["中台統一抓取外部行情；日／週／月 K 線存 SQLite，分鐘行情只保留記憶體快取。"]},
+    {"dot": "amber", "title": "目前功能", "items": ["籌碼、新聞、排行榜、選股等仍有標記的示範資料；型態辨識尚未啟用。"]}
+  ]
+}

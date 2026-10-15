@@ -90,7 +90,7 @@
 
 ### Phase 1 — 資料管線（第一優先）
 
-**目標**：能穩定拿到資料、歷史資料落地本機、批次掃描不打爆外部 API。抓取一律經中台（`data_service/`），`src/` 不直打外部來源。
+**目標**：能穩定拿到資料、歷史資料落地本機、批次掃描不打爆外部 API。抓取一律經中台（`backend/data_service/`），`backend/` 不直打外部來源。
 
 #### 1a. 中台快取持久化 — ✅ 完成（2026-07-23）
 
@@ -98,61 +98,61 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 #### 1b. 其餘資料管線
 
-- [ ] `src/data/universe.py`：股票清單（上市 + 上櫃），從 twstock codes 產生（本地查表，不經中台）；驗收：`python -m src.data.universe` 印出上市/上櫃檔數
-- [ ] ~~`src/data/fetcher.py`、`src/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
-- [ ] `src/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
+- [ ] `backend/data/universe.py`：股票清單（上市 + 上櫃），從 twstock codes 產生（本地查表，不經中台）；驗收：`python -m src.data.universe` 印出上市/上櫃檔數
+- [ ] ~~`backend/data/fetcher.py`、`backend/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `backend/data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
+- [ ] `backend/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
 
 **限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
 ### Phase 2 — 技術指標模組（第四層）— 👉 下一個
 
-起點是 `src/api/get_stock_data.py`（已有 SMA/EMA/RSI(Wilder)/MACD，把它拆進 `src/indicators/` 就是「指標層扶正」，具體步驟見 todo.md）。TA-Lib 環境障礙已於 2026-09-20 消失（Route Handler 改跑 `.venv`）。
+起點是 `backend/api/get_stock_data.py`（已有 SMA/EMA/RSI(Wilder)/MACD，把它拆進 `backend/indicators/` 就是「指標層扶正」，具體步驟見 todo.md）。TA-Lib 環境障礙已於 2026-09-20 消失（Route Handler 改跑 `.venv`）。
 
-- [ ] `src/indicators/trend.py`（SMA/EMA/MACD）、`momentum.py`（RSI/KD/Williams %R）、`volatility.py`（ATR/布林）、`volume.py`(OBV/量比)、`pattern.py`（TA-Lib 型態，先只接第四層規則用到的晨星/錘子/吞噬）
+- [ ] `backend/indicators/trend.py`（SMA/EMA/MACD）、`momentum.py`（RSI/KD/Williams %R）、`volatility.py`（ATR/布林）、`volume.py`(OBV/量比)、`pattern.py`（TA-Lib 型態，先只接第四層規則用到的晨星/錘子/吞噬）
 - [ ] 統一介面 `add_indicators(df) -> df`；`get_stock_data.py` 縮成薄 CLI wrapper，JSON 合約不變
 - [ ] 驗收：(1) 前端個股頁零改動、畫面一致；(2) 抽樣 2330 的 RSI/MACD 跟 TradingView 對照誤差 <0.5
 
 ### Phase 3 — 策略回測（驗證第四層）
 
-- [ ] `src/strategies/base.py`：繼承 backtesting.py `Strategy`，加台股邏輯（整張 1000 股、漲跌停）
+- [ ] `backend/strategies/base.py`：繼承 backtesting.py `Strategy`，加台股邏輯（整張 1000 股、漲跌停）
 - [ ] 三個策略：`ma_cross.py`、`rsi_reversal.py`（+ATR 停損）、`macd_trend.py`（+量能過濾）
-- [ ] `src/backtest/`：runner（`commission=0.001425`）、optimizer（grid search，小心 overfitting）、metrics（年化/Sharpe/最大回撤/勝率/盈虧比）
+- [ ] `backend/backtest/`：runner（`commission=0.001425`）、optimizer（grid search，小心 overfitting）、metrics（年化/Sharpe/最大回撤/勝率/盈虧比）
 - [ ] 驗收：2330 跑 2020–2025 回測，輸出交易紀錄與績效摘要
 - **回測必含交易成本**：手續費買賣各 0.1425%、賣出證交稅 0.3%（ETF 0.1%）
 
 ### Phase 4 — 基本面整合（第二層）
 
 - [ ] CasualMarket：`/financial/statements`（EPS/ROE/毛利率）、`/revenue`（月營收 YoY）、`/dividend`（殖利率）
-- [ ] `src/indicators/health.py`：Piotroski F-score、FCF 轉換率、Altman Z-score（自建，無現成台股套件）
-- [ ] `src/screening/fundamental.py`：硬性門檻篩選
+- [ ] `backend/indicators/health.py`：Piotroski F-score、FCF 轉換率、Altman Z-score（自建，無現成台股套件）
+- [ ] `backend/screening/fundamental.py`：硬性門檻篩選
 - [ ] 驗收：能從全市場篩出基本面合格的候選清單
 
 ### Phase 5 — 籌碼面與總體環境（第一、三層）
 
-- [ ] `src/data/chip.py`：FinMind `TaiwanStockInstitutionalInvestorsBuySell`、`TaiwanStockMarginPurchaseShortSale`
-- [ ] `src/data/macro.py`：景氣燈號（data.gov.tw #6099）、USD/TWD（yfinance）、美債 10Y（FRED `DGS10`）、漲跌家數（TWSE OpenAPI）
-- [ ] `src/macro/context.py`：總體指標 → 多頭/空頭/盤整分類
-- [ ] `src/screening/chip.py` + `src/screening/scorer.py`：四維度加權評分
+- [ ] `backend/data/chip.py`：FinMind `TaiwanStockInstitutionalInvestorsBuySell`、`TaiwanStockMarginPurchaseShortSale`
+- [ ] `backend/data/macro.py`：景氣燈號（data.gov.tw #6099）、USD/TWD（yfinance）、美債 10Y（FRED `DGS10`）、漲跌家數（TWSE OpenAPI）
+- [ ] `backend/macro/context.py`：總體指標 → 多頭/空頭/盤整分類
+- [ ] `backend/screening/chip.py` + `backend/screening/scorer.py`：四維度加權評分
 - [ ] 驗收：同一支股票在不同總體環境下排名不同
 
 ### Phase 6 — 選股系統、投組優化與排程
 
-- [ ] `src/screening/technical.py`：技術面條件集合
+- [ ] `backend/screening/technical.py`：技術面條件集合
 - [ ] 批次掃描：每週輸出 TOP 20 候選股 CSV + 摘要
-- [ ] `src/portfolio/optimizer.py`：pyportfolioopt 均值-方差 / 風險平價，單股上限 20%
-- [ ] `src/alerts/`：feedparser 監控 TWSE 重大訊息、APScheduler（本機測試）、Telegram 推播
+- [ ] `backend/portfolio/optimizer.py`：pyportfolioopt 均值-方差 / 風險平價，單股上限 20%
+- [ ] `backend/alerts/`：feedparser 監控 TWSE 重大訊息、APScheduler（本機測試）、Telegram 推播
 - [ ] GitHub Actions 正式排程（workflow 骨架見 todo.md）
 - [ ] 驗收：一行指令輸出本週推薦清單＋配置比例，並推播 Telegram
 
 ### Phase 7 — 因子分析與事件研究
 
 - [ ] alphalens-reloaded 分析因子 IC/IR、最佳持有週期
-- [ ] `src/events/study.py`：自建事件研究（市場模型 OLS 估 alpha/beta → AR → CAR → t 檢定）
+- [ ] `backend/events/study.py`：自建事件研究（市場模型 OLS 估 alpha/beta → AR → CAR → t 檢定）
 - [ ] 驗收：能輸出「外資連買 5 日後，10 日平均 CAR = X%（p < 0.05）」這類結論
 
 ### Phase 8 — 情緒面整合（選配）
 
-- [ ] `src/sentiment/trends.py`：pytrends 搜尋熱度
+- [ ] `backend/sentiment/trends.py`：pytrends 搜尋熱度
 - [ ] PTT 情緒：爬蟲 + Claude API 判斷正負（不用本地 NLP）
 - [ ] 併入 scorer.py 低權重輔助因子
 
@@ -192,12 +192,14 @@ scorer.py（四層加權評分）
                     └── Telegram 推播（每週五收盤後）
 ```
 
-## 目錄結構（`src/` 藍圖，Phase 1–8 逐步建立）
+## 目錄結構（`backend/` 藍圖，Phase 1–8 逐步建立）
 
-`frontend/`（前端）與 `data_service/`（中台）已存在；以下是還沒建的計算層：
+`frontend/`（前端）與 `backend/data_service/`（中台）已存在；以下是還沒建的計算層：
 
 ```
-src/
+backend/
+├── api/         # 已存在：個股計算入口 get_stock_data.py
+├── data_service/ # 已存在：資料抓取、TTL、SQLite，中台唯一入口
 ├── data/        # fetcher, store(Parquet), fundamental, chip, macro, universe
 ├── indicators/  # trend, momentum, volatility, volume, pattern, health
 ├── strategies/  # base(台股邏輯), ma_cross, rsi_reversal, macd_trend, fundamental_mom

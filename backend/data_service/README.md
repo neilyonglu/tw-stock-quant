@@ -1,12 +1,12 @@
 # 資料中台（data_service）
 
 負責向外部來源（yfinance、twstock）抓取 + 記憶體 TTL 快取資料，前端與後端都跟這裡要資料，
-不要自己重打外部 API。完整背景見 [../PROJECT.md](../PROJECT.md)「架構：中台 / 前端 / 後端」。
+不要自己重打外部 API。完整背景見 [../../PROJECT.md](../../PROJECT.md)「架構：中台 / 前端 / 後端」。
 
 ## 啟動
 
 ```bash
-uv run uvicorn data_service.main:app --reload --port 8001
+uv run uvicorn backend.data_service.main:app --reload --port 8001
 ```
 
 啟動後可以直接開 http://localhost:8001/docs 看互動式 API 文件（FastAPI 自動產生）。

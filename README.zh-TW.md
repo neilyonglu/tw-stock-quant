@@ -35,6 +35,10 @@ uv sync
 
 ## Dashboard
 
+程式目錄：`frontend/` 放 Next.js 頁面與 Route Handlers；`backend/api/` 放 Python
+個股計算；`backend/data_service/` 放 FastAPI 中台、資料來源與快取。Docker／Compose
+入口維持在根目錄。目錄樹與可互動架構圖見 [架構說明](docs/ARCHITECTURE.md)。
+
 以 **Next.js 16 + Tailwind v4 + shadcn/ui + TradingView lightweight-charts** 建立的網頁分析介面，搭配 Python 資料層。
 
 | 步驟 | 頁面 | 狀態 |
@@ -54,12 +58,12 @@ uv sync
 
 ### 架構：中台 / 前端 / 後端
 
-抓資料的工作獨立成一個**中台**（`data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [data_service/README.md](data_service/README.md)。
+抓資料的工作獨立成一個**中台**（`backend/data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。
 
 本機開發中台跟前端要同時跑起來。`./scripts/dev.sh` 一個指令同時啟動兩個（Ctrl+C 會兩個一起關掉）；或分開手動啟動：
 
 ```bash
-uv run uvicorn data_service.main:app --reload --port 8001   # 中台
+uv run uvicorn backend.data_service.main:app --reload --port 8001   # 中台
 cd frontend && npm run dev                                   # 前端
 ```
 
@@ -104,7 +108,7 @@ docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deplo
 | 6 | 選股系統 + 投組優化 + 排程推播 | 待開始 |
 | 7 | 因子驗證 + 事件研究 | 待開始 |
 | 8 | 情緒面（Google Trends / pytrends） | 待開始 |
-| 9 | 資料中台（FastAPI） | ✅ 完成 — `data_service/`，port 8001 |
+| 9 | 資料中台（FastAPI） | ✅ 完成 — `backend/data_service/`，port 8001 |
 
 ---
 
