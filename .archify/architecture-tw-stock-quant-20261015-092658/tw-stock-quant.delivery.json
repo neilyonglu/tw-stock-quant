@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6a877081-c7e3-4d81-af3e-26277b870b2b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\candidate.json",
+  "output": "C:\\neil_personal\\tw-stock-quant\\.archify\\architecture-tw-stock-quant-20261015-092658\\tw-stock-quant.html",
+  "specification": {
+    "sha256": "604072d2a59bd44416bb54d1582064f795be273e889e88f5308b7bd5b5cfc049",
+    "bytes": 5700
+  },
+  "artifact": {
+    "sha256": "e5b7e434a0f45607c9b8cf3bd9189b1d6fb6075c8e60165e2315509d713f3052",
+    "bytes": 822308
+  }
+}
