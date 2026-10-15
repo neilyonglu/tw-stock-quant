@@ -31,6 +31,7 @@
 
 ## 工作規範
 
+- 開發從最新 main 開功能分支，不在 main 提交變更；透過 PR 合併，合併完成後刪除來源分支，回到 main 更新後再開下一條分支。
 - **push 一律等使用者明確說「push」才動**，commit 完不要自動 push
 - README.md（英文）與 README.zh-TW.md（繁中）必須同步更新，更新後 commit（本機）
 - plan.md / todo.md / CLAUDE.md 維持中文

@@ -12,7 +12,7 @@
 `.github/workflows/deploy.yml` 在雲端跑離線測試、Docker build 與服務互通檢查，
 main 通過後交給 `[self-hosted, Linux, X64, tw-stock]` runner，部署到
 `/mnt/ssd/self-proj/tw-stock-quant` 的精確 SHA。設定與驗收見 `docs/MAINTAINERS.md`。
-實際啟用仍需確認 workflow 已合併 main、runner 上線與 server 部署目錄已準備。
+main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完成容器改名 PR #5 的部署。
 
 ## 目標
 
