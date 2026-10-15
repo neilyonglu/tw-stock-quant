@@ -1,6 +1,6 @@
 """個股 raw 資料：K 線/成交量/基本面/五檔。只做「抓取」，不算 SMA/RSI/MACD 等指標
 （那些是後端該做的計算，見 PROJECT.md「架構：中台 / 前端 / 後端」）。
-搬自舊 src/api/{get_stock_data,get_stock_profile,get_orderbook}.py。
+搬自舊 backend/api/{get_stock_data,get_stock_profile,get_orderbook}.py。
 """
 import calendar
 import logging
@@ -9,8 +9,8 @@ import pandas as pd
 import twstock
 import yfinance as yf
 
-from data_service import store
-from data_service.cache import ttl_cache
+from backend.data_service import store
+from backend.data_service.cache import ttl_cache
 
 logger = logging.getLogger("data_service.candles")
 if not logger.handlers:  # uvicorn 不會幫 app logger 接 handler，自己接一個

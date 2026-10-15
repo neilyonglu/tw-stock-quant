@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 trap 'kill 0' EXIT
 
-uv run uvicorn data_service.main:app --reload --port 8001 &
+uv run uvicorn backend.data_service.main:app --reload --port 8001 &
 (cd frontend && npm run dev) &
 
 wait

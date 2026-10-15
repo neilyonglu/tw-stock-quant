@@ -22,11 +22,15 @@ main 通過後交給 `[self-hosted, Linux, X64, tw-stock]` runner，部署到
 
 ## 架構：中台 / 前端 / 後端
 
+Python 程式集中在 `backend/`：中台為 `backend/data_service/`，個股計算入口為
+`backend/api/get_stock_data.py`；目錄圖與互動架構圖見 `docs/ARCHITECTURE.md`。
+`store.py` 仍使用根目錄 `data/cache.db`，Docker 的 SQLite volume 與既有 API 維持原樣。
+
 **中台是唯一向外部來源（yfinance/twstock/FinMind/…）抓資料的地方**，前端和後端都跟中台要資料。理由：前端要顯示、後端要計算，兩邊要的是同一份 raw 資料，各自抓會延遲疊加、邏輯分岔。
 
-- **中台 `data_service/`**：獨立 FastAPI 服務（`uv run uvicorn data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取兩層：記憶體 TTL（`cache.py`）三級——五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；日/週/月 K 另落地 SQLite（`store.py`，`data/cache.db`，gitignored）——重啟不掉、只向 yfinance 增量要缺口、增量時重疊抓 5 根比對 close 偵測除權息（相對差 >0.1% 即整段重抓覆寫）。分鐘 K 等即時資料不落地。Endpoints 見 `data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
+- **中台 `backend/data_service/`**：獨立 FastAPI 服務（`uv run uvicorn backend.data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取兩層：記憶體 TTL（`cache.py`）三級——五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；日/週/月 K 另落地 SQLite（`store.py`，`data/cache.db`，gitignored）——重啟不掉、只向 yfinance 增量要缺口、增量時重疊抓 5 根比對 close 偵測除權息（相對差 >0.1% 即整段重抓覆寫）。分鐘 K 等即時資料不落地。Endpoints 見 `backend/data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
 - **前端 `frontend/`**：Next.js 16.2.9 + Tailwind v4 + shadcn/ui 4.12（`base-nova` style，底層 @base-ui 非 Radix）+ lightweight-charts v5。只負責顯示。三個頁面：`/market`（市場總覽）、`/stock/[ticker]`（個股分析）、`/screening`（每週選股）。
-- **後端**（計算層）：技術指標、K 線型態、選股評分、投組優化由**本專案自行開發**；隊友另開 branch 只負責**回測系統**（2026-07-23 確認分工）。`src/api/get_stock_data.py`（跟中台要 raw candles，本地算 SMA/RSI/MACD）原定隊友 merge 後刪除，現改為指標層起點，待扶正為正式模組（見 todo.md）。
+- **後端**（計算層）：技術指標、K 線型態、選股評分、投組優化由**本專案自行開發**；隊友另開 branch 只負責**回測系統**（2026-07-23 確認分工）。`backend/api/get_stock_data.py`（跟中台要 raw candles，本地算 SMA/RSI/MACD）原定隊友 merge 後刪除，現改為指標層起點，待扶正為正式模組（見 todo.md）。
 - 本機開發：`./scripts/dev.sh` 同時啟動中台＋前端（Ctrl+C 一起關）。
 
 ### API 合約原則（接後端時的關鍵）
@@ -38,7 +42,7 @@ main 通過後交給 `[self-hosted, Linux, X64, tw-stock]` runner，部署到
 
 ### Python 環境（只有一個：`uv run` 的 `.venv`）
 
-中台 `data_service/` 與 Next.js Route Handler 呼叫的 `src/api/get_stock_data.py` **都跑在專案 `.venv`**——`frontend/src/lib/run-python.ts` 用 `execFile("uv", ["run", "python", ...])` 執行，不再依賴系統 PATH 上的 `python3`（2026-09-20 改）。所以 TA-Lib 在兩邊都可用，K 線型態辨識不再有環境障礙，指標層扶正時直接接 `talib`。
+中台 `backend/data_service/` 與 Next.js Route Handler 呼叫的 `backend/api/get_stock_data.py` **都跑在專案 `.venv`**——`frontend/src/lib/run-python.ts` 用 `execFile("uv", ["run", "python", ...])` 執行，不再依賴系統 PATH 上的 `python3`（2026-09-20 改）。所以 TA-Lib 在兩邊都可用，K 線型態辨識不再有環境障礙，指標層扶正時直接接 `talib`。
 
 踩坑：Windows 上 PATH 的 `python3` 常解析到 Microsoft Store 的 app-execution-alias stub，跑起來沒 stdout 也沒錯誤，只會讓呼叫端 `JSON.parse` 失敗——這就是改用 `uv run` 的原因，不要改回 `python3`。
 
@@ -48,12 +52,12 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 
 - **環境**（2026-06-27）：Python 3.12 + uv、TA-Lib（source 編譯）、twstock、CasualMarket MCP；8 個 equity-research skills + `stock-analyst` dispatcher（Phase 4–6 會用）。
 - **Dashboard 建皮 Step 0–5 全部完成**（2026-06-28 ～ 07-02）：三頁介面、五層 K 線疊圖（K 線+SMA20/60、成交量+MA5/10 均量線、RSI、MACD）、7 種時間週期（5/15/30/60 分、日/週/月）、個股頁 6 個 Tabs（分時/K 線/速查指標/籌碼/基本面/新聞）、五檔報價、選股表格+圓餅圖+CSV 下載、響應式（手機底部 nav／平板 icon bar／桌面完整 sidebar，375px 實測無溢出）。
-- **中台拆分**（2026-07-01）：`data_service/` 上線，前端 Route Handler 改打中台。
+- **中台拆分**（2026-07-01）：`backend/data_service/` 上線，前端 Route Handler 改打中台。
 - **UI/UX 無障礙稽核修正**（2026-07-04）：對比度、44px 觸控目標、aria 標記、emerald 品牌色補齊（詳見下方慣例）。
 - **前端 Dashboard 併入 main**（2026-07-22）：`feature/dashboard-ui` 經 PR #1 併回 main（merge commit）。同時 main 設了 branch protection ruleset：改 main 一律走 PR（禁直接 push）、禁 force-push、禁刪除，**不強制 review**（作者可自 merge）。日常流程＝branch → push → PR → merge。
 - **中台快取持久化**（2026-07-23）：SQLite 兩層快取上線（細節見上方架構段）。驗收：改動前後回傳逐欄位比對、重啟後增量只抓 5 根（日/週/月三種週期實測）、污染庫內 close 觸發除權息路徑自我修復。
 - **自選股清單＋定期自動刷新**（2026-07-29）：前端新增 `/watchlist` 頁面，個股頁標題旁加星星按鈕加入/移除；清單存瀏覽器 localStorage（單機使用，之後要跨裝置同步再換後端資料庫，見 `frontend/src/lib/watchlist.ts`）。市場總覽、個股頁面加背景自動刷新，頻率對齊中台快取 TTL（報價/指數 30 秒、K 線 60 秒），分頁在背景分頁時暫停、切回前景立刻補刷一次。驗收：Playwright 實測加入/移除/清單顯示/自動刷新網路請求時序、console 無錯誤。
-- **自選股頁改 App 風格＋個股首頁排行榜＋K 線今日按鈕**（2026-07-29）：自選股頁面改成 iOS 股票 App 卡片式列表（名稱/代碼＋迷你走勢圖 sparkline＋價格/漲跌色塊），走勢圖吃 `/api/stock/[ticker]/intraday`（真實資料）；新增 `/stock` 首頁（未指定代碼時），顯示今日漲跌幅前五名（沿用市場總覽既有的 mock 排行榜資料，畫面明確標示「示範資料，非真實排行」，真資料要等全市場掃描 Phase 1+6），側邊欄「個股分析」改連到這裡而非固定 `/stock/2330`。K 線圖分頁的分鐘線加「今日」快速按鈕（period=1d）。過程中順手修掉 `src/api/get_stock_data.py` 的一個既有 bug：資料筆數不足一個 RSI window（14 根）時 `.dropna().iloc[-1]` 會 IndexError 炸整支腳本（今日這種短區間會踩到），改成不足時退回中性值 50。
+- **自選股頁改 App 風格＋個股首頁排行榜＋K 線今日按鈕**（2026-07-29）：自選股頁面改成 iOS 股票 App 卡片式列表（名稱/代碼＋迷你走勢圖 sparkline＋價格/漲跌色塊），走勢圖吃 `/api/stock/[ticker]/intraday`（真實資料）；新增 `/stock` 首頁（未指定代碼時），顯示今日漲跌幅前五名（沿用市場總覽既有的 mock 排行榜資料，畫面明確標示「示範資料，非真實排行」，真資料要等全市場掃描 Phase 1+6），側邊欄「個股分析」改連到這裡而非固定 `/stock/2330`。K 線圖分頁的分鐘線加「今日」快速按鈕（period=1d）。過程中順手修掉 `backend/api/get_stock_data.py` 的一個既有 bug：資料筆數不足一個 RSI window（14 根）時 `.dropna().iloc[-1]` 會 IndexError 炸整支腳本（今日這種短區間會踩到），改成不足時退回中性值 50。
 - **查無股票代碼的錯誤畫面**（2026-07-29）：搜尋不存在的代碼時，`get_stock_data.py` 原本會讓中台回的 404 直接讓 `urlopen` 拋出未接住的 `HTTPError`，整支腳本以 exit code 1 死掉；`run-python.ts` 的 `execFile` 一遇到非 0 exit code 就丟掉 stdout，前端只看得到通用的「Failed to fetch stock data」。修法：`_fetch_candles` 接住 404 轉成 `{"error": "查無股票代碼「X」..."}`，且這種「已處理的已知錯誤」改用 `sys.exit(0)`（不是腳本壞掉，只是查無資料，不該讓 stdout 被丟掉）。前端個股頁新增專用的查無代碼畫面（隱藏自選星星、不渲染分頁），取代原本混亂地在標題列塞一行紅字、下面 tabs 照樣試著渲染壞資料。
 - **股票關鍵字搜尋 + 修掉切換代碼時的殘留資料 bug**（2026-07-29）：新增 `/stocks/search`（中台）→ `/api/stock/search`（前端代理），依代碼前綴或名稱關鍵字搜尋，資料源是 twstock.codes 本地代碼表（過濾只留一般股票，排除權證/ETF 等雜訊，1942 檔）。共用元件 `frontend/src/components/ticker-search.tsx`（debounce 200ms、下拉選單、方向鍵/Enter/Esc），個股頁側邊欄與 `/stock` 首頁的搜尋框都換成這個，不再各自維護一份。過程中發現並修掉一個真的 bug：切換股票代碼時 `data` state 沒有立刻清空，導致轉圈載入或查詢失敗的當下，標題列會殘留上一支股票的名稱/價格（看起來像新代碼查到了舊資料）；修法是非背景刷新（非 silent）的 fetch 一開始就清空 `data`，背景自動刷新不清（避免每次刷新都閃爍）。
 - **全 repo 稽核與資料誠實性修正**（2026-07-29）：三份平行稽核（Python / 前端 / 文件）後修掉三條「假資料看起來像真的」——(1) 櫃買指數抓不到卻回 `0`，改成回 `null`＋UI 顯示「—」；(2) K 線型態每支股票都回同一筆假的「錘子線／偏多」，且跟真的 SMA/MACD/RSI 訊號並排顯示，改成不產生型態訊號；(3) 市場總覽六個區塊、籌碼面／新聞整頁、月營收等 mock 沒有任何視覺標示，建立共用 `mock-badge.tsx` 統一標記。做法已寫成上方「真實 vs mock 資料對照」的三條規則。稽核也記錄了未修的問題（白屏防護、漲跌停短區間算錯、race condition 等），見下一條。
@@ -106,9 +110,9 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | 事件研究自建（`statsmodels`+`scipy`） | PyPI 無現成台股套件，約 100 行 |
 | Dashboard 用 Next.js（非 Streamlit） | 目標使用者是一般大眾，需手機支援與視覺公信力 |
 | 部署規劃：前端 Vercel、後端 Railway/Render | 免費 tier 足夠 |
-| 資料中台獨立成 `data_service/`（FastAPI） | 前後端都要 raw 資料；隊友需要穩定的 HTTP contract，不該讀 Next.js 內部細節 |
+| 資料中台獨立成 `backend/data_service/`（FastAPI） | 前後端都要 raw 資料；隊友需要穩定的 HTTP contract，不該讀 Next.js 內部細節 |
 | 快取持久化選 SQLite 不選 Parquet | 每日補 K 棒、除權息覆寫都是逐列 upsert，SQLite 天生支援；Parquet 一次寫整檔不適合快取，降級為未來回測匯出格式（2026-07-23） |
-| 指標計算起點在 `src/api/get_stock_data.py`，待扶正為正式模組 | 原定隊友後端涵蓋所有計算、merge 後刪除佔位層；2026-07-23 確認隊友只做回測，指標/評分/優化歸本專案 |
+| 指標計算起點在 `backend/api/get_stock_data.py`，待扶正為正式模組 | 原定隊友後端涵蓋所有計算、merge 後刪除佔位層；2026-07-23 確認隊友只做回測，指標/評分/優化歸本專案 |
 | 深色主題寫死 `<html className="dark">`，不用 next-themes | 本來就沒有亮色 variant、沒有 toggle UI；系統偏好偵測整套用不到 |
 | 選股表排序手刻 `useState`，不裝 TanStack Table | 只有 3 欄要排序；表格複雜度提高再換 |
 | 正式排程用 GitHub Actions，APScheduler 僅本機測試 | 雲端免費、電腦關著也能跑 |

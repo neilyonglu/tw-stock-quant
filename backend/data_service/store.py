@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # repo 根目錄下的 data/cache.db（gitignored；WAL 會另產生 -wal/-shm）
-DB_PATH = Path(__file__).resolve().parents[1] / "data" / "cache.db"
+DB_PATH = Path(__file__).resolve().parents[2] / "data" / "cache.db"
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS candles (

@@ -35,6 +35,12 @@ Copy `.env.example` to `.env` and fill in any API keys (all optional — system 
 
 ## Dashboard
 
+Source layout: `frontend/` contains the Next.js UI and Route Handlers;
+`backend/api/` contains Python stock calculations; `backend/data_service/`
+contains the FastAPI service, market sources and caches. Docker/Compose entry
+files remain at the root. See [Architecture](docs/ARCHITECTURE.md) for the directory
+map and exported interactive diagram.
+
 A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui + TradingView lightweight-charts**, served alongside a Python data layer.
 
 | Step | Page | Status |
@@ -54,12 +60,12 @@ See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 
 ### Architecture: data tier / frontend / backend
 
-Data fetching is owned by an independent **data tier** (`data_service/`, FastAPI; in-memory TTL cache for realtime data + SQLite persistent cache for historical daily/weekly/monthly candles with incremental fetch and dividend-adjustment detection) — both the frontend (display) and the backend (computation: indicators, scoring, and portfolio optimization built in this repo; backtesting contributed from a teammate's branch) fetch raw data from it instead of hitting external APIs directly. See [data_service/README.md](data_service/README.md) for the API contract.
+Data fetching is owned by an independent **data tier** (`backend/data_service/`, FastAPI; in-memory TTL cache for realtime data + SQLite persistent cache for historical daily/weekly/monthly candles with incremental fetch and dividend-adjustment detection) — both the frontend (display) and the backend (computation: indicators, scoring, and portfolio optimization built in this repo; backtesting contributed from a teammate's branch) fetch raw data from it instead of hitting external APIs directly. See [backend/data_service/README.md](backend/data_service/README.md) for the API contract.
 
 Local dev needs both the data tier and the frontend running. `./scripts/dev.sh` starts both with one command (Ctrl+C stops both); or run them separately:
 
 ```bash
-uv run uvicorn data_service.main:app --reload --port 8001   # data tier
+uv run uvicorn backend.data_service.main:app --reload --port 8001   # data tier
 cd frontend && npm run dev                                   # frontend
 ```
 
@@ -108,7 +114,7 @@ This optional full smoke check requires a reachable market data source.
 | 6 | Stock screener + portfolio optimizer + scheduling | Pending |
 | 7 | Factor validation + event study | Pending |
 | 8 | Sentiment (Google Trends / pytrends) | Pending |
-| 9 | Data service (FastAPI) | ✅ Done — `data_service/` on port 8001 |
+| 9 | Data service (FastAPI) | ✅ Done — `backend/data_service/` on port 8001 |
 
 ---
 

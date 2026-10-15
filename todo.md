@@ -5,6 +5,7 @@
 
 ## 現在就可以做（不依賴隊友）
 
+- [x] Python 目錄統一為 backend/api 與 backend/data_service，更新啟動／Docker／測試路徑；Archify 升級 3.1.0，架構說明見 docs/ARCHITECTURE.md
 - [x] 現有 main 的 Docker／CI／tw-stock runner 部署設定（獨立 feature/main-deployment 分支，不帶入指標新功能）
 - [ ] 部署設定合併 main 後，驗證雲端 CI 與 server 自動部署成功，操作見 docs/MAINTAINERS.md
 - [x] 中台快取持久化（SQLite）——2026-07-23 完成，最終狀態見 PROJECT.md 架構段
@@ -16,12 +17,12 @@
 - [x] Route Handler 改 `uv run` 執行 Python（Windows PATH 踩坑）——2026-09-20 完成，同上 branch；副作用：TA-Lib 環境障礙消失，見 PROJECT.md「Python 環境」
 - [ ] **👉 立刻：把 `feature/watchlist-live-refresh` 開 PR 併回 main**——2026-09-22 盤點發現這條 branch 從 7/29 起累積 8 個 commit（含漲跌停算錯、RSI 演算法、假型態訊號等**正確性修正**）一直沒 merge，main 上跑的還是有 bug 的版本。branch 直接基於現在的 main、零衝突，可直接 merge。
 - [ ] 決定 `.agents/`（archify skill 本體）與 `skills-lock.json` 要進版控還是 `.gitignore`——目前是 untracked；隊友要共用同一份 skill 就 commit，否則 ignore 各自 `npx skills add`
-- [ ] **👉 merge 完的下一個：指標計算層扶正（＝plan.md Phase 2）**——`src/api/get_stock_data.py` 從臨時佔位改為正式模組。步驟：
-  1. 規劃位置與呼叫方式（`src/indicators/` 模組化，`get_stock_data.py` 縮成薄 CLI wrapper 只做 JSON 輸出；Route Handler 續用 `uv run` execFile，先出方案再動手）
+- [ ] **👉 merge 完的下一個：指標計算層扶正（＝plan.md Phase 2）**——`backend/api/get_stock_data.py` 從臨時佔位改為正式模組。步驟：
+  1. 規劃位置與呼叫方式（`backend/indicators/` 模組化，`get_stock_data.py` 縮成薄 CLI wrapper 只做 JSON 輸出；Route Handler 續用 `uv run` execFile，先出方案再動手）
   2. SMA/EMA/RSI(Wilder)/MACD 等既有指標搬家＋補 KD/ATR/量比（第四層擇時規則需要，見 plan.md）＋驗證（抽樣手算對照，見 judgment 品質底線）
   3. K 線型態辨識接 TA-Lib（環境障礙已於 2026-09-20 消失，Route Handler 已跑在 `.venv`），`_patterns()` 從回空陣列改為真的辨識；只回合約定義的型態，不要一次接 61 種
   4. Route Handler 的 JSON 形狀不變，前端元件零改動（合約見 `frontend/src/lib/types.ts`）
-- [ ] 中台支援上櫃股：ticker 目前寫死 `.TW`（`data_service/sources/stock.py`），上櫃股（`.TWO`）抓不到 K 線——全市場掃描前必須修（twstock codes 可查上市/上櫃別，據此選後綴）
+- [ ] 中台支援上櫃股：ticker 目前寫死 `.TW`（`backend/data_service/sources/stock.py`），上櫃股（`.TWO`）抓不到 K 線——全市場掃描前必須修（twstock codes 可查上市/上櫃別，據此選後綴）
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）
 - [ ] `main.py` 能單獨跑完整選股流程並推播 Telegram（依賴指標＋評分完成）
@@ -48,7 +49,7 @@
   ```
 
 - [ ] GitHub repo Settings → Secrets → Actions 新增：`FINMIND_TOKEN`、`TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`
-- [ ] `src/alerts/scheduler.py`（Phase 6 建立時）定位為本機測試用，正式排程走 GitHub Actions
+- [ ] `backend/alerts/scheduler.py`（Phase 6 建立時）定位為本機測試用，正式排程走 GitHub Actions
 - [ ] GitHub Actions 手動觸發驗收（依賴 `main.py` 完整流程）
 
 ## 稽核發現（2026-07-29 全 repo 稽核）
@@ -62,7 +63,7 @@
 
 > 2026-09-22 盤點：remote 上沒有隊友的 branch（只有 `dashboard-ui`、`cache-persistence`、`watchlist-live-refresh` 三條都是自己的），回測進度不明——先問一下她推到哪裡了。
 
-- [ ] 核對她的 branch 與 `src/` 的指標/評分/優化模組**沒有重複實作**——有重疊先商量再 merge，不要兩份並存
+- [ ] 核對她的 branch 與 `backend/` 的指標/評分/優化模組**沒有重複實作**——有重疊先商量再 merge，不要兩份並存
 - [ ] 回測模組接入選股流程（輸入輸出合約對齊；回測結果必含交易成本，費率見 docs/taiwan-market-notes.md）
 
 ## 刻意不做（避免範圍無限擴大）

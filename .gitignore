@@ -22,6 +22,7 @@ data/universe/
 
 # 回測輸出（大型 HTML 檔）
 *.html
+!.archify/**/*.html
 
 # Jupyter 暫存
 .ipynb_checkpoints/
