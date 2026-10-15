@@ -47,7 +47,7 @@ uv sync
 |------|------|------|
 | 0 | 專案初始化（Next.js + shadcn + lightweight-charts） | ✅ 完成 |
 | 1 | app 框架（側欄 + 三頁路由） | ✅ 完成 |
-| 2 | 個股分析頁 — 五層 K 線圖（SMA 趨勢圖例、高低點標記、成交量均線）、7 種時間週期、分時/基本面/籌碼面/五檔/新聞 Tabs（yfinance/twstock 拿得到的用真資料，拿不到的先 mock） | ✅ 完成 |
+| 2 | 個股分析頁 — 六層圖表（K 線＋SMA20/60、成交量＋MA5/10、RSI、MACD、KD、ATR）、指標說明、7 種時間週期、分時/基本面/籌碼面/五檔/新聞 Tabs（yfinance/twstock 拿得到的用真資料，拿不到的先 mock） | ✅ 完成 |
 | 3 | 市場總覽頁 — 大盤/國際指數（真資料）、三大法人/市場廣度/排行榜/期貨/新聞（mock，待 Phase 1/4/5/6 後端） | ✅ 完成 |
 | 4 | 每週選股結果頁 — 可排序表格、投組配置圓餅圖、CSV 下載（mock 資料） | ✅ 完成 |
 | 5 | 收尾細節 — 深色主題寫死（拿掉 `next-themes`，本來就沒有亮色 variant）、Sidebar 響應式（手機底部 nav／平板 icon bar／桌面完整版）、375px 版面修正、圖表縮放下限（不能縮出資料範圍外）、日期時間格式統一成 `zh-TW`、紅漲綠跌色彩審查；後續 UI/UX 無障礙稽核——對比度修正、觸控目標放大到 44px、aria-label／aria-sort、補回 emerald 品牌強調色 | ✅ 完成 |
@@ -74,11 +74,23 @@ cd frontend && npm run dev                                   # 前端
 ## Docker 與自動部署
 
 image 包含前端、中台及共用的 `backend/indicators/`。個股請求在前端容器以
-`python -m backend.api.get_stock_data` 執行，回傳既有 JSON 合約。
+`python -m backend.api.get_stock_data` 執行。個股 JSON 新增 KD／ATR 序列；價格還原失敗時
+回傳 HTTP 503 與 `stale_adjust: true`，不提供舊價格和指標。
 
 ```bash
 docker compose -p tw-stock-quant up -d --build --wait
 ```
+
+本機 Windows 若有 Forge 等服務使用 3000，改用 3107 預覽：
+
+```powershell
+$env:PORT = "3107"
+docker compose -p tw-stock-quant up -d --build --wait
+```
+
+開啟 http://localhost:3107/stock/2330 ，查看 KD／ATR 副圖、速查卡及可展開的說明。
+拉取修改後需重新建置；容器內部仍使用 3000。固定 port 與驗收步驟見
+[本機預覽](docs/MAINTAINERS.md#本機預覽與重新建置)。
 
 同一個 Node＋Python image 分別跑前端與中台，只公開 `127.0.0.1:3000`，遠端使用可接
 SSH tunnel 或 HTTPS reverse proxy。SQLite 存於 `stock-data` volume，`down -v` 會刪除；

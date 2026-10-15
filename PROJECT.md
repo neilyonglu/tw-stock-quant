@@ -18,6 +18,8 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 個股頁指標串接與說明完成，含 KD／ATR 副圖、速查卡與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。中台 `stale_adjust` 已在共用組裝入口阻擋，API 回 503、前端隱藏舊資料並自動重試。23 個 Python 測試、前端／Docker 建置及手機／桌面流程通過。公開公式與參考計算已核對，指定券商逐筆比對仍需同批來源資料。詳見 [docs/indicator-review.md](docs/indicator-review.md)。
 
+本次變更由 [PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 送審；功能分支為 `feature/indicators-module`。分支 push 只跑 CI，合併 main 後通過 CI 才部署到 server，不能以本機驗證代替部署成功紀錄。頁面現為六層圖表，控制欄隱藏捲軸但仍可捲動。本機避開 Forge 的 3000，使用 3107 預覽，指令見 [部署與預覽文件](docs/MAINTAINERS.md#本機預覽與重新建置)。
+
 ## 目標
 
 台灣股市量化系統：定期掃全市場 → 四層篩選出候選股（總體→基本面→籌碼→技術，見 plan.md）→ 投組優化配置 → GitHub Actions 定時執行 → Telegram 推播。不依賴付費黑盒子，完全自控。

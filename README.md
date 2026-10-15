@@ -47,7 +47,7 @@ A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui
 |------|------|--------|
 | 0 | Project scaffold (Next.js + shadcn + lightweight-charts) | ✅ Done |
 | 1 | App shell (sidebar + 3-page routing) | ✅ Done |
-| 2 | Stock analysis page — 5-pane K-line chart (SMA trend legend, swing high/low markers, volume MA overlay), 7 timeframes, intraday/fundamentals/chip/order-book/news tabs (real data where yfinance/twstock allow, mocked elsewhere) | ✅ Done |
+| 2 | Stock analysis page — 6-pane chart (candles + SMA20/60, volume + MA5/10, RSI, MACD, KD, ATR), indicator help, 7 timeframes, intraday/fundamentals/chip/order-book/news tabs (real data where yfinance/twstock allow, mocked elsewhere) | ✅ Done |
 | 3 | Market overview page — indices (real), institutional flows/breadth/rankings/futures/news (mocked pending Phase 1/4/5/6 backend) | ✅ Done |
 | 4 | Weekly screening results page — sortable table, portfolio allocation pie chart, CSV export (mock data) | ✅ Done |
 | 5 | Polish pass — dark theme hardcoded (dropped `next-themes`, no light variant needed), responsive sidebar (mobile bottom nav / tablet icon-bar / desktop full width), mobile layout fixes at 375px, chart zoom lower-bound (can't zoom past the actual data span), unified `zh-TW` date/time formatting, red-up/green-down color audit; follow-up UI/UX accessibility audit — contrast fixes, 44px touch targets, aria-labels/aria-sort, restored the emerald brand accent color | ✅ Done |
@@ -77,11 +77,24 @@ cd frontend && npm run dev                                   # frontend
 
 The image packages the frontend, data service and shared `backend/indicators/`
 modules. Stock requests run `python -m backend.api.get_stock_data` in the frontend
-container and return the existing JSON contract.
+container. The stock JSON includes KD/ATR series; failed price adjustments return
+HTTP 503 with `stale_adjust: true` instead of prices and indicators.
 
 ```bash
 docker compose -p tw-stock-quant up -d --build --wait
 ```
+
+For local Windows preview alongside Forge or another service using port 3000:
+
+```powershell
+$env:PORT = "3107"
+docker compose -p tw-stock-quant up -d --build --wait
+```
+
+Open http://localhost:3107/stock/2330 and check the chart's KD/ATR panes,
+quick-reference cards and expandable help. Rebuild after pulling changes;
+container port 3000 stays unchanged. See [local preview](docs/MAINTAINERS.md#本機預覽與重新建置)
+for persistent port settings and verification steps.
 
 The shared Node + Python image runs the frontend and data service separately.
 Only `127.0.0.1:3000` is published; use an SSH tunnel or HTTPS reverse proxy for

@@ -1,6 +1,6 @@
 # CI 與 server 部署
 
-GitHub 雲端 CI 用 pytest 執行指標及個股 JSON 離線測試，再跑 production image build、容器健康檢查及前端到中台的搜尋請求。
+GitHub 雲端 CI 用 pytest 執行 23 個指標及個股 JSON 離線測試，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
 搜尋使用 twstock 本機代碼表，不把外部行情來源的暫時失敗當成 CI 失敗。
 所有 push 都跑 CI；只有 main 的 CI 成功後會自動部署。PR 不會使用正式 server runner。
 
@@ -11,6 +11,39 @@ GitHub 雲端 CI 用 pytest 執行指標及個股 JSON 離線測試，再跑 pro
 | 部署 clone | `/mnt/ssd/self-proj/tw-stock-quant` |
 | 建議 runner 目錄 | `/mnt/ssd/self-proj/actions-runners/tw-stock-quant` |
 | Compose project | `tw-stock-quant`（固定，沿用 volume） |
+
+## 本機預覽與重新建置
+
+在專案根目錄的 PowerShell 執行以下指令，以 3107 避開 Forge 等服務的 3000：
+
+```powershell
+$env:PORT = "3107"
+docker compose -p tw-stock-quant up -d --build --wait
+docker compose -p tw-stock-quant ps
+```
+
+開啟 http://localhost:3107/stock/2330 。修改程式或拉取新版本後，也使用同一條 `up --build` 指令；只重新整理瀏覽器不會更新 image。
+
+`PORT` 控制宿主機映射，容器內仍是 3000，中台仍是 Compose 內網的 8001。PowerShell 的設定只影響目前視窗與子程序，不會修改 server。若要固定本機設定，可在未追蹤的根目錄 `.env` 加入 `PORT=3107`，保留其他既有設定；同名 shell 環境變數優先於 `.env`。
+
+手動檢查以下位置：
+
+1. 「K 線圖」展開「圖表指標怎麼看」；副圖由上至下為成交量、RSI、MACD、KD、ATR。
+2. 「速查指標」查看 KD(9,3,3)、ATR(14) 卡片，點指標名稱旁 ⓘ 展開說明。
+3. 切換週期確認每根 K 棒時間提示，資料不足時顯示 —。今日分鐘線是否不足取決於當時實際資料根數。
+4. 控制欄看不到捲軸，仍能滾動至五檔報價。
+
+`stale_adjust` 是異常狀態，不需刻意改正式資料觸發；已有離線及本機測試中台驗證 503、舊資料隱藏與後續恢復。數值對照及限制見 [indicator-review.md](indicator-review.md)。
+
+離線檢查可在根目錄執行：
+
+```powershell
+uv sync --locked --no-default-groups --group dev
+uv run --no-sync pytest -q
+docker run --rm --network none --mount "type=bind,src=$PWD/frontend,dst=/checks,readonly" tw-stock-quant:latest node --experimental-strip-types /checks/scripts/check-indicators.mjs
+```
+
+最後一條使用剛建置的專案 image 和唯讀原始碼，無需額外安裝 Node 測試框架。
 
 ## Server 首次設定
 

@@ -2,6 +2,8 @@
 
 檢查日期：2026-10-15。範圍為 `feature/indicators-module` 的計算、個股 API、頁面與價格品質處理。
 
+變更見 [PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7)；本機 3107 預覽與手動檢查位置見 [操作文件](MAINTAINERS.md#本機預覽與重新建置)。推送分支不會更新 server，須合併 main 並通過部署流程。
+
 **指標串接與說明已完成，算法參考對照通過。未取得同批券商匯出行情，因此沒有宣稱逐筆對齊券商實際畫面的數值。**
 
 | 指標 | 計算與頁面 | 規則 |
