@@ -44,6 +44,23 @@ class StockDataTest(unittest.TestCase):
         self.assertEqual(len(result["rsi"]), 66)
         self.assertEqual(result["latest"]["price"], 180)
         self.assertEqual(result["patterns"], [])
+        self.assertFalse(result["stale_adjust"])
+        self.assertEqual(len(result["kd"]["k"]), 72)
+        self.assertEqual(len(result["kd"]["d"]), 72)
+        self.assertEqual(len(result["atr14"]), 66)
+        self.assertEqual(result["atr14"][-1]["value"], 3)
+
+    def test_stale_adjustment_stops_calculation(self):
+        output = io.StringIO()
+        with patch.object(stock_data, "_fetch_candles", return_value={"stale_adjust": True}), \
+             patch.object(stock_data, "add_indicators") as calculate, \
+             patch("sys.argv", ["get_stock_data.py", "2330"]), redirect_stdout(output):
+            stock_data.main()
+        result = json.loads(output.getvalue())
+        self.assertTrue(result["stale_adjust"])
+        self.assertIn("error", result)
+        self.assertNotIn("candles", result)
+        calculate.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -104,13 +104,16 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 **限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
-### Phase 2 — 技術指標模組（第四層）— 👉 下一個
+### Phase 2 — 技術指標模組（第四層）— 本分支已實作，待合併
 
-起點是 `backend/api/get_stock_data.py`（已有 SMA/EMA/RSI(Wilder)/MACD，把它拆進 `backend/indicators/` 就是「指標層扶正」，具體步驟見 todo.md）。TA-Lib 環境障礙已於 2026-09-20 消失（Route Handler 改跑 `.venv`）。
+共用入口為 `backend.indicators.add_indicators`，個股 API 以 `backend.api.get_stock_data` 模組組裝 JSON。[PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 已送出，合併後另驗收 main CI 與部署。
 
-- [ ] `backend/indicators/trend.py`（SMA/EMA/MACD）、`momentum.py`（RSI/KD/Williams %R）、`volatility.py`（ATR/布林）、`volume.py`(OBV/量比)、`pattern.py`（TA-Lib 型態，先只接第四層規則用到的晨星/錘子/吞噬）
-- [ ] 統一介面 `add_indicators(df) -> df`；`get_stock_data.py` 縮成薄 CLI wrapper，JSON 合約不變
-- [ ] 驗收：(1) 前端個股頁零改動、畫面一致；(2) 抽樣 2330 的 RSI/MACD 跟 TradingView 對照誤差 <0.5
+- [x] SMA/EMA/MACD、RSI/KD、ATR、均量／量比、TA-Lib 型態辨識；Williams %R／布林／OBV 等尚未使用的指標留待實際規則需要再加。
+- [x] 統一介面 `add_indicators(df) -> df`，個股 wrapper 保留既有欄位並新增 `kd`、`atr14`、`stale_adjust` 合約。
+- [x] KD／ATR 接入圖表與速查，補齊定義、週期、缺值與算法差異說明；控制欄保留捲動但不顯示捲軸。
+- [x] 價格還原失敗在計算前阻擋，API 回 503，前端隱藏舊資料並自動恢復。
+- [x] 23 個 Python 測試、Node 檢查、正式／Docker 建置及手機／桌面流程；公開公式與參考數值結果見 [指標驗證](docs/indicator-review.md)。
+- [ ] 抽樣 2330 與指定券商介面逐筆比對：需要同批 OHLCV、還原、起始時間及參數；不可將公式核對或 TA-Lib 測試當成已對齊實際券商畫面。
 
 ### Phase 3 — 策略回測（驗證第四層）
 

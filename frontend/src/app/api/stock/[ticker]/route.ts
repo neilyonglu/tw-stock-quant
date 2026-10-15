@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { runPythonScript } from "@/lib/run-python"
+import { runPythonModule } from "@/lib/run-python"
 import type { StockData } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -13,9 +13,9 @@ export async function GET(
   const interval = request.nextUrl.searchParams.get("interval") ?? "1d"
 
   try {
-    const data = await runPythonScript<StockData & { error?: string }>("get_stock_data.py", [ticker, period, interval])
-    if (data.error) {
-      return Response.json({ error: data.error }, { status: 404 })
+    const data = await runPythonModule<StockData | { error: string; stale_adjust?: boolean }>("get_stock_data", [ticker, period, interval])
+    if ("error" in data) {
+      return Response.json(data, { status: data.stale_adjust ? 503 : 404 })
     }
     return Response.json(data)
   } catch (err) {

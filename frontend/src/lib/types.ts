@@ -108,7 +108,7 @@ export interface NewsItem {
 
 // ─── /api/stock/[ticker]?period=&interval= ─────────────────────────────────────
 // 日/週/月 → time 是 "YYYY-MM-DD"；分鐘線（5m/15m/30m/60m）→ time 是 unix timestamp（秒）
-// [真實] K 線/指標/漲跌停價 全部來自 yfinance + 公式計算；K 線型態辨識是 [mock]（見下方說明）
+// [真實] K 線來自中台；指標／漲跌停價由公式計算，K 線型態由 TA-Lib 辨識。
 
 export interface Candle {
   time: Time
@@ -140,7 +140,7 @@ export interface LatestMetrics {
   change: number
   change_pct: number
   rsi: number
-  macd_crossover: "golden" | "dead"
+  macd_crossover: "golden" | "dead" // 舊欄位描述上下方，不是交叉事件；頁面以序列判讀位置。
   volume_ratio: number
   // 漲跌停價：前一交易日收盤 ±10% 依跳動單位取整。基準一律是「前一交易日」，
   // 跟目前看的是日線還是 5 分線無關。取不到前收盤時為 null（UI 顯示「—」，不猜數字）。
@@ -148,8 +148,8 @@ export interface LatestMetrics {
   limit_down: number | null
 }
 
-// K 線型態（晨星、錘子線、吞噬等）。[mock]：TA-Lib 的 61 種型態辨識（pattern.py，Phase 2）
-// 還沒接進這支 Dashboard 用的 python script（執行環境沒裝 TA-Lib C 函式庫），先用假資料佔位。
+// K 線型態。[真實]：backend/indicators/pattern.py 用 TA-Lib 辨識，只回最近 5 根 K 棒內出現的
+// 晨星／黃昏星／錘子線／上吊線／多頭吞噬／空頭吞噬，沒有就是空陣列。
 export interface CandlePattern {
   time: Time
   name: string
@@ -159,15 +159,18 @@ export interface CandlePattern {
 export interface StockData {
   ticker: string
   name: string
+  stale_adjust: false // true 時 API 回 503 與錯誤訊息，不提供舊價格／指標。
   candles: Candle[]
   volume: VolumeBar[]
   sma20: TimeValue[]
   sma60: TimeValue[]
-  volume_sma5: TimeValue[] // 成交量 5 日均量線
-  volume_sma10: TimeValue[] // 成交量 10 日均量線
+  volume_sma5: TimeValue[] // 成交量 5 期均量線（目前 K 線週期）
+  volume_sma10: TimeValue[] // 成交量 10 期均量線
   rsi: TimeValue[]
+  kd: { k: TimeValue[]; d: TimeValue[] } // 台股遞迴 KD(9,3,3)，起始 K/D=50
+  atr14: TimeValue[] // Wilder ATR，單位與股價一致
   macd: MacdPayload
-  patterns: CandlePattern[] // mock，見上方說明
+  patterns: CandlePattern[]
   latest: LatestMetrics
 }
 

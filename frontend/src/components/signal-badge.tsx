@@ -1,7 +1,7 @@
-import { CheckCircle, AlertTriangle, XCircle } from "lucide-react"
+import { CheckCircle, AlertTriangle, XCircle, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type SignalLevel = "positive" | "warning" | "negative"
+type SignalLevel = "positive" | "warning" | "negative" | "neutral"
 
 interface SignalBadgeProps {
   level: SignalLevel
@@ -13,6 +13,7 @@ const icons = {
   positive: CheckCircle,
   warning: AlertTriangle,
   negative: XCircle,
+  neutral: Info,
 }
 
 // 台股慣例：紅漲綠跌，多頭訊號（positive）用紅、空頭訊號（negative）用綠
@@ -20,6 +21,7 @@ const colors = {
   positive: "text-red-400",
   warning: "text-amber-400",
   negative: "text-emerald-400",
+  neutral: "text-zinc-400",
 }
 
 export function SignalBadge({ level, label, desc }: SignalBadgeProps) {
