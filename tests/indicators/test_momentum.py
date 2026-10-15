@@ -45,3 +45,16 @@ def test_kd_flat_market_is_neutral():
     flat = pd.Series([100.0] * 12)
     k, d = kd(flat, flat, flat)
     assert (k.dropna() == 50.0).all()
+
+
+def test_kd_matches_seeded_rma_reference(ohlcv):
+    # 獨立向量參考：先補 50 種子，再用 alpha=1/3 遞迴平滑。
+    low = ohlcv["low"].rolling(9).min()
+    high = ohlcv["high"].rolling(9).max()
+    rsv = ((ohlcv["close"] - low) / (high - low) * 100).iloc[8:]
+    seeded = pd.concat([pd.Series([50.0]), rsv.reset_index(drop=True)], ignore_index=True)
+    expected_k = seeded.ewm(alpha=1/3, adjust=False).mean()
+    expected_d = expected_k.ewm(alpha=1/3, adjust=False).mean()
+    k, d = kd(ohlcv["high"], ohlcv["low"], ohlcv["close"])
+    np.testing.assert_allclose(k.iloc[8:], expected_k.iloc[1:], atol=1e-10)
+    np.testing.assert_allclose(d.iloc[8:], expected_d.iloc[1:], atol=1e-10)

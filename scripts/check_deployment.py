@@ -19,5 +19,7 @@ with urllib.request.urlopen(f"{base}/api/stock/2330?period=6mo", timeout=40) as 
     stock = json.load(response)
     assert stock["ticker"] == "2330" and stock["candles"] and stock["rsi"]
     assert stock["sma20"] and stock["macd"]["line"]
+    assert stock["kd"]["k"] and stock["kd"]["d"] and stock["atr14"]
+    assert stock["stale_adjust"] is False
 
 print("PASS: frontend, data-service connection, Python indicators")

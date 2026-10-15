@@ -67,6 +67,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
   const [data, setData] = useState<StockData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [staleAdjust, setStaleAdjust] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const watchlist = useWatchlist()
@@ -87,14 +88,21 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
       // 名稱/價格，看起來像新代碼查到了舊資料。背景靜默刷新（silent）不清，避免每次
       // 自動刷新都閃一下。
       setData(null)
+      setError(null)
+      setStaleAdjust(false)
     }
-    setError(null)
 
     try {
       const res = await fetch(`/api/stock/${ticker}?period=${p}&interval=${iv}`, { signal: ctrl.signal })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? "Unknown error")
+      if (!res.ok) {
+        setStaleAdjust(json.stale_adjust === true)
+        setData(null)
+        throw new Error(json.error ?? "Unknown error")
+      }
       setData(json)
+      setError(null)
+      setStaleAdjust(false)
       setLastUpdated(new Date())
     } catch (e: unknown) {
       if (e instanceof Error && e.name === "AbortError") return
@@ -281,8 +289,8 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
         {error ? (
           <div className="flex flex-col items-center justify-center gap-3 py-24 text-center px-6">
             <SearchX size={32} className="text-zinc-600" />
-            <p className="text-sm text-zinc-200">{error}</p>
-            <p className="text-xs text-muted-foreground">可以到左側重新輸入股票代碼再試一次</p>
+            <p role="alert" className="text-sm text-zinc-200">{error}</p>
+            <p className="text-xs text-muted-foreground">{staleAdjust ? "已隱藏舊價格與指標，資料恢復後會自動更新。" : "可以到左側重新輸入股票代碼再試一次"}</p>
           </div>
         ) : (
         <div className="p-4">
@@ -328,6 +336,8 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                   volumeSma10={data.volume_sma10}
                   rsi={data.rsi}
                   macd={data.macd}
+                  kd={data.kd}
+                  atr14={data.atr14}
                 />
               )}
             </TabsContent>
@@ -337,7 +347,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               <p className="mb-3 text-xs leading-relaxed text-zinc-400">點指標名稱旁的 ⓘ 查看說明；最新 K 棒可能尚未收完，成交量需等收完後再比較。</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {loading ? (
-                  [...Array(8)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
+                  [...Array(10)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
                 ) : latest && readings ? (
                   <>
                     <StatCard
@@ -367,6 +377,10 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                     />
                     <StatCard label="SMA20" value={readings.sma20?.toFixed(2) ?? "—"}
                       hint={readings.sma20 == null ? "需至少 20 根有效 K 棒" : "最近 20 根的平均收盤價"} help={INDICATOR_HELP.sma} />
+                    <StatCard label="KD (9,3,3)" value={readings.k == null || readings.d == null ? "—" : `K ${readings.k.toFixed(1)} / D ${readings.d.toFixed(1)}`}
+                      hint={readings.k == null || readings.d == null ? "需至少 9 根有效 K 棒" : "80／20 為常用高低檔參考，不保證反轉"} help={INDICATOR_HELP.kd} />
+                    <StatCard label="ATR (14)" value={readings.atr14 == null ? "—" : `${readings.atr14.toFixed(2)} 元`}
+                      hint={readings.atr14 == null ? "需至少 15 根有效 K 棒" : "近期真實波動幅度，不表示漲跌方向"} help={INDICATOR_HELP.atr} />
                     <StatCard label="SMA60" value={readings.sma60?.toFixed(2) ?? "—"}
                       hint={readings.sma60 == null ? "需至少 60 根有效 K 棒" : "最近 60 根的平均收盤價"} help={INDICATOR_HELP.sma} />
                     <StatCard label="5 期均量" value={readings.volumeSma5?.toLocaleString("zh-TW", { maximumFractionDigits: 0 }) ?? "—"}

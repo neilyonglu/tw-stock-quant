@@ -67,6 +67,12 @@ def main() -> None:
         print(json.dumps({"error": raw["error"]}))
         sys.exit(0)
 
+    if raw.get("stale_adjust", False):
+        # 共用入口先阻擋舊還原價，個股頁與自選股都不能使用這批資料。
+        print(json.dumps({"error": "價格還原更新失敗，暫停顯示行情與指標，請稍後重試。",
+                          "stale_adjust": True}))
+        return
+
     candles = raw["candles"]
     volume_data = raw["volume"]
     times = [c["time"] for c in candles]
@@ -96,6 +102,7 @@ def main() -> None:
     result = {
         "ticker": ticker,
         "name": _company_name(ticker),
+        "stale_adjust": False,
         "candles": candles,
         "volume": volume_data,
         "sma20": _to_tv(ind["sma20"], times),
@@ -103,6 +110,8 @@ def main() -> None:
         "volume_sma5": _to_tv(ind["volume_sma5"], times),
         "volume_sma10": _to_tv(ind["volume_sma10"], times),
         "rsi": _to_tv(ind["rsi14"], times),
+        "kd": {"k": _to_tv(ind["k"], times), "d": _to_tv(ind["d"], times)},
+        "atr14": _to_tv(ind["atr14"], times),
         "macd": {
             "line": _to_tv(ind["macd"], times),
             "signal": _to_tv(ind["macd_signal"], times),

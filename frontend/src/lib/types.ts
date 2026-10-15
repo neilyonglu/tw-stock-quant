@@ -159,6 +159,7 @@ export interface CandlePattern {
 export interface StockData {
   ticker: string
   name: string
+  stale_adjust: false // true 時 API 回 503 與錯誤訊息，不提供舊價格／指標。
   candles: Candle[]
   volume: VolumeBar[]
   sma20: TimeValue[]
@@ -166,6 +167,8 @@ export interface StockData {
   volume_sma5: TimeValue[] // 成交量 5 期均量線（目前 K 線週期）
   volume_sma10: TimeValue[] // 成交量 10 期均量線
   rsi: TimeValue[]
+  kd: { k: TimeValue[]; d: TimeValue[] } // 台股遞迴 KD(9,3,3)，起始 K/D=50
+  atr14: TimeValue[] // Wilder ATR，單位與股價一致
   macd: MacdPayload
   patterns: CandlePattern[]
   latest: LatestMetrics

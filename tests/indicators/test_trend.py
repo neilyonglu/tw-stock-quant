@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import talib
 
 from backend.indicators.trend import ema, macd, sma
@@ -23,3 +24,23 @@ def test_macd_converges_to_talib(ohlcv):
     np.testing.assert_allclose(line.to_numpy()[-50:], ref_line[-50:], atol=1e-4)
     np.testing.assert_allclose(sig.to_numpy()[-50:], ref_sig[-50:], atol=1e-4)
     np.testing.assert_allclose(hist.to_numpy()[-50:], ref_hist[-50:], atol=1e-4)
+
+
+def test_macd_matches_documented_ema_recurrence(ohlcv):
+    # TradingView 的 EMA/MACD 公式；明確以首價起算，不混用 TA-Lib SMA 種子。
+    def reference(values, length):
+        previous = float(values[0])
+        output = [previous]
+        alpha = 2 / (length + 1)
+        for value in values[1:]:
+            previous = alpha * value + (1 - alpha) * previous
+            output.append(previous)
+        return np.array(output)
+
+    close = ohlcv["close"].to_numpy()
+    expected_line = reference(close, 12) - reference(close, 26)
+    expected_signal = reference(expected_line, 9)
+    line, signal, histogram = macd(pd.Series(close))
+    np.testing.assert_allclose(line, expected_line, atol=1e-10)
+    np.testing.assert_allclose(signal, expected_signal, atol=1e-10)
+    np.testing.assert_allclose(histogram, expected_line - expected_signal, atol=1e-10)

@@ -33,6 +33,8 @@ interface KlineChartProps {
   volumeSma10: TimeValue[]
   rsi: TimeValue[]
   macd: MacdPayload
+  kd: { k: TimeValue[]; d: TimeValue[] }
+  atr14: TimeValue[]
 }
 
 const MAIN_H = 500
@@ -46,7 +48,7 @@ function trendArrow(series: TimeValue[]): string {
   return last >= prev ? "↑" : "↓"
 }
 
-export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd }: KlineChartProps) {
+export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd, kd, atr14 }: KlineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const legend = useMemo(() => {
@@ -63,7 +65,7 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
 
     const chart = createChart(containerRef.current, {
       autoSize: true,
-      height: MAIN_H + SUB_H * 3,
+      height: MAIN_H + SUB_H * 5,
       layout: {
         background: { type: ColorType.Solid, color: "#09090B" },
         textColor: "#a1a1aa",
@@ -203,12 +205,34 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
       }))
     )
 
+    // Pane 4 — 台股遞迴 KD(9,3,3)
+    const kSeries = chart.addSeries(LineSeries, {
+      title: "K", color: MA_SHORT, lineWidth: 1, priceLineVisible: false,
+    }, 4)
+    kSeries.setData(kd.k)
+    const dSeries = chart.addSeries(LineSeries, {
+      title: "D", color: MA_LONG, lineWidth: 1, priceLineVisible: false,
+    }, 4)
+    dSeries.setData(kd.d)
+    for (const price of [20, 80]) {
+      kSeries.createPriceLine({ price, color: "#71717a", lineWidth: 1,
+        lineStyle: LineStyle.Dashed, axisLabelVisible: false })
+    }
+
+    // Pane 5 — ATR(14)，價格單位，沒有漲跌方向
+    const atrSeries = chart.addSeries(LineSeries, {
+      title: "ATR14", color: "#a78bfa", lineWidth: 1, priceLineVisible: false,
+    }, 5)
+    atrSeries.setData(atr14)
+
     // 設定各 pane 高度
     const panes = chart.panes()
     panes[0]?.setHeight(MAIN_H)
     panes[1]?.setHeight(SUB_H)
     panes[2]?.setHeight(SUB_H)
     panes[3]?.setHeight(SUB_H)
+    panes[4]?.setHeight(SUB_H)
+    panes[5]?.setHeight(SUB_H)
 
     // 縮到最小（最多資料）時，畫面兩側還是要有資料，不能拉出空白
     const disposeZoomBound = boundChartZoom(chart, containerRef.current, candles.length)
@@ -217,17 +241,20 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
       disposeZoomBound()
       chart.remove()
     }
-  }, [candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd])
+  }, [candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd, kd, atr14])
 
   return (
-    <div className="relative">
+    <div>
+      <p className="mb-2 text-xs text-muted-foreground">副圖由上至下：成交量、RSI、MACD、KD（黃 K／藍 D）、ATR（元）</p>
+      <div className="relative">
       {(legend.sma20 || legend.sma60) && (
         <div className="absolute top-1.5 left-3 z-10 flex gap-3 text-xs tabular-nums pointer-events-none">
           {legend.sma20 && <span style={{ color: MA_SHORT }}>{legend.sma20}</span>}
           {legend.sma60 && <span style={{ color: MA_LONG }}>{legend.sma60}</span>}
         </div>
       )}
-      <div ref={containerRef} style={{ height: MAIN_H + SUB_H * 3 }} />
+      <div ref={containerRef} style={{ height: MAIN_H + SUB_H * 5 }} />
+      </div>
     </div>
   )
 }

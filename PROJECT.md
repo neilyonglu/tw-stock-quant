@@ -16,7 +16,7 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 ## 指標目前狀態（2026-10-15）
 
-個股頁已補上圖表指標指南、速查卡說明與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。計算模組可用，但 KD／ATR 尚未接到個股 API／頁面，中台 `stale_adjust` 尚未傳遞到畫面，不能標為全部完成。完整範圍與驗證見 [docs/indicator-review.md](docs/indicator-review.md)。
+個股頁指標串接與說明完成，含 KD／ATR 副圖、速查卡與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。中台 `stale_adjust` 已在共用組裝入口阻擋，API 回 503、前端隱藏舊資料並自動重試。23 個 Python 測試、前端／Docker 建置及手機／桌面流程通過。公開公式與參考計算已核對，指定券商逐筆比對仍需同批來源資料。詳見 [docs/indicator-review.md](docs/indicator-review.md)。
 
 ## 目標
 
