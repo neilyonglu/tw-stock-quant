@@ -24,8 +24,7 @@ RUN uv sync --locked --no-default-groups --no-install-project --no-cache \
     && useradd --create-home --uid 10001 app \
     && mkdir -p /app/data /app/frontend \
     && chown -R app:app /app/data /app/frontend
-COPY src/ ./src/
-COPY data_service/ ./data_service/
+COPY backend/ ./backend/
 COPY --from=frontend-build --chown=app:app /app/frontend/.next/standalone/ ./frontend/
 COPY --from=frontend-build --chown=app:app /app/frontend/.next/static/ ./frontend/.next/static/
 USER app

@@ -4,11 +4,11 @@
 重新打外部 API——避免 API 延遲，也避免抓取邏輯重複造輪子。詳見
 PROJECT.md「架構：中台 / 前端 / 後端」。
 
-本機啟動：uv run uvicorn data_service.main:app --reload --port 8001
+本機啟動：uv run uvicorn backend.data_service.main:app --reload --port 8001
 """
 from fastapi import FastAPI, HTTPException
 
-from data_service.sources import intraday, market, stock
+from backend.data_service.sources import intraday, market, stock
 
 app = FastAPI(title="tw-stock-quant data service")
 

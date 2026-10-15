@@ -1,7 +1,7 @@
-"""大盤 + 國際指數，全部來自 yfinance，免金鑰。搬自舊 src/api/get_market_indices.py。"""
+"""大盤 + 國際指數，全部來自 yfinance，免金鑰。搬自舊 backend/api/get_market_indices.py。"""
 import yfinance as yf
 
-from data_service.cache import ttl_cache
+from backend.data_service.cache import ttl_cache
 
 GLOBAL_INDICES = [
     ("道瓊工業", "^DJI"),

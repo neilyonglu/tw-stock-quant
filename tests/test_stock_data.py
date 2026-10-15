@@ -9,13 +9,21 @@ from pathlib import Path
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location(
-    "stock_data", Path(__file__).resolve().parents[1] / "src/api/get_stock_data.py"
+    "stock_data", Path(__file__).resolve().parents[1] / "backend/api/get_stock_data.py"
 )
 stock_data = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(stock_data)
 
 
 class StockDataTest(unittest.TestCase):
+    def test_backend_package_and_existing_database_location(self):
+        from backend.data_service import store
+        from backend.data_service.main import health, search_stocks
+
+        self.assertEqual(store.DB_PATH, Path(__file__).resolve().parents[1] / "data/cache.db")
+        self.assertEqual(health(), {"status": "ok"})
+        self.assertEqual(search_stocks("2330")[0]["ticker"], "2330")
+
     def test_existing_contract_without_market_network(self):
         candles = [
             {"time": (date(2026, 1, 1) + timedelta(days=i)).isoformat(),

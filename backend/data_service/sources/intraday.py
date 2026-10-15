@@ -1,9 +1,9 @@
-"""今日分時走勢（1 分鐘間隔），個股和大盤共用。搬自舊 src/api/get_intraday.py。"""
+"""今日分時走勢（1 分鐘間隔），個股和大盤共用。搬自舊 backend/api/get_intraday.py。"""
 import calendar
 
 import yfinance as yf
 
-from data_service.cache import ttl_cache
+from backend.data_service.cache import ttl_cache
 
 
 @ttl_cache(seconds=30)
