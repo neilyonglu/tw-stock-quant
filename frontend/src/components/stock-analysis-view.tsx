@@ -151,7 +151,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
   return (
     <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden">
       {/* ── 左側控制欄（手機版排在主圖區下方）── */}
-      <aside className="order-2 md:order-1 md:w-56 md:shrink-0 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-col bg-zinc-950 md:overflow-y-auto">
+      <aside className="order-2 md:order-1 md:w-56 md:shrink-0 border-t md:border-t-0 md:border-r border-zinc-800 flex flex-col bg-zinc-950 md:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="p-4 space-y-4">
           {/* 搜尋 */}
           <div>
