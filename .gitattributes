@@ -1,0 +1,3 @@
+# Preserve generated artifact bytes so Archify verification hashes stay valid.
+/.archify/** -text
+/.archify/**/*.html -whitespace
