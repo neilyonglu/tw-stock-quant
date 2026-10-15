@@ -14,6 +14,10 @@ main 通過後交給 `[self-hosted, Linux, X64, tw-stock]` runner，部署到
 `/mnt/ssd/self-proj/tw-stock-quant` 的精確 SHA。設定與驗收見 `docs/MAINTAINERS.md`。
 main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完成容器改名 PR #5 的部署。
 
+## 指標目前狀態（2026-10-15）
+
+個股頁已補上圖表指標指南、速查卡說明與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。計算模組可用，但 KD／ATR 尚未接到個股 API／頁面，中台 `stale_adjust` 尚未傳遞到畫面，不能標為全部完成。完整範圍與驗證見 [docs/indicator-review.md](docs/indicator-review.md)。
+
 ## 目標
 
 台灣股市量化系統：定期掃全市場 → 四層篩選出候選股（總體→基本面→籌碼→技術，見 plan.md）→ 投組優化配置 → GitHub Actions 定時執行 → Telegram 推播。不依賴付費黑盒子，完全自控。

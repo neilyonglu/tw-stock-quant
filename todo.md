@@ -18,6 +18,8 @@
 - [x] Route Handler 改 `uv run` 執行 Python（Windows PATH 踩坑）——2026-09-20 完成，同上 branch；副作用：TA-Lib 環境障礙消失，見 PROJECT.md「Python 環境」
 - [x] `feature/watchlist-live-refresh` 已於 2026-09-22 經 PR #3 合併 main
 - [ ] 決定 `.agents/`（archify skill 本體）與 `skills-lock.json` 要進版控還是 `.gitignore`——目前是 untracked；隊友要共用同一份 skill 就 commit，否則 ignore 各自 `npx skills add`
+- [x] 個股頁指標說明、週期提示、缺值與位置判讀修正；20 個 Python 測試、Node 檢查與桌面／手機驗證通過
+- [ ] 指標收尾：KD／ATR 串接 API 與頁面、傳遞 `stale_adjust` 狀態，再做券商數值對照，詳見 docs/indicator-review.md
 - [ ] `feature/indicators-module`（Phase 2）完成 rebase 與驗證後，推送並開 PR 合併 main
   - 指標與測試已適配 backend/indicators，Python 改以 backend.api.get_stock_data 模組執行。
   - 保留 main 的 Docker／CI 設定，排除原分支上重複的舊部署提交。

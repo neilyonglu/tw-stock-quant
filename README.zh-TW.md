@@ -35,6 +35,8 @@ uv sync
 
 ## Dashboard
 
+個股頁已加入可展開的指標定義與週期說明；缺值顯示 —，訊號描述目前位置而非誤稱交叉事件。已通過 20 個 Python 測試、原生 Node 指標檢查、正式／Docker 建置及桌面／手機瀏覽器檢查。剩餘工作見[指標檢查報告](docs/indicator-review.md)。
+
 程式目錄：`frontend/` 放 Next.js 頁面與 Route Handlers；`backend/api/` 放 Python
 個股計算；`backend/data_service/` 放 FastAPI 中台、資料來源與快取。Docker／Compose
 入口維持在根目錄。目錄樹與可互動架構圖見 [架構說明](docs/ARCHITECTURE.md)。
@@ -101,7 +103,7 @@ docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deplo
 |------|------|------|
 | 0 | 環境建置 | ✅ 完成 |
 | 1 | 資料管線 — 全市場掃描 | 👉 下一個 — 剩股票清單 + 上櫃股（`.TWO`）支援（K 線快取持久化已完成，用 SQLite） |
-| 2 | 技術指標 | ✅ 完成 — `backend/indicators/`（SMA/EMA/MACD/RSI/KD/ATR 用 pandas，K 線型態用 TA-Lib），17 個測試對照 TA-Lib |
+| 2 | 技術指標 | 計算模組已實作，頁面已補說明；KD／ATR 顯示與資料品質旗標待補，見[指標檢查報告](docs/indicator-review.md) |
 | 3 | 策略回測（backtesting.py） | 隊友負責（另一條 branch） |
 | 4 | 基本面整合（CasualMarket） | 待開始 |
 | 5 | 籌碼面 + 總體環境（FinMind） | 待開始 |

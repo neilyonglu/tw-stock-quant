@@ -29,6 +29,11 @@ jobs:
           uv run --no-sync pytest -q
       - name: Build production image
         run: docker compose build
+      - name: Test indicator descriptions and signal states
+        run: |
+          docker run --rm --network none \
+            --mount "type=bind,src=$PWD/frontend,dst=/checks,readonly" \
+            tw-stock-quant:latest node --experimental-strip-types /checks/scripts/check-indicators.mjs
       - name: Check container health and data-service connection
         run: |
           docker compose up -d --no-build --wait --wait-timeout 120

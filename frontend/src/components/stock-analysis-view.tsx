@@ -17,6 +17,8 @@ import type { StockData } from "@/lib/types"
 import { SearchX, Star } from "lucide-react"
 import { useWatchlist, toggleWatchlist } from "@/lib/watchlist"
 import { formatTimeShort } from "@/lib/utils"
+import { buildIndicatorSignals, describeRsi, describeVolumeRatio, getIndicatorReadings } from "@/lib/indicator-summary"
+import { INDICATOR_HELP, IndicatorGuide } from "@/components/indicator-help"
 
 // ─── K 線週期 / 區間 ──────────────────────────────────────────────────────────
 // 日/週/月：可選資料區間。分鐘線（5/15/30/60分）：Yahoo/yfinance 只給得到近期資料，
@@ -48,58 +50,6 @@ const INTERVALS = [
   { label: "週", value: "1wk", periods: WEEK_PERIODS, defaultPeriod: "2y" },
   { label: "月", value: "1mo", periods: MONTH_PERIODS, defaultPeriod: "10y" },
 ] as const
-
-// ─── Signals helper ───────────────────────────────────────────────────────────
-
-function buildSignals(data: StockData) {
-  const { latest, candles, sma20 } = data
-  const signals: Array<{ level: "positive" | "warning" | "negative"; label: string; desc: string }> = []
-
-  // SMA20 position
-  const lastClose = candles[candles.length - 1]?.close
-  const lastSma20 = sma20[sma20.length - 1]?.value
-  if (lastClose != null && lastSma20 != null) {
-    if (lastClose > lastSma20) {
-      signals.push({ level: "positive", label: "站上 SMA20", desc: `收盤 ${lastClose} > 均線 ${lastSma20.toFixed(0)}` })
-    } else {
-      signals.push({ level: "negative", label: "跌破 SMA20", desc: `收盤 ${lastClose} < 均線 ${lastSma20.toFixed(0)}` })
-    }
-  }
-
-  // MACD
-  if (latest.macd_crossover === "golden") {
-    signals.push({ level: "positive", label: "MACD 金叉", desc: "動能轉多，MACD 線高於訊號線" })
-  } else {
-    signals.push({ level: "negative", label: "MACD 死叉", desc: "動能偏空，MACD 線低於訊號線" })
-  }
-
-  // RSI
-  if (latest.rsi > 70) {
-    signals.push({ level: "warning", label: `RSI ${latest.rsi} 超買`, desc: "RSI > 70，短期可能拉回" })
-  } else if (latest.rsi < 30) {
-    signals.push({ level: "warning", label: `RSI ${latest.rsi} 超賣`, desc: "RSI < 30，短期可能反彈" })
-  } else {
-    signals.push({ level: "positive", label: `RSI ${latest.rsi} 健康`, desc: "RSI 介於 30–70，動能正常" })
-  }
-
-  // Volume
-  if (latest.volume_ratio >= 1.5) {
-    signals.push({ level: "positive", label: `量增 ${latest.volume_ratio}x`, desc: "今日成交量顯著放大" })
-  } else if (latest.volume_ratio < 0.7) {
-    signals.push({ level: "warning", label: `量縮 ${latest.volume_ratio}x`, desc: "今日成交量明顯萎縮" })
-  }
-
-  // K 線型態：後端只回最近 5 根 K 棒內出現的型態（backend/indicators/pattern.py），沒出現就是空陣列
-  for (const p of data.patterns) {
-    signals.push({
-      level: p.signal === "bullish" ? "positive" : "negative",
-      label: `K 線型態：${p.name}`,
-      desc: p.signal === "bullish" ? "通常代表偏多訊號" : "通常代表偏空訊號",
-    })
-  }
-
-  return signals
-}
 
 // ─── Price display helpers ────────────────────────────────────────────────────
 
@@ -184,6 +134,11 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
 
   const latest = data?.latest
   const isUp = (latest?.change ?? 0) >= 0
+  const readings = data ? getIndicatorReadings(data) : null
+  const macdDiff = readings?.macdLine != null && readings.macdSignal != null
+    ? readings.macdLine - readings.macdSignal : null
+  const barUnit = interval === "1d" ? "1 個交易日" : interval === "1wk" ? "1 週"
+    : interval === "1mo" ? "1 個月" : `${parseInt(interval)} 分鐘`
 
   return (
     <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden">
@@ -254,7 +209,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
             <div>
               <p className="text-xs text-muted-foreground mb-2">技術訊號</p>
               <div className="space-y-0.5">
-                {buildSignals(data).map((s, i) => (
+                {buildIndicatorSignals(data).map((s, i) => (
                   <SignalBadge key={i} level={s.level} label={s.label} desc={s.desc} />
                 ))}
               </div>
@@ -331,6 +286,10 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           </div>
         ) : (
         <div className="p-4">
+          <p className="mb-3 text-xs leading-relaxed text-zinc-400" aria-live="polite">
+            目前：{activeInterval.label} K，每根代表 {barUnit}。指標期數以 K 棒計算，SMA20 就是 20 根，不一定是 20 日。
+            {data && ` 本次載入 ${data.candles.length} 根；資料不足或無有效數值時顯示「—」。`}
+          </p>
           <Tabs defaultValue="intraday">
             <div className="overflow-x-auto mb-3">
               <TabsList className="bg-zinc-900 border border-zinc-800 w-max">
@@ -350,6 +309,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
 
             {/* 圖表 */}
             <TabsContent value="chart" className="space-y-1.5">
+              <IndicatorGuide />
               {loading && (
                 <div className="space-y-1.5">
                   <Skeleton className="h-125 w-full bg-zinc-900" />
@@ -374,10 +334,11 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
 
             {/* 速查 StatCard */}
             <TabsContent value="stats">
+              <p className="mb-3 text-xs leading-relaxed text-zinc-400">點指標名稱旁的 ⓘ 查看說明；最新 K 棒可能尚未收完，成交量需等收完後再比較。</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {loading ? (
-                  [...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
-                ) : latest ? (
+                  [...Array(8)].map((_, i) => <Skeleton key={i} className="h-24 bg-zinc-900" />)
+                ) : latest && readings ? (
                   <>
                     <StatCard
                       label="現價 / 漲跌"
@@ -388,32 +349,30 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
                     />
                     <StatCard
                       label="RSI (14)"
-                      value={latest.rsi.toString()}
-                      badge={
-                        latest.rsi > 70
-                          ? { text: "超買", variant: "outline", className: "bg-red-400/15 text-red-400 border-transparent" }
-                          : latest.rsi < 30
-                          ? { text: "超賣", variant: "outline", className: "bg-emerald-400/15 text-emerald-400 border-transparent" }
-                          : { text: "健康", variant: "default" }
-                      }
-                      hint="RSI < 30 超賣可能反彈；> 70 超買可能拉回；30–70 動能健康"
+                      value={readings.rsi?.toFixed(1) ?? "—"}
+                      hint={describeRsi(readings.rsi)}
+                      help={INDICATOR_HELP.rsi}
                     />
                     <StatCard
-                      label="MACD 狀態"
-                      value={latest.macd_crossover === "golden" ? "金叉" : "死叉"}
-                      badge={
-                        latest.macd_crossover === "golden"
-                          ? { text: "多頭", variant: "outline", className: "bg-red-400/15 text-red-400 border-transparent" }
-                          : { text: "空頭", variant: "outline", className: "bg-emerald-400/15 text-emerald-400 border-transparent" }
-                      }
-                      hint="MACD 金叉代表短期動能轉強，死叉代表動能轉弱"
+                      label="MACD 線的位置"
+                      value={macdDiff == null ? "—" : macdDiff > 0 ? "線在上方" : macdDiff < 0 ? "線在下方" : "兩線重合"}
+                      hint={macdDiff == null ? "資料不足或無有效數值，暫不判讀" : `MACD ${readings.macdLine?.toFixed(2)}／訊號線 ${readings.macdSignal?.toFixed(2)}；位置不代表本根剛發生交叉`}
+                      help={INDICATOR_HELP.macd}
                     />
                     <StatCard
-                      label="量比（vs 5 日均量）"
-                      value={`${latest.volume_ratio.toFixed(2)}x`}
-                      valueClassName={latest.volume_ratio >= 1.5 ? "text-amber-400" : undefined}
-                      hint="量比 ≥ 1.5x 表示今日放量，是突破或下跌的重要確認訊號"
+                      label="量比（前 5 根）"
+                      value={readings.volumeRatio == null ? "—" : `${readings.volumeRatio.toFixed(2)} 倍`}
+                      hint={describeVolumeRatio(readings.volumeRatio)}
+                      help={INDICATOR_HELP.ratio}
                     />
+                    <StatCard label="SMA20" value={readings.sma20?.toFixed(2) ?? "—"}
+                      hint={readings.sma20 == null ? "需至少 20 根有效 K 棒" : "最近 20 根的平均收盤價"} help={INDICATOR_HELP.sma} />
+                    <StatCard label="SMA60" value={readings.sma60?.toFixed(2) ?? "—"}
+                      hint={readings.sma60 == null ? "需至少 60 根有效 K 棒" : "最近 60 根的平均收盤價"} help={INDICATOR_HELP.sma} />
+                    <StatCard label="5 期均量" value={readings.volumeSma5?.toLocaleString("zh-TW", { maximumFractionDigits: 0 }) ?? "—"}
+                      hint="最近 5 根平均成交量，包含本根" help={INDICATOR_HELP.volume} />
+                    <StatCard label="10 期均量" value={readings.volumeSma10?.toLocaleString("zh-TW", { maximumFractionDigits: 0 }) ?? "—"}
+                      hint="最近 10 根平均成交量，包含本根" help={INDICATOR_HELP.volume} />
                   </>
                 ) : null}
               </div>

@@ -17,7 +17,6 @@ def atr(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> 
     資料不足 window+1 根時整段回 NaN。
     """
     tr = true_range(high, low, close)
-    tr.iloc[0] = high.iloc[0] - low.iloc[0]
 
     out = pd.Series(index=close.index, dtype="float64")
     if len(close) <= window:

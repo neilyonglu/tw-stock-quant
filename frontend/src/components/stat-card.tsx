@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MockBadge } from "@/components/mock-badge"
 import { cn } from "@/lib/utils"
+import { IndicatorHelp } from "@/components/indicator-help"
 
 interface StatCardProps {
   label: string
@@ -15,6 +16,7 @@ interface StatCardProps {
   }
   valueClassName?: string
   hint?: string
+  help?: string
   // 用於非漲跌類的色階指標（例如景氣燈號），用小色點跟「紅漲綠跌」的文字配色做區隔，
   // 避免使用者誤把這個顏色當成漲跌方向。傳入 bg-* 的 Tailwind class。
   dot?: string
@@ -24,12 +26,12 @@ interface StatCardProps {
   mockReason?: string
 }
 
-export function StatCard({ label, value, sub, badge, valueClassName, hint, dot, mock, mockReason }: StatCardProps) {
+export function StatCard({ label, value, sub, badge, valueClassName, hint, help, dot, mock, mockReason }: StatCardProps) {
   return (
     <Card className="bg-zinc-900 border-zinc-800">
       <CardContent className="p-4">
         <div className="flex items-center gap-1.5 mb-1">
-          <p className="text-xs text-zinc-400">{label}</p>
+          {help ? <IndicatorHelp label={label}>{help}</IndicatorHelp> : <p className="text-xs text-zinc-400">{label}</p>}
           {mock && <MockBadge reason={mockReason} />}
         </div>
         <div className="flex items-baseline gap-2 flex-wrap">

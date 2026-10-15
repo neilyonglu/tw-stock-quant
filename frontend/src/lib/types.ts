@@ -108,7 +108,7 @@ export interface NewsItem {
 
 // ─── /api/stock/[ticker]?period=&interval= ─────────────────────────────────────
 // 日/週/月 → time 是 "YYYY-MM-DD"；分鐘線（5m/15m/30m/60m）→ time 是 unix timestamp（秒）
-// [真實] K 線/指標/漲跌停價 全部來自 yfinance + 公式計算；K 線型態辨識是 [mock]（見下方說明）
+// [真實] K 線來自中台；指標／漲跌停價由公式計算，K 線型態由 TA-Lib 辨識。
 
 export interface Candle {
   time: Time
@@ -140,7 +140,7 @@ export interface LatestMetrics {
   change: number
   change_pct: number
   rsi: number
-  macd_crossover: "golden" | "dead"
+  macd_crossover: "golden" | "dead" // 舊欄位描述上下方，不是交叉事件；頁面以序列判讀位置。
   volume_ratio: number
   // 漲跌停價：前一交易日收盤 ±10% 依跳動單位取整。基準一律是「前一交易日」，
   // 跟目前看的是日線還是 5 分線無關。取不到前收盤時為 null（UI 顯示「—」，不猜數字）。
@@ -163,8 +163,8 @@ export interface StockData {
   volume: VolumeBar[]
   sma20: TimeValue[]
   sma60: TimeValue[]
-  volume_sma5: TimeValue[] // 成交量 5 日均量線
-  volume_sma10: TimeValue[] // 成交量 10 日均量線
+  volume_sma5: TimeValue[] // 成交量 5 期均量線（目前 K 線週期）
+  volume_sma10: TimeValue[] // 成交量 10 期均量線
   rsi: TimeValue[]
   macd: MacdPayload
   patterns: CandlePattern[]

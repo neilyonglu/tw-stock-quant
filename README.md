@@ -54,6 +54,8 @@ A web-based analysis dashboard built with **Next.js 16 + Tailwind v4 + shadcn/ui
 
 | 6 | Watchlist + live refresh — iOS-Stocks-style watchlist with intraday sparklines (stored in browser localStorage), background auto-refresh matching the data tier's cache TTLs (30s quotes / 60s K-line, paused while the tab is hidden), stock landing page with gainer/loser rankings, ticker **and company-name** keyword search with autocomplete, and an explicit "ticker not found" state | ✅ Done |
 
+The stock page includes expandable indicator definitions and timeframe explanations. Missing readings show “—”; signal labels describe positions rather than claiming crossover events. Validation: 20 Python tests, a native Node indicator check, production/Docker builds and desktop/mobile browser checks. See [indicator review](docs/indicator-review.md) for remaining work.
+
 See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 
 **Every mocked figure on screen carries a visible "示範資料" (sample data) marker** — this system's output feeds real investment decisions, so sample data must never be mistakable for the real thing. Where a real source is unavailable the UI shows "—" rather than a plausible-looking fabricated number.
@@ -107,7 +109,7 @@ This optional full smoke check requires a reachable market data source.
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
 | 1 | Data pipeline — full-market scan | 👉 Next — remaining: stock universe list + OTC (`.TWO`) support (K-line cache persistence already shipped, SQLite) |
-| 2 | Technical indicators | ✅ Done — `backend/indicators/` (SMA/EMA/MACD/RSI/KD/ATR in pandas, candlestick patterns via TA-Lib), 17 tests cross-checked against TA-Lib |
+| 2 | Technical indicators | Calculations implemented; page help added. KD/ATR display and data-quality flags remain — see [indicator review](docs/indicator-review.md). |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
 | 4 | Fundamental integration (CasualMarket) | Pending |
 | 5 | Chip data + macro context (FinMind) | Pending |

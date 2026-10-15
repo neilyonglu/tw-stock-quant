@@ -16,3 +16,12 @@ def test_atr_matches_talib_exactly(ohlcv):
 def test_atr_too_short_is_all_nan():
     s = pd.Series([1.0] * 10)
     assert atr(s + 1, s, s, 14).isna().all()
+
+
+def test_empty_input_returns_empty_indicators():
+    from backend.indicators import add_indicators
+
+    empty = pd.Series(dtype=float)
+    assert atr(empty, empty, empty).empty
+    frame = pd.DataFrame(columns=["open", "high", "low", "close", "volume"], dtype=float)
+    assert add_indicators(frame).empty
