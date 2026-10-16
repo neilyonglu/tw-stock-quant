@@ -62,6 +62,7 @@ uv sync
 
 執行 `uv run python -m backend.api.check_fundamentals 2330` 可查看實際期間及人工核對的已知差異。未知資料維持尚未驗證，這是品質報告，尚非選股結果；見[資料品質文件](docs/fundamental-data-review.md)。
 執行 `uv run python -m backend.api.screen_fundamental 6488` 可查看四季 EPS、TTM ROE、三個月營收 YoY 與 F-score 九項訊號。F-score 仍缺兩項輸入，總分及最終已驗證合格判定保持 null；見[計算定義](docs/fundamental-screening.md)。
+這些新增功能目前在 CLI 與中台文件操作，網站沒有新增可見畫面，月營收表及選股結果仍為示範資料。計算文件也整理了操作、輸出讀法、程式對照與驗證範圍，方便後續回查與討論。
 
 中台已可取得 FinMind 原始損益表、資產負債表、現金流量表、月營收及股利，例如 `/stocks/2330/fundamentals?dataset=income_statement`。類型與日期限制見 [API 合約](backend/data_service/README.md#基本面原始資料)；已驗證的基本面候選清單與前端月營收換真尚待完成。
 

@@ -64,6 +64,7 @@ See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 
 Run `uv run python -m backend.api.check_fundamentals 2330` to report actual periods and known discrepancies against manual references. Unknown data stays unverified; this is a quality report, not a screening result. See [data quality](docs/fundamental-data-review.md).
 Run `uv run python -m backend.api.screen_fundamental 6488` for four quarterly EPS values, TTM ROE, three monthly revenue YoY values and nine F-score signals. Two F-score inputs remain unavailable, so its total and the final verified pass stay null. See [calculation definitions](docs/fundamental-screening.md).
+These additions currently appear in the CLI and data-service docs; the website has no visual changes, and its revenue table and screening results remain sample data. The calculation guide includes commands, output interpretation, file references and validation limits.
 
 The data tier now provides raw income statements, balance sheets, cash flows, monthly revenue and dividends from FinMind: `/stocks/2330/fundamentals?dataset=income_statement`. See the [API contract](backend/data_service/README.md#基本面原始資料) for dataset names and date limitations. Verified fundamental screening and the revenue tab's real-data integration remain pending.
 
