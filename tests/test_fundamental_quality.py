@@ -10,7 +10,7 @@ from backend.screening.fundamental_quality import assess_fundamentals
 
 
 def snapshot(ticker="6488", values=None):
-    values = values if values is not None else [("2025-12-31", "EPS", 4.61), ("2026-06-30", "EPS", 7.9)]
+    values = values if values is not None else [("2025-12-31", "EPS", 4.62), ("2026-06-30", "EPS", 7.9)]
     return {"ticker": ticker, "source": "FinMind", "dataset": "TaiwanStockFinancialStatements",
             "fetched_at": "2026-10-16T01:00:00+00:00", "start_date": "2025-01-01",
             "end_date": "2026-10-16", "records": [
@@ -27,7 +27,7 @@ def test_known_conflict_blocks_but_preserves_values_and_provenance():
     assert result["latest_period"] == "2026-06-30" and result["freshness"] == "unknown"
     assert [c["status"] for c in result["checks"]] == ["needs_review", "matched"]
     conflict = result["checks"][0]
-    assert conflict["observed_value"] == 4.61 and conflict["reference_value"] == "4.60"
+    assert conflict["observed_value"] == 4.62 and conflict["reference_value"] == "4.61"
     assert conflict["unit"] == "TWD/share" and conflict["source_url"].startswith("https://")
 
 
@@ -43,7 +43,7 @@ def test_recent_fetch_is_not_recent_financial_period():
     assert result["status"] == "needs_review"  # 更新期間不會清除其他已知差異。
 
 
-@pytest.mark.parametrize(("value", "expected"), [(4.60, "matched"), (4.604, "matched"), (4.605, "needs_review")])
+@pytest.mark.parametrize(("value", "expected"), [(4.61, "matched"), (4.614, "matched"), (4.615, "needs_review")])
 def test_precision_follows_reference_display_instead_of_arbitrary_percentage(value, expected):
     result = assess_fundamentals(snapshot(values=[("2025-12-31", "EPS", value), ("2026-06-30", "EPS", 7.9)]))
     assert result["checks"][0]["status"] == expected

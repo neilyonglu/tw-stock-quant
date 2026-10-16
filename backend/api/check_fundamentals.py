@@ -11,14 +11,15 @@ from backend.data.universe import yahoo_symbol
 from backend.screening.fundamental_quality import assess_fundamentals
 
 
-def check_fundamentals(ticker: str, dataset: str = "income_statement") -> dict:
+def fetch_fundamental_data(ticker: str, dataset: str) -> dict:
+    """共用中台 client；成功保留 raw，錯誤回明確狀態。"""
     try:
         yahoo_symbol(ticker)
         base = os.environ.get("DATA_SERVICE_URL", "http://localhost:8001").rstrip("/")
         url = f"{base}/stocks/{quote(ticker, safe='')}/fundamentals?dataset={quote(dataset, safe='')}"
         with urlopen(url, timeout=40) as response:
             raw = json.load(response)
-        return assess_fundamentals(raw)
+        return raw
     except HTTPError as error:
         status, reason = "source_error", "中台無法提供這類基本面資料"
         if error.code == 404:
@@ -37,6 +38,11 @@ def check_fundamentals(ticker: str, dataset: str = "income_statement") -> dict:
     except (OSError, ValueError):
         return {"ticker": ticker, "status": "source_error", "can_screen": False,
                 "reason": "股票代碼無效，或中台連線／JSON 格式異常"}
+
+
+def check_fundamentals(ticker: str, dataset: str = "income_statement") -> dict:
+    raw = fetch_fundamental_data(ticker, dataset)
+    return raw if isinstance(raw, dict) and "status" in raw else assess_fundamentals(raw)
 
 
 if __name__ == "__main__":

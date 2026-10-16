@@ -65,9 +65,13 @@ SQLite 鍵也使用完整代碼，兩市場不混用。端點及成功 JSON 形�
 目前僅 Python／CLI 使用，不新增 HTTP endpoint，亦不替換 `/api/screening` 的多因子示範合約。
 詳細資料流邊界與限制見 [技術篩選](technical-screening.md)。
 基本面資料透過中台 `/stocks/{ticker}/fundamentals` 依類型取 FinMind 三張財報、月營收及股利，
-沿用 1800 秒記憶體快取，未另存 SQLite。保留來源科目與日期，計算層尚未加入基本面規則。
+沿用 1800 秒記憶體快取，未另存 SQLite。保留來源科目與日期。
 `backend.api.check_fundamentals` CLI 經中台取資料，交由 `screening/fundamental_quality.py`
 依 `data/fundamental_references.json` 的人工公告／精度比對回品質摘要，不改 raw 或新增選股評分。
+`backend.api.screen_fundamental` 共用 raw client 取四張表，交給 `screening/fundamental.py`
+判斷連續期間並呼叫 `indicators/fundamental.py` 計算 EPS／ROE／YoY 與 F-score 訊號。
+規則附依賴科目與品質理由；缺長債與普通股發行紀錄不湊 F-score，最終 passed 保持 null。
+這是研究計算，尚無已驗證候選名單；見 [基本面規格](fundamental-screening.md)。
 現有前端月營收仍有示範標記；新入口與資料限制見 [中台文件](../backend/data_service/README.md#基本面原始資料)。
 自選股保存在瀏覽器 localStorage；部分籌碼、新聞、排行榜、選股資料仍是畫面有標記的示範資料。
 

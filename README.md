@@ -63,8 +63,9 @@ See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 ### Architecture: data tier / frontend / backend
 
 Run `uv run python -m backend.api.check_fundamentals 2330` to report actual periods and known discrepancies against manual references. Unknown data stays unverified; this is a quality report, not a screening result. See [data quality](docs/fundamental-data-review.md).
+Run `uv run python -m backend.api.screen_fundamental 6488` for four quarterly EPS values, TTM ROE, three monthly revenue YoY values and nine F-score signals. Two F-score inputs remain unavailable, so its total and the final verified pass stay null. See [calculation definitions](docs/fundamental-screening.md).
 
-The data tier now provides raw income statements, balance sheets, cash flows, monthly revenue and dividends from FinMind: `/stocks/2330/fundamentals?dataset=income_statement`. See the [API contract](backend/data_service/README.md#基本面原始資料) for dataset names and date limitations. Fundamental screening and the revenue tab's real-data integration remain pending.
+The data tier now provides raw income statements, balance sheets, cash flows, monthly revenue and dividends from FinMind: `/stocks/2330/fundamentals?dataset=income_statement`. See the [API contract](backend/data_service/README.md#基本面原始資料) for dataset names and date limitations. Verified fundamental screening and the revenue tab's real-data integration remain pending.
 
 Data fetching is owned by an independent **data tier** (`backend/data_service/`, FastAPI; in-memory TTL cache for realtime data + SQLite persistent cache for historical daily/weekly/monthly candles with incremental fetch and dividend-adjustment detection) — both the frontend (display) and the backend (computation: indicators, scoring, and portfolio optimization built in this repo; backtesting contributed from a teammate's branch) fetch raw data from it instead of hitting external APIs directly. See [backend/data_service/README.md](backend/data_service/README.md) for the API contract.
 
@@ -150,7 +151,7 @@ See [technical screening v1](docs/technical-screening.md) for rules and Docker c
 | 1 | Data pipeline — full-market scan | Universe + TWSE/TPEX routing implemented; SQLite already available. Bulk scanning and rate control remain. |
 | 2 | Technical indicators | Implemented and connected, including KD/ATR, help and adjustment-quality handling. Reference checks pass; exact broker-screen matching requires identical source data — see [indicator review](docs/indicator-review.md). |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
-| 4 | Fundamental integration (FinMind) | Raw financials, revenue and dividends available through the data tier; screening pending |
+| 4 | Fundamental integration (FinMind) | Raw data, EPS/ROE/YoY and research rules available; two F-score inputs and verified screening pending |
 | 5 | Chip data + macro context (FinMind) | Pending |
 | 6 | Stock screener + portfolio optimizer + scheduling | Single-stock technical rules/score/reasons implemented; batch and multi-factor screening, portfolio and scheduling remain pending. |
 | 7 | Factor validation + event study | Pending |

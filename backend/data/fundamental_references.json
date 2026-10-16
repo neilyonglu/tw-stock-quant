@@ -29,10 +29,12 @@
       "period": "2025-12-31",
       "basis": "quarterly",
       "unit": "TWD/share",
-      "reference_value": "4.60",
+      "reference_value": "4.61",
       "precision": "0.01",
-      "source_kind": "company_presentation",
-      "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2026/03/GWC_company-profile_20260311-EN.pdf"
+      "source_kind": "derived_company_financial_statements",
+      "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2025/11/FY2025_GlobalWafers-Financial-Statement_consolidated-CH.pdf",
+      "supporting_source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2025/11/GlobalWafers_2025Q3-consolidated-financial-statement_CN.pdf",
+      "derivation": "全年基本 EPS 15.29 - 前三季累計基本 EPS 10.68 = 4.61；簡報 4.60 不作覆寫依據，跨期股數仍需檢查"
     },
     {
       "ticker": "6488",
