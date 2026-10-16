@@ -71,6 +71,8 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 匿名額度耗盡或授權失敗會明確回報，不保證永久免金鑰可用。原 `/profile`、
 前端月營收 mock 及選股頁均維持既有合約，此步只完成中台資料入口。
 資料定義見 [FinMind 官方文件](https://finmind.github.io/tutor/TaiwanMarket/Fundamental/)。
+兩市場官方公告抽查結果與已發現差異見 [基本面資料核對](../../docs/fundamental-data-review.md)；
+原始入口尚未自動辨識公告更新延遲或阻擋跨來源差異，計算前必須處理這些限制。
 
 ### 上市／上櫃與股票清單
 

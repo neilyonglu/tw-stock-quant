@@ -34,6 +34,7 @@
 - [ ] 確認 PR #9 的 main CI／server 部署結果；本機已合併的舊 technical-screening 分支尚待清理
 - [x] `feature/fundamental-data`：中台接入 FinMind 三張財報、月營收與股利；73 項測試及 2330／6488 五類真實 HTTP 資料驗證通過，快照只留本機 data/raw
 - [ ] 基本面計算：核對科目／單季與累計／公告日期限制，實作 ROE、四季 EPS、月營收 YoY、F-score；再做硬性門檻與理由，缺資料不能當作不合格
+- [ ] 基本面資料核對後續：處理來源更新落後公告，追查 6488 2025 Q4 EPS 差 0.01 及 2330 2026 Q2 營收差 0.75 百萬元；見 docs/fundamental-data-review.md，完成前不得宣稱所有科目已精確對齊
 - [ ] 修正既有 profile 有效零 EPS 被當成缺值；前端月營收接入真資料並計算 YoY，完成前保留示範標記
 - [ ] 基於股票清單做批次掃描與頻率控制，批次套用已完成的單股技術規則；尚未產生全市場真實排行榜或多因子評分
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
