@@ -138,6 +138,30 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | Phase 維持水平順序推進（1→2→…→6），不改成先跑通最小管線 | 2026-09-22 討論後決定；Phase 3 回測是隊友範圍，跳過而非重排 |
 | PTT 情緒分析直接呼叫 Claude API | 不跑本地 NLP 模型 |
 
+## 考量區（參考，尚未採用；2026-10-16）
+
+參考 [Open-Dev-Society/OpenStock](https://github.com/Open-Dev-Society/OpenStock)。以下記錄可借鏡的產品設計，不視為新增需求或已排定開發，也不替代目前技術篩選的回測驗證。
+
+| 可參考項目 | 對本專案的考量 |
+|---|---|
+| 個股資訊分區 | 圖表、技術摘要、財務、公司介紹分區，讓使用者容易找到數字與來源；整體選股接真資料時再評估摘要配置。 |
+| 全域快捷搜尋 | OpenStock 提供 Cmd/Ctrl+K、搜尋防抖與預設熱門股票。現有代碼／名稱搜尋可先沿用，有跨頁操作需求時再考慮快捷入口。 |
+| 個人自選股 | OpenStock 使用帳號與資料庫保存自選股；本專案目前為 localStorage，多裝置同步成為實際需求時再評估後端保存。 |
+| 資料可用性呈現 | 依市場、資料商能力顯示可用資訊，圖表不可嵌入時提供外部連結；可借鏡其延遲行情、來源限制與缺資料狀態說明。 |
+
+來源：[功能與架構](https://github.com/Open-Dev-Society/OpenStock#readme)、[個股頁實作](https://github.com/Open-Dev-Society/OpenStock/blob/main/app/%28root%29/stocks/%5Bsymbol%5D/page.tsx)、[市場限制](https://github.com/Open-Dev-Society/OpenStock/blob/main/MARKET_SUPPORT.md)。檢查的是目前 main，後續採用前仍需核對版本。
+
+OpenStock 的技術面摘要使用 TradingView 的嵌入 widget，不是可直接沿用的 Python 選股引擎。它的市場支援文件也列出台灣嵌入 K 線及 Finnhub 免費報價限制。程式庫目前標示 [AGPL-3.0](https://github.com/Open-Dev-Society/OpenStock/blob/main/LICENSE)；本專案為 MIT，搬用程式前需確認授權相容性，介面構想參考與複製程式分開評估。
+
+**TradingView 名詞區分**：
+
+- [TradingView 網站](https://www.tradingview.com/)：線上看盤與分析平台，提供圖表、指標、篩選與社群。
+- [Lightweight Charts](https://www.tradingview.com/lightweight-charts/)：TradingView 提供的圖表程式庫，本專案用它繪圖；行情由本專案中台供應，指標與分數由 Python 計算。
+- TradingView widget：外部服務提供的可嵌入元件；OpenStock 個股頁使用它呈現圖表與技術摘要。
+- [Technical Ratings](https://www.tradingview.com/support/solutions/43000614331-technical-ratings/)：公開的多指標評級規格，可考慮作評分對照基準；尚未採用。完整規格包含 26 項，不可用本專案現有少數指標就宣稱已完整對齊，也不等於已驗證的交易策略。
+
+目前 technical-v1 的自訂權重仍是實驗設定。後續評估先比較規則來源、台股資料可取得性及回測方式，再決定是否保留、調整或採用其他評級；沒有因這次調查直接更換算法。
+
 ## 前端慣例與踩坑
 
 **色彩**
