@@ -131,7 +131,8 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 - [x] FinMind：損益表／資產負債表／現金流量表／月營收／股利，經中台 `/stocks/{ticker}/fundamentals` 分類取原始資料。CasualMarket 提供 MCP 工具，原先列的 REST 路徑未經確認，不作為介面。
 - [ ] 核對科目、單季／累計與單位，明訂 ROE 期間、FCF 轉換率及 F-score／Altman 適用範圍；缺值與公告日期不得猜測
-- [x] `backend/indicators/fundamental.py`：TTM ROE、營收 YoY、F-score 九項研究計算；缺任何訊號不回總分，實際來源仍缺普通股發行及完整長債兩項
+- [x] `backend/indicators/fundamental.py`：TTM ROE、營收 YoY、F-score 九項研究計算；缺訊號不湊分，兩檔指定年度以官方財報人工核對補足長債與普通股發行，其他股票／年度仍待補
+- [x] 個股基本面前端呈現研究指標／訊號、期間與品質、人工來源註記，月營收換真；未將每週選股多因子示範合約冒充真實篩選
 - [ ] FCF 轉換率、Altman Z-score 加分項及資料口徑
 - [x] `backend/screening/fundamental.py` + `backend.api.screen_fundamental`：四項研究門檻、連續期間、缺值及品質限制；尚非完整已驗證篩選，passed=null，見 docs/fundamental-screening.md
 - [ ] 驗收：能從全市場篩出基本面合格的候選清單

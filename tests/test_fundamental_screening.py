@@ -128,7 +128,8 @@ def test_announcement_blocks_latest_quarter_but_not_prior_completed_annual_perio
     result = evaluate_fundamental(data, industry="半導體業")
     assert result["rules"][0]["status"] == "pending_update"
     assert result["rules"][1]["status"] == "pending_update"
-    assert result["rules"][3]["status"] == "insufficient_data"
+    assert result["rules"][3]["status"] == "calculated_unverified"
+    assert result["rules"][3]["value"]["known_signals"] == 9
     assert result["rules"][3]["value"]["year"] == 2025
 
 
@@ -147,3 +148,30 @@ def test_source_failures_are_preserved_and_official_eps_reconciliation_matches()
     result = assess_fundamentals(data)
     check = next(c for c in result["checks"] if c["period"] == "2025-12-31")
     assert check["status"] == "matched"
+
+
+def test_supplements_match_only_reviewed_company_year_and_revenue_has_six_calendar_months():
+    data = sample()
+    for raw in data.values():
+        raw["ticker"] = "6488"
+        for row in raw["records"]:
+            row["stock_id"] = "6488"
+    result = evaluate_fundamental(data, industry="半導體業")
+    score = result["rules"][3]["value"]
+    assert score["known_signals"] == 9 and score["score"] is not None
+    annual = score["inputs"]["current"]
+    assert annual["long_term_debt"] == (35679196 + 7564868 + 649360) * 1000
+    assert annual["equity_issued"] is False
+    assert annual["supplement"]["method"] == "manual_company_filing"
+    monthly = result["monthly_revenue"]
+    assert [row["month"] for row in monthly] == [f"2026-{m:02d}" for m in range(4, 10)]
+    assert monthly[0]["revenue"] is None and monthly[-1]["revenue"] == 120
+    assert monthly[-1]["yoy"] == pytest.approx(20)
+    # 新年度不可沿用舊年度補充值。
+    for field, value in [("EPS", 1), ("IncomeAfterTaxes", 40), ("Revenue", 200), ("GrossProfit", 80)]:
+        data["income_statement"]["records"].append({"stock_id": "6488", "date": "2026-12-31", "type": field, "value": value})
+    for raw in data.values():
+        raw["end_date"] = "2026-12-31"
+    current = evaluate_fundamental(data, industry="半導體業")["rules"][3]["value"]["inputs"]["current"]
+    assert current["year"] == 2026 and current["long_term_debt"] is None and current["equity_issued"] is None
+    assert "supplement" not in current

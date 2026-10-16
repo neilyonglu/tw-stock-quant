@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { StatCard } from "@/components/stat-card"
-import { MockBadge } from "@/components/mock-badge"
+import { FundamentalPanel } from "@/components/stock/fundamental-panel"
 import type { StockProfile } from "@/lib/types"
-import { formatDate } from "@/lib/utils"
 
 export function ProfileTab({ ticker }: { ticker: string }) {
+  return <div className="space-y-6"><ProfileSummary key={`summary-${ticker}`} ticker={ticker} /><FundamentalPanel key={ticker} ticker={ticker} /></div>
+}
+
+function ProfileSummary({ ticker }: { ticker: string }) {
   const [data, setData] = useState<StockProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +30,7 @@ export function ProfileTab({ ticker }: { ticker: string }) {
         if (e instanceof Error && e.name === "AbortError") return
         setError(e instanceof Error ? e.message : "Failed to load data")
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false) })
     return () => ctrl.abort()
   }, [ticker])
 
@@ -67,7 +69,7 @@ export function ProfileTab({ ticker }: { ticker: string }) {
           hint="股息 ÷ 股價，數字越高代表領股息的報酬率越高"
         />
         <StatCard
-          label="每股盈餘（EPS）"
+          label="每股盈餘（近 12 個月）"
           value={data.eps != null ? data.eps.toFixed(2) : "—"}
           hint="近 12 個月公司每股賺多少錢，是本益比的計算基礎"
         />
@@ -101,33 +103,6 @@ export function ProfileTab({ ticker }: { ticker: string }) {
         />
       </div>
 
-      <div>
-        <p className="text-sm text-zinc-400 mb-2 flex items-center gap-1.5">
-          近 6 個月營收
-          <MockBadge reason="等 FinMind 月營收資料接入（Phase 5）" />
-        </p>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="text-zinc-400">月份</TableHead>
-              <TableHead className="text-zinc-400 text-right">營收（億元）</TableHead>
-              <TableHead className="text-zinc-400 text-right">年增率 YoY</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.monthly_revenue.map((r) => (
-              <TableRow key={r.month} className="border-zinc-800 hover:bg-zinc-900">
-                <TableCell className="text-zinc-200">{formatDate(r.month)}</TableCell>
-                <TableCell className="text-right tabular-nums text-zinc-200">{r.revenue.toLocaleString()}</TableCell>
-                <TableCell className={`text-right tabular-nums ${r.yoy >= 0 ? "text-red-400" : "text-emerald-400"}`}>
-                  {r.yoy >= 0 ? "+" : ""}{r.yoy.toFixed(1)}%
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <p className="text-xs text-muted-foreground mt-2">月營收 YoY 是最即時的基本面訊號，每月 10 日前公布；YoY &gt; 10% 代表成長動能強</p>
-      </div>
     </div>
   )
 }

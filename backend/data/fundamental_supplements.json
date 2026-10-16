@@ -1,0 +1,33 @@
+{
+  "reviewed_on": "2026-10-16",
+  "basis": "非流動公司債帳面金額 + 非流動長期借款 + 非流動租賃負債；排除一年內到期部分、遞延稅負與非借款負債",
+  "records": [
+    {
+      "ticker": "2330", "year": 2025,
+      "noncurrent_bonds": 856227503000, "noncurrent_borrowings": 39834496000, "noncurrent_leases": 31594992000,
+      "equity_issued": false,
+      "source_url": "https://mopsov.twse.com.tw/server-java/t164sb01?step=1&CO_ID=2330&SYEAR=2025&SSEASON=4&REPORT_ID=C",
+      "evidence": "人工核對合併資產負債表及完整普通股權益變動欄：本年普通股變動為註銷 2,087 千元，股份基礎給付對普通股欄為零，未列普通股發行；不是由期末股本不變推測。"
+    },
+    {
+      "ticker": "2330", "year": 2024,
+      "noncurrent_bonds": 926604506000, "noncurrent_borrowings": 31824386000, "noncurrent_leases": 28755342000,
+      "source_url": "https://mopsov.twse.com.tw/server-java/t164sb01?step=1&CO_ID=2330&SYEAR=2025&SSEASON=4&REPORT_ID=C",
+      "evidence": "2025 合併報表的 2024 比較欄，TWD 原始千元乘 1000；未將租賃本金還款額當負債餘額。"
+    },
+    {
+      "ticker": "6488", "year": 2025,
+      "noncurrent_bonds": 35679196000, "noncurrent_borrowings": 7564868000, "noncurrent_leases": 649360000,
+      "equity_issued": false,
+      "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2025/11/FY2025_GlobalWafers-Financial-Statement_consolidated-CH.pdf",
+      "evidence": "PDF 第 8 頁長期借款與公司債、44 頁租賃附註（非流動 649,360 千元）；第 10 頁完整權益變動及第 12 頁現金增資 2025 為零、2024 有發行，未由期末股本推測。"
+    },
+    {
+      "ticker": "6488", "year": 2024,
+      "noncurrent_bonds": 27147373000, "noncurrent_borrowings": 10530658000, "noncurrent_leases": 749455000,
+      "equity_issued": true,
+      "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2025/11/FY2025_GlobalWafers-Financial-Statement_consolidated-CH.pdf",
+      "evidence": "2024 比較欄；權益變動表列普通股現金增資 420,000 千元及資本公積；租賃非流動 749,455 千元。"
+    }
+  ]
+}

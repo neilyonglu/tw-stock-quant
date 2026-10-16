@@ -4,6 +4,7 @@
 """
 import calendar
 import logging
+import math
 
 import pandas as pd
 import twstock
@@ -314,7 +315,7 @@ def search_stocks(query: str, limit: int = 8) -> list[dict]:
 @ttl_cache(seconds=1800)
 def fetch_profile(ticker: str) -> dict:
     """產業別/上市櫃別來自 twstock（本地查表），其餘來自 yfinance .info。
-    月營收沒有真實來源（Phase 4 才接 CasualMarket），不在這裡回傳——由前端補 mock。
+    月營收與研究結果由獨立 fundamentals 入口提供。
     """
     symbol = yahoo_symbol(ticker)
     code_info = twstock.codes[ticker]
@@ -323,8 +324,16 @@ def fetch_profile(ticker: str) -> dict:
 
     info = yf.Ticker(symbol).info
 
-    market_cap = info.get("marketCap")
-    shares = info.get("sharesOutstanding")
+    def numeric(key: str):
+        value = info.get(key)
+        if type(value) not in (int, float) or not math.isfinite(value):
+            return None
+        if value == 0 and key not in ("trailingEps", "dividendYield", "numberOfAnalystOpinions"):
+            return None
+        return round(value, 2)
+
+    market_cap = numeric("marketCap")
+    shares = numeric("sharesOutstanding")
 
     return {
         "industry": industry,
@@ -333,14 +342,14 @@ def fetch_profile(ticker: str) -> dict:
         # 看起來像真的查到了一個極小的市值，而不是「查不到」。
         "market_cap": round(market_cap / 1e8, 1) if market_cap else None,
         "shares_outstanding": round(shares / 1e8, 2) if shares else None,
-        "pe_ratio": round(info["trailingPE"], 2) if info.get("trailingPE") else None,
-        "pb_ratio": round(info["priceToBook"], 2) if info.get("priceToBook") else None,
-        "dividend_yield": round(info["dividendYield"], 2) if info.get("dividendYield") else None,
-        "eps": round(info["trailingEps"], 2) if info.get("trailingEps") else None,
-        "week52_high": round(info["fiftyTwoWeekHigh"], 2) if info.get("fiftyTwoWeekHigh") else None,
-        "week52_low": round(info["fiftyTwoWeekLow"], 2) if info.get("fiftyTwoWeekLow") else None,
-        "analyst_target": round(info["targetMeanPrice"], 2) if info.get("targetMeanPrice") else None,
-        "analyst_count": info.get("numberOfAnalystOpinions"),
+        "pe_ratio": numeric("trailingPE"),
+        "pb_ratio": numeric("priceToBook"),
+        "dividend_yield": numeric("dividendYield"),
+        "eps": numeric("trailingEps"),
+        "week52_high": numeric("fiftyTwoWeekHigh"),
+        "week52_low": numeric("fiftyTwoWeekLow"),
+        "analyst_target": numeric("targetMeanPrice"),
+        "analyst_count": numeric("numberOfAnalystOpinions"),
     }
 
 

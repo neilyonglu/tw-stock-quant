@@ -1,6 +1,7 @@
 import io
 import json
 from datetime import date
+from types import SimpleNamespace
 from urllib.error import HTTPError, URLError
 
 import pytest
@@ -8,6 +9,7 @@ from fastapi import HTTPException
 
 from backend.data_service import main
 from backend.data_service.sources import fundamental
+from backend.data_service.sources import stock as stock_source
 
 
 @pytest.mark.parametrize("dataset", fundamental.DATASETS)
@@ -98,3 +100,15 @@ def test_invalid_request_does_not_call_source(monkeypatch):
         with pytest.raises(HTTPException) as error:
             main.get_fundamentals(ticker, "income_statement", start, end)
         assert error.value.status_code == status
+
+
+@pytest.mark.parametrize(("value", "expected"), [(0, 0), (-1.25, -1.25), (None, None), (float("nan"), None), (True, None)])
+def test_profile_preserves_real_zero_and_negative_eps_but_rejects_invalid_numbers(value, expected, monkeypatch):
+    info = {"trailingEps": value, "dividendYield": 0, "marketCap": float("nan"),
+            "numberOfAnalystOpinions": float("inf"), "fiftyTwoWeekLow": 0}
+    monkeypatch.setattr(stock_source.yf, "Ticker", lambda symbol: SimpleNamespace(info=info))
+    result = stock_source.fetch_profile.__wrapped__("2330")
+    assert result["eps"] == expected and result["dividend_yield"] == 0
+    assert result["market_cap"] is None and result["analyst_count"] is None
+    assert result["week52_low"] is None  # 價格欄位的 0 仍不可冒充有效報價。
+    json.dumps(result, allow_nan=False)

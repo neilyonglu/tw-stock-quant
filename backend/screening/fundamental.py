@@ -1,6 +1,8 @@
 """單股基本面計算及研究門檻；來源品質與條件符合度分開呈現。"""
 
+import json
 from datetime import date
+from pathlib import Path
 
 from backend.indicators.fundamental import (
     number,
@@ -11,6 +13,11 @@ from backend.indicators.fundamental import (
     roe_ttm,
 )
 from backend.screening.fundamental_quality import assess_fundamentals
+
+# ponytail: 先核對驗收兩檔；依股票與年度精確匹配，其他股票／新年度保持缺資料。
+_SUPPLEMENTS = json.loads(
+    (Path(__file__).parents[1] / "data" / "fundamental_supplements.json").read_text(encoding="utf-8")
+)
 
 
 def evaluate_fundamental(data: dict, *, industry: str) -> dict:
@@ -159,14 +166,26 @@ def evaluate_fundamental(data: dict, *, industry: str) -> dict:
             for key, field in [("net_income", "IncomeAfterTaxes"), ("revenue", "Revenue"), ("gross_profit", "GrossProfit")]:
                 values = [optional("income_statement", p, field) for p in quarters(period)]
                 result[key] = sum(values) if all(v is not None for v in values) else None
-            # ponytail: 未確認完整長債口徑（含租賃等）；待補可靠欄位，不用部分借款冒充總額。
             result["long_term_debt"] = None
+            supplements = [item for item in _SUPPLEMENTS["records"]
+                           if item["ticker"] == next(iter(tickers)) and item["year"] == year]
+            if len(supplements) == 1:
+                supplement = supplements[0]
+                components = [number(supplement[key]) for key in
+                              ("noncurrent_bonds", "noncurrent_borrowings", "noncurrent_leases")]
+                if any(value < 0 for value in components):
+                    raise ValueError("人工核對長債金額不可為負數")
+                result["long_term_debt"] = number(sum(components))
+                issued = supplement.get("equity_issued")
+                result["equity_issued"] = issued if type(issued) is bool else None
+                result["supplement"] = {**supplement, "reviewed_on": _SUPPLEMENTS["reviewed_on"],
+                                        "basis": _SUPPLEMENTS["basis"], "method": "manual_company_filing"}
             return result
 
         current, previous = annual(year), annual(year - 1)
         result = piotroski_score(current, previous)
         result.update(year=year, inputs={"current": current, "previous": previous},
-                      limitations=["缺少明確的普通股發行紀錄及完整長期負債口徑，兩項訊號保持未知；年度適用期間需另外驗證"])
+                      limitations=["長債與普通股發行只在人工核對股票／年度提供；並非全市場自動抓取或完整來源驗證"])
         return result, result["score"] >= 6 if result["score"] is not None else None
 
     run("eps_positive_four_quarters", "四個連續季度 EPS 均 > 0", eps)
@@ -174,8 +193,24 @@ def evaluate_fundamental(data: dict, *, industry: str) -> dict:
     run("revenue_yoy_three_months", "三個連續月營收 YoY 均 > 0%", revenue)
     run("piotroski_f_score", "年度 F-score >= 6／9", f_score)
     conditions = [rule["condition_met"] for rule in rules]
+    monthly = []
+    if tables.get("monthly_revenue"):
+        end = latest("monthly_revenue")
+        periods = [end]
+        for _ in range(5):
+            periods.append(previous_month(periods[-1]))
+        for period in sorted(periods):
+            current_value = tables["monthly_revenue"].get((period, "revenue"))
+            day = date.fromisoformat(period)
+            prior = date(day.year - 1, day.month, 1).isoformat()
+            prior_value = tables["monthly_revenue"].get((prior, "revenue"))
+            try:
+                yoy = revenue_yoy(current_value, prior_value)
+            except ValueError:
+                yoy = None
+            monthly.append({"month": period[:7], "revenue": current_value, "yoy": yoy})
     return {"ticker": next(iter(tickers)), "rule_version": "fundamental-v1-research",
             "scope": "fundamental_only", "status": "incomplete" if None in conditions else "calculated_unverified",
             "passed": None, "conditions_met": all(conditions) if None not in conditions else None,
-            "rules": rules, "quality": quality,
+            "rules": rules, "quality": quality, "monthly_revenue": monthly,
             "reason": "研究計算未全面驗證；未知條件不等於合格或不合格，並非歷史回測可知資料"}
