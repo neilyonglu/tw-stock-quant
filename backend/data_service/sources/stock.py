@@ -9,6 +9,7 @@ import pandas as pd
 import twstock
 import yfinance as yf
 
+from backend.data.universe import stock_universe, yahoo_symbol
 from backend.data_service import store
 from backend.data_service.cache import ttl_cache
 
@@ -74,7 +75,7 @@ def _limit_prices(prev_close: float) -> tuple[float, float]:
 
 def _yf_rows(ticker: str, interval: str, is_intraday: bool, **history_kwargs) -> list[dict]:
     """打 yfinance，回傳統一的 row dicts（原始精度）。空資料回 []。"""
-    df = yf.Ticker(f"{ticker}.TW").history(interval=interval, **history_kwargs)
+    df = yf.Ticker(yahoo_symbol(ticker)).history(interval=interval, **history_kwargs)
     # 交易日當天還沒收盤時，yfinance 會多回傳一筆 OHLC 全是 NaN 的列，留著會讓
     # json.dumps 印出裸 NaN token，前端 JSON.parse 直接炸掉。
     df = df.dropna(subset=["Open", "High", "Low", "Close"])
@@ -201,7 +202,7 @@ def _maybe_record_source_start(
 def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
     """日/週/月 K 的三步查找：SQLite 查已存區間 → 只跟 yfinance 要缺口 → upsert 回存。
     設計（含除權息偵測）見 plan.md Phase 1a。"""
-    yft = f"{ticker}.TW"
+    yft = yahoo_symbol(ticker)
     cutoff = _period_cutoff(period)
     start_str = _serve_start(cutoff, interval) if cutoff is not None else None
     cov = store.coverage(yft, interval)
@@ -215,7 +216,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         # （跟改動前的行為逐 byte 一致），寫入 SQLite 是順手的副作用。
         rows = _yf_rows(ticker, interval, False, period=period)
         if not rows:
-            return {"error": f"No data found for {ticker}.TW"}
+            return {"error": f"No data found for {yft}"}
         store.upsert(yft, interval, rows)
         _maybe_record_source_start(yft, interval, period, cutoff, rows[0]["time"])
         logger.info("%s %s %s: 全抓 %d 根（%s）", yft, interval, period, len(rows),
@@ -230,7 +231,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         # 外部來源暫時抓不到 → 歷史 K 線用庫存頂上（歷史不會過期），記一筆警告
         rows = store.rows_since(yft, interval, start_str)
         if not rows:
-            return {"error": f"No data found for {ticker}.TW"}
+            return {"error": f"No data found for {yft}"}
         logger.warning("%s %s: yfinance 回空，以庫存 %d 根回應", yft, interval, len(rows))
         return _render(rows, _prev_daily_close(ticker))
 
@@ -260,7 +261,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
 
     rows = store.rows_since(yft, interval, start_str)
     if not rows:
-        return {"error": f"No data found for {ticker}.TW"}
+        return {"error": f"No data found for {yft}"}
     logger.info("%s %s %s: 庫存命中，向 yfinance 只要了 %d 根，回 %d 根",
                 yft, interval, period, len(new_rows), len(rows))
     return _render(rows, _prev_daily_close(ticker), stale_adjust=stale_adjust)
@@ -276,7 +277,7 @@ def fetch_candles(ticker: str, period: str, interval: str) -> dict:
 
     rows = _yf_rows(ticker, interval, is_intraday, period=period)
     if not rows:
-        return {"error": f"No data found for {ticker}.TW"}
+        return {"error": f"No data found for {yahoo_symbol(ticker)}"}
     return _render(rows, _prev_daily_close(ticker))
 
 
@@ -286,7 +287,7 @@ def _stock_index() -> list[tuple[str, str]]:
     41000+ 筆多數是權證，全部搜尋會回一堆使用者用不到的雜訊。twstock 代碼表本身
     可能過期（新掛牌查不到），跟 get_stock_data.py 的 _company_name() 用同一份表。
     """
-    return [(c.code, c.name) for c in twstock.codes.values() if c.type == "股票"]
+    return [(s["ticker"], s["name"]) for s in stock_universe()]
 
 
 def search_stocks(query: str, limit: int = 8) -> list[dict]:
@@ -315,11 +316,12 @@ def fetch_profile(ticker: str) -> dict:
     """產業別/上市櫃別來自 twstock（本地查表），其餘來自 yfinance .info。
     月營收沒有真實來源（Phase 4 才接 CasualMarket），不在這裡回傳——由前端補 mock。
     """
-    code_info = twstock.codes.get(ticker)
-    industry = code_info.group if code_info else "未知"
-    listed_market = "上市" if code_info and code_info.market == "上市" else "上櫃"
+    symbol = yahoo_symbol(ticker)
+    code_info = twstock.codes[ticker]
+    industry = code_info.group
+    listed_market = code_info.market
 
-    info = yf.Ticker(f"{ticker}.TW").info
+    info = yf.Ticker(symbol).info
 
     market_cap = info.get("marketCap")
     shares = info.get("sharesOutstanding")

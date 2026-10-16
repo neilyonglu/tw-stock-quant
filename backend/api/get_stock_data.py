@@ -4,7 +4,7 @@
 輸出形狀＝frontend/src/lib/types.ts 的 `StockData`，改欄位前要先對齊那邊。
 
 Usage: python -m backend.api.get_stock_data <ticker> [period] [interval]
-  ticker:   台股代碼，不含 .TW（例 2330）
+  ticker:   上市／上櫃裸代碼，不含 .TW／.TWO（例 2330、6488）
   period:   yfinance period（1mo | 3mo | 6mo | 1y | 2y | 5y | 10y | max），預設 6mo
   interval: yfinance interval（5m | 15m | 30m | 60m | 1d | 1wk | 1mo），預設 1d
 """

@@ -25,8 +25,11 @@
   - 指標與測試已適配 backend/indicators，Python 改以 backend.api.get_stock_data 模組執行。
   - 保留 main 的 Docker／CI 設定，排除原分支上重複的舊部署提交。
   - CI 改跑 pytest，涵蓋指標測試與既有個股 JSON／資料庫位置檢查。
-- [ ] 使用者合併 PR #7，確認 main CI 與 server 部署成功，再確認功能分支已刪除
-- [ ] 中台支援上櫃股：ticker 目前寫死 `.TW`（`backend/data_service/sources/stock.py`），上櫃股（`.TWO`）抓不到 K 線——全市場掃描前必須修（twstock codes 可查上市/上櫃別，據此選後綴）
+- [x] PR #7 已合併 main，遠端與本機 feature/indicators-module 已刪除
+- [ ] 確認 PR #7 合併版本的 main CI 與 server 部署結果（與功能測試分開驗收）
+- [x] `feature/stock-universe`：共用一般股票清單與 `.TW`／`.TWO` 解析，涵蓋 K 線／分時／基本面／快取鍵；31 項測試與兩市場實際來源、Docker smoke check 通過
+- [ ] `feature/stock-universe` 推送並開 PR，合併後確認部署及刪除分支
+- [ ] 基於股票清單做批次掃描與頻率控制；尚未產生全市場真實排行榜或選股評分
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）
 - [ ] `main.py` 能單獨跑完整選股流程並推播 Telegram（依賴指標＋評分完成）

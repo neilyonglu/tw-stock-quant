@@ -98,15 +98,17 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 #### 1b. 其餘資料管線
 
-- [ ] `backend/data/universe.py`：股票清單（上市 + 上櫃），從 twstock codes 產生（本地查表，不經中台）；驗收：`python -m src.data.universe` 印出上市/上櫃檔數
+- [x] `backend/data/universe.py`：一般股票清單（上市＋上櫃），從 twstock codes 本地快照產生；`uv run python -m backend.data.universe` 印出兩市場檔數。
+- [x] 共用 `yahoo_symbol()`，K 線／分時／基本面／前收盤及 SQLite 鍵依市場選 `.TW`／`.TWO`；兩市場測試與實際 Docker 驗收通過。
+- [ ] 用股票清單建立批次掃描與頻率控制，保留來源缺值／失敗狀態，之後再串選股評分。
 - [ ] ~~`backend/data/fetcher.py`、`backend/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `backend/data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
 - [ ] `backend/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
 
 **限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
-### Phase 2 — 技術指標模組（第四層）— 本分支已實作，待合併
+### Phase 2 — 技術指標模組（第四層）— 已由 PR #7 合併
 
-共用入口為 `backend.indicators.add_indicators`，個股 API 以 `backend.api.get_stock_data` 模組組裝 JSON。[PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 已送出，合併後另驗收 main CI 與部署。
+共用入口為 `backend.indicators.add_indicators`，個股 API 以 `backend.api.get_stock_data` 模組組裝 JSON。[PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 已合併；部署結果仍依 main Actions 實際結果驗收。
 
 - [x] SMA/EMA/MACD、RSI/KD、ATR、均量／量比、TA-Lib 型態辨識；Williams %R／布林／OBV 等尚未使用的指標留待實際規則需要再加。
 - [x] 統一介面 `add_indicators(df) -> df`，個股 wrapper 保留既有欄位並新增 `kd`、`atr14`、`stale_adjust` 合約。

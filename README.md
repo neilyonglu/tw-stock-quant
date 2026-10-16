@@ -114,6 +114,21 @@ docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deplo
 
 This optional full smoke check requires a reachable market data source.
 
+The stock universe and market suffix resolver share the installed `twstock.codes`
+snapshot. Candles, intraday data, profiles and SQLite keys use `.TW` for TWSE and
+`.TWO` for TPEX. Search and the universe include ordinary shares only; known ETFs
+remain available through direct requests. Unknown or unsupported market codes
+return 404 instead of guessing an exchange. New listings require an updated code table.
+
+```bash
+uv run python -m backend.data.universe
+```
+
+This offline command prints the listed/OTC counts. Python callers can use
+`stock_universe()` from `backend.data.universe` to obtain sorted
+`ticker`, `name`, `market` and `symbol` records. The live deployment smoke check
+covers both 2330 (TWSE) and 6488 (TPEX); bulk scanning is a later step.
+
 ---
 
 ## Roadmap
@@ -121,7 +136,7 @@ This optional full smoke check requires a reachable market data source.
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
-| 1 | Data pipeline — full-market scan | 👉 Next — remaining: stock universe list + OTC (`.TWO`) support (K-line cache persistence already shipped, SQLite) |
+| 1 | Data pipeline — full-market scan | Universe + TWSE/TPEX routing implemented; SQLite already available. Bulk scanning and rate control remain. |
 | 2 | Technical indicators | Implemented and connected, including KD/ATR, help and adjustment-quality handling. Reference checks pass; exact broker-screen matching requires identical source data — see [indicator review](docs/indicator-review.md). |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
 | 4 | Fundamental integration (CasualMarket) | Pending |
