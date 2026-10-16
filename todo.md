@@ -30,7 +30,11 @@
 - [x] `feature/stock-universe`：共用一般股票清單與 `.TW`／`.TWO` 解析，涵蓋 K 線／分時／基本面／快取鍵；31 項測試與兩市場實際來源、Docker smoke check 通過
 - [x] `feature/stock-universe` 經 PR #8 合併 main，本機與遠端分支已刪除；server 部署另依 Actions 驗收
 - [x] `feature/technical-screening`：單股日 K 技術規則、分數、各項理由、真實交叉與品質阻擋；55 項測試、2330／6488 真實中台與正式 Docker CLI 通過
-- [ ] 推送 technical-screening、開 PR，合併後確認 CI／部署並刪除分支
+- [x] technical-screening 已經 PR #9 合併 main，遠端分支已刪除
+- [ ] 確認 PR #9 的 main CI／server 部署結果；本機已合併的舊 technical-screening 分支尚待清理
+- [x] `feature/fundamental-data`：中台接入 FinMind 三張財報、月營收與股利；73 項測試及 2330／6488 五類真實 HTTP 資料驗證通過，快照只留本機 data/raw
+- [ ] 基本面計算：核對科目／單季與累計／公告日期限制，實作 ROE、四季 EPS、月營收 YoY、F-score；再做硬性門檻與理由，缺資料不能當作不合格
+- [ ] 修正既有 profile 有效零 EPS 被當成缺值；前端月營收接入真資料並計算 YoY，完成前保留示範標記
 - [ ] 基於股票清單做批次掃描與頻率控制，批次套用已完成的單股技術規則；尚未產生全市場真實排行榜或多因子評分
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）

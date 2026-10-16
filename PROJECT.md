@@ -32,6 +32,27 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 單股技術篩選已在 `feature/technical-screening` 實作：`backend/screening/technical.py` 純計算，`backend/api/screen_stock.py` 經中台取一年日 K。固定 technical-v1 權重為趨勢 30／MACD 25／動能 25／量能 15／當根偏多型態 5，前四項必須全過，分數不代表勝率。金叉比較相鄰兩根；資料不足、異常或還原失敗回 null 分數及原因。CLI 保守排除台北日期的當日 K，含當日已收盤情況；輸出實際 `as_of`，不冒充今日訊號。55 項測試與兩市場真實資料／Docker CLI 驗收通過，規則與指令見 [technical-screening.md](docs/technical-screening.md)。批次掃描、多因子整合、賣出／持倉、回測與投組仍未實作，整體選股頁仍是示範資料。
 
+## 基本面原始資料（2026-10-16）
+
+`feature/fundamental-data` 從最新 main（PR #9）開發。中台新增
+`GET /stocks/{ticker}/fundamentals?dataset=...&start_date=...&end_date=...`，
+以 Python 標準函式庫直連 FinMind 的損益表、資產負債表、現金流量表、月營收與股利；
+不新增套件或 CasualMarket 容器。每次只查一類，預設起日為今年往前四年 1 月 1 日，
+沿用 1800 秒 TTL；保留原始科目、0／負值／null、日期與 UTC 抓取時間，不計算比率或分數。
+錯誤明確回 404／422／502／503／504，失敗不快取、不補 mock。可選 FINMIND_TOKEN
+只放 header；Compose 將根目錄 .env 的 token 傳給中台，本機需 `uv run --env-file .env`。
+
+2330／6488 五類真實 HTTP 資料均已驗證，財報最新取到 2026-06-30、月營收對應
+2026 年 9 月。驗收快照存於本機已忽略的 `data/raw/fundamentals/{ticker}/{dataset}.json`，
+不提交市場資料。正式 API 仍只使用記憶體快取，沒有新增財報 SQLite 儲存或快照讀取功能。
+73 項離線測試通過，含來源異常、限額、輸入、缺值與快取；不代表所有個股科目齊全。
+
+尚待計算層核對單季／累計與科目單位，實作 ROE、F-score、FCF 等與硬性門檻。
+月營收 date 與所屬月不同；create_time 是 FinMind 入庫日而非正式公告日，
+報表期末也不是公告日，因此現有 end_date 不能當歷史回測的當時可知資料保證。
+既有 `/profile` 與前端月營收示範資料維持原樣；profile 零 EPS 被當缺值仍待修正。
+詳細合約及來源文件見 [中台文件](backend/data_service/README.md#基本面原始資料)。
+
 ## 目標
 
 台灣股市量化系統：定期掃全市場 → 四層篩選出候選股（總體→基本面→籌碼→技術，見 plan.md）→ 投組優化配置 → GitHub Actions 定時執行 → Telegram 推播。不依賴付費黑盒子，完全自控。
@@ -111,7 +132,8 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | 漲跌停價 | **真實計算** | 前收盤 ±10% 依跳動單位取整 |
 | USD/TWD、美債 10Y | mock（yfinance 其實拿得到，等 `/api/market` 其他欄位一起換） | `USDTWD=X`、`^TNX` |
 | 景氣燈號、市場廣度、三大法人 | mock | Phase 1 + Phase 5（FinMind/data.gov.tw） |
-| 個股籌碼（法人/融資券/大戶）、月營收 | mock | Phase 5 FinMind / Phase 4 CasualMarket |
+| 個股籌碼（法人/融資券/大戶） | mock | Phase 5 FinMind |
+| 月營收／三張財報／股利原始資料 | **中台真實、前端月營收仍 mock** | FinMind 新 fundamentals 入口；基本面規則與 UI 串接尚未實作 |
 | K 線型態辨識 | **真實計算** | `backend/indicators/pattern.py` 用 TA-Lib 辨識晨星／黃昏星／錘子線／上吊線／吞噬，只回最近 5 根；沒有訊號時回空陣列 |
 | 台指期貨、外資未平倉 | mock | 無免費來源，要另找（券商 API） |
 | 排行榜（類股/成交值/漲跌幅） | mock | 需全市場掃描，Phase 1+6 |
@@ -202,8 +224,8 @@ OpenStock 的技術面摘要使用 TradingView 的嵌入 widget，不是可直�
 |------|------|------|
 | `twstock` | 台股 K 線、即時報價、五檔 | PyPI 版；代碼表更新見上方「Python 環境」 |
 | `yfinance` | K 線、指數、匯率（`USDTWD=X`）、美債（`^TNX`）、`Ticker.info` | 免金鑰；NaN 坑見上方 |
-| `CasualMarket` | 財報、月營收、股利（MCP Server，stdio） | Phase 4 |
-| `finmind` | 三大法人、融資券、股東結構 | 免費 600 req/hr；Phase 5 |
+| `CasualMarket` | 選用 MCP 研究工具 | 執行期基本面改用 FinMind HTTP，不需要另部署 MCP |
+| FinMind HTTP / `finmind` | 原始財報、月營收、股利已接入；三大法人、融資券、股東結構待 Phase 5 | 中台用標準函式庫，SDK 僅 research；額度依帳號及來源政策 |
 | `fredapi` | 美債備援 | 需 `FRED_API_KEY` |
 | TWSE OpenAPI / data.gov.tw #6099 | 漲跌家數 / 景氣燈號 | `requests` 直打；Phase 5 |
 | `feedparser` | TWSE 重大訊息 RSS | Phase 6 |

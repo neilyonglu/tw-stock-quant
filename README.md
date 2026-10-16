@@ -29,7 +29,7 @@ cd tw-stock-quant
 uv sync
 ```
 
-Copy `.env.example` to `.env` and fill in any API keys (all optional — system falls back to free alternatives).
+Copy `.env.example` to `.env` if needed. Keys are optional; FinMind uses anonymous access without a token and reports quota or source failures explicitly. For local token loading, run `uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 8001`; Docker Compose passes it automatically.
 
 ---
 
@@ -61,6 +61,8 @@ See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 **Every mocked figure on screen carries a visible "示範資料" (sample data) marker** — this system's output feeds real investment decisions, so sample data must never be mistakable for the real thing. Where a real source is unavailable the UI shows "—" rather than a plausible-looking fabricated number.
 
 ### Architecture: data tier / frontend / backend
+
+The data tier now provides raw income statements, balance sheets, cash flows, monthly revenue and dividends from FinMind: `/stocks/2330/fundamentals?dataset=income_statement`. See the [API contract](backend/data_service/README.md#基本面原始資料) for dataset names and date limitations. Fundamental screening and the revenue tab's real-data integration remain pending.
 
 Data fetching is owned by an independent **data tier** (`backend/data_service/`, FastAPI; in-memory TTL cache for realtime data + SQLite persistent cache for historical daily/weekly/monthly candles with incremental fetch and dividend-adjustment detection) — both the frontend (display) and the backend (computation: indicators, scoring, and portfolio optimization built in this repo; backtesting contributed from a teammate's branch) fetch raw data from it instead of hitting external APIs directly. See [backend/data_service/README.md](backend/data_service/README.md) for the API contract.
 
@@ -146,7 +148,7 @@ See [technical screening v1](docs/technical-screening.md) for rules and Docker c
 | 1 | Data pipeline — full-market scan | Universe + TWSE/TPEX routing implemented; SQLite already available. Bulk scanning and rate control remain. |
 | 2 | Technical indicators | Implemented and connected, including KD/ATR, help and adjustment-quality handling. Reference checks pass; exact broker-screen matching requires identical source data — see [indicator review](docs/indicator-review.md). |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
-| 4 | Fundamental integration (CasualMarket) | Pending |
+| 4 | Fundamental integration (FinMind) | Raw financials, revenue and dividends available through the data tier; screening pending |
 | 5 | Chip data + macro context (FinMind) | Pending |
 | 6 | Stock screener + portfolio optimizer + scheduling | Single-stock technical rules/score/reasons implemented; batch and multi-factor screening, portfolio and scheduling remain pending. |
 | 7 | Factor validation + event study | Pending |
@@ -161,7 +163,7 @@ See [technical screening v1](docs/technical-screening.md) for rules and Docker c
 |------|---------|
 | [twstock](https://github.com/mlouielu/twstock) | Historical OHLCV, real-time quotes |
 | [FinMind](https://finmind.github.io/) | Institutional flow, margin data, financial statements |
-| [CasualMarket](https://github.com/sacahan/CasualMarket) | Financials, monthly revenue, dividends (MCP Server) |
+| [CasualMarket](https://github.com/sacahan/CasualMarket) | Optional MCP research tool; runtime fundamental data uses FinMind |
 | TWSE OpenAPI | Market breadth, official price data |
 | yfinance | USD/TWD exchange rate, US treasury yield |
 | data.gov.tw | Taiwan business cycle indicators |

@@ -19,7 +19,7 @@ tw-stock-quant/
 │   ├── indicators/           # 共用數值指標與 TA-Lib K 線型態
 │   └── data_service/         # FastAPI raw 資料 API
 │       ├── main.py
-│       ├── sources/          # yfinance／twstock
+│       ├── sources/          # yfinance／twstock／FinMind（fundamental.py）
 │       ├── cache.py          # 記憶體 TTL
 │       └── store.py          # SQLite 歷史 K 線
 ├── data/                     # 執行期資料，data/cache.db 保留既有位置
@@ -64,6 +64,9 @@ SQLite 鍵也使用完整代碼，兩市場不混用。端點及成功 JSON 形�
 結果包含 technical-v1 分數、必要門檻與各項理由；品質／來源問題回 null 分數，不冒充低分。
 目前僅 Python／CLI 使用，不新增 HTTP endpoint，亦不替換 `/api/screening` 的多因子示範合約。
 詳細資料流邊界與限制見 [技術篩選](technical-screening.md)。
+基本面資料透過中台 `/stocks/{ticker}/fundamentals` 依類型取 FinMind 三張財報、月營收及股利，
+沿用 1800 秒記憶體快取，未另存 SQLite。保留來源科目與日期，計算層尚未加入基本面規則。
+現有前端月營收仍有示範標記；新入口與資料限制見 [中台文件](../backend/data_service/README.md#基本面原始資料)。
 自選股保存在瀏覽器 localStorage；部分籌碼、新聞、排行榜、選股資料仍是畫面有標記的示範資料。
 
 Docker image 同時包含 Node 與 Python，分成前端及中台兩個服務。對外僅發布前端

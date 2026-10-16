@@ -1,4 +1,4 @@
-"""資料中台：唯一負責向外部來源（yfinance/twstock）抓取＋快取資料的服務。
+"""資料中台：唯一負責向外部來源（yfinance/twstock/FinMind）抓取＋快取資料的服務。
 
 前端（顯示）和後端（計算，隊友另開 branch 開發）都跟這個服務要資料，不各自
 重新打外部 API——避免 API 延遲，也避免抓取邏輯重複造輪子。詳見
@@ -6,10 +6,13 @@ PROJECT.md「架構：中台 / 前端 / 後端」。
 
 本機啟動：uv run uvicorn backend.data_service.main:app --reload --port 8001
 """
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
 from fastapi import FastAPI, HTTPException
 
 from backend.data.universe import yahoo_symbol
-from backend.data_service.sources import intraday, market, stock
+from backend.data_service.sources import fundamental, intraday, market, stock
 
 app = FastAPI(title="tw-stock-quant data service")
 
@@ -44,6 +47,22 @@ def get_candles(ticker: str, period: str = "6mo", interval: str = "1d"):
 def get_profile(ticker: str):
     _stock_symbol(ticker)
     return stock.fetch_profile(ticker)
+
+
+@app.get("/stocks/{ticker}/fundamentals")
+def get_fundamentals(
+    ticker: str,
+    dataset: fundamental.Dataset,
+    start_date: date | None = None,
+    end_date: date | None = None,
+):
+    _stock_symbol(ticker)
+    today = datetime.now(ZoneInfo("Asia/Taipei")).date()
+    start_date = start_date or date(today.year - 4, 1, 1)
+    end_date = end_date or today
+    if not start_date <= end_date <= today:
+        raise HTTPException(422, "日期須符合 start_date ≤ end_date ≤ 台北今日")
+    return fundamental.fetch_fundamentals(ticker, dataset, start_date, end_date)
 
 
 @app.get("/stocks/{ticker}/orderbook")
