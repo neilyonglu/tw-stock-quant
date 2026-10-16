@@ -28,8 +28,10 @@
 - [x] PR #7 已合併 main，遠端與本機 feature/indicators-module 已刪除
 - [ ] 確認 PR #7 合併版本的 main CI 與 server 部署結果（與功能測試分開驗收）
 - [x] `feature/stock-universe`：共用一般股票清單與 `.TW`／`.TWO` 解析，涵蓋 K 線／分時／基本面／快取鍵；31 項測試與兩市場實際來源、Docker smoke check 通過
-- [ ] `feature/stock-universe` 推送並開 PR，合併後確認部署及刪除分支
-- [ ] 基於股票清單做批次掃描與頻率控制；尚未產生全市場真實排行榜或選股評分
+- [x] `feature/stock-universe` 經 PR #8 合併 main，本機與遠端分支已刪除；server 部署另依 Actions 驗收
+- [x] `feature/technical-screening`：單股日 K 技術規則、分數、各項理由、真實交叉與品質阻擋；55 項測試、2330／6488 真實中台與正式 Docker CLI 通過
+- [ ] 推送 technical-screening、開 PR，合併後確認 CI／部署並刪除分支
+- [ ] 基於股票清單做批次掃描與頻率控制，批次套用已完成的單股技術規則；尚未產生全市場真實排行榜或多因子評分
 - [ ] 選股評分與投組優化（Phase 藍圖見 plan.md）；完成後 `/api/screening` mock 換真、`frontend/src/lib/types.ts` 合約對齊
 - [ ] 前端剩餘 mock 欄位換真實 API：三大法人、市場廣度、排行榜、籌碼 Tab、月營收等（完整清單見 PROJECT.md 真實 vs mock 對照表；依賴各 Phase 資料源接入）
 - [ ] `main.py` 能單獨跑完整選股流程並推播 Telegram（依賴指標＋評分完成）

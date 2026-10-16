@@ -22,11 +22,15 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 ## 股票清單與上市／上櫃來源（2026-10-16）
 
-`feature/stock-universe` 從最新 main 開發。共用 `backend/data/universe.py` 讀取已安裝的 twstock 代碼表，提供一般股票清單與 `yahoo_symbol()` 市場解析；上市 `.TW`、上櫃 `.TWO`。K 線、前收盤、基本面、分時和 SQLite 快取鍵都使用同一解析，不再固定 `.TW`。搜尋沿用既有回傳欄位，改用同一清單。ETF／權證／特別股不進選股清單，已知 ETF 等直接查詢仍保留；未知或不支援市場回既有格式的 HTTP 404，不猜上市櫃別。
+股票清單已由 PR #8 合併 main，功能分支已刪除。共用 `backend/data/universe.py` 讀取已安裝的 twstock 代碼表，提供一般股票清單與 `yahoo_symbol()` 市場解析；上市 `.TW`、上櫃 `.TWO`。K 線、前收盤、基本面、分時和 SQLite 快取鍵都使用同一解析，不再固定 `.TW`。搜尋沿用既有回傳欄位，改用同一清單。ETF／權證／特別股不進選股清單，已知 ETF 等直接查詢仍保留；未知或不支援市場回既有格式的 HTTP 404，不猜上市櫃別。
 
 `uv run python -m backend.data.universe` 離線印出數量；目前安裝快照為上市 1045、上櫃 880，共 1925 檔，數量會隨代碼表更新，並非即時掛牌名單。沒有新增 HTTP endpoint、套件或批次掃描排程。既有正確 `.TW` 快取不需搬移，新增 `.TWO` 獨立儲存，舊錯誤後綴資料不自動刪除或挪用。
 
 31 個 Python 測試通過，包含兩市場來源、快取隔離、未知代碼無網路即 404，以及 raw K 線到指標組裝。實際 2330／6488 搜尋、日 K、分時、基本面及指標驗收通過；正式 Docker 前端→中台的兩市場 smoke check 通過，測試使用獨立網路、暫存 SQLite 與 3108，不變更既有 3107 預覽。這些結果不代表所有股票資料都完整；下一步才是批次掃描與頻率控制。
+
+## 單股技術篩選（2026-10-16）
+
+單股技術篩選已在 `feature/technical-screening` 實作：`backend/screening/technical.py` 純計算，`backend/api/screen_stock.py` 經中台取一年日 K。固定 technical-v1 權重為趨勢 30／MACD 25／動能 25／量能 15／當根偏多型態 5，前四項必須全過，分數不代表勝率。金叉比較相鄰兩根；資料不足、異常或還原失敗回 null 分數及原因。CLI 保守排除台北日期的當日 K，含當日已收盤情況；輸出實際 `as_of`，不冒充今日訊號。55 項測試與兩市場真實資料／Docker CLI 驗收通過，規則與指令見 [technical-screening.md](docs/technical-screening.md)。批次掃描、多因子整合、賣出／持倉、回測與投組仍未實作，整體選股頁仍是示範資料。
 
 ## 目標
 
@@ -44,7 +48,7 @@ Python 程式集中在 `backend/`：中台為 `backend/data_service/`，個股�
 
 - **中台 `backend/data_service/`**：獨立 FastAPI 服務（`uv run uvicorn backend.data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取兩層：記憶體 TTL（`cache.py`）三級——五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；日/週/月 K 另落地 SQLite（`store.py`，`data/cache.db`，gitignored）——重啟不掉、只向 yfinance 增量要缺口、增量時重疊抓 5 根比對 close 偵測除權息（相對差 >0.1% 即整段重抓覆寫）。分鐘 K 等即時資料不落地。Endpoints 見 `backend/data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
 - **前端 `frontend/`**：Next.js 16.2.9 + Tailwind v4 + shadcn/ui 4.12（`base-nova` style，底層 @base-ui 非 Radix）+ lightweight-charts v5。只負責顯示。三個頁面：`/market`（市場總覽）、`/stock/[ticker]`（個股分析）、`/screening`（每週選股）。
-- **後端**（計算層）：`backend/indicators/` 提供共用 `add_indicators(df)`，計算 SMA/EMA/RSI/MACD/KD/ATR 與均量；數值指標使用 pandas，TA-Lib 用於最近 5 根 K 棒的型態辨識。`backend/api/get_stock_data.py` 取得中台 raw candles，再組裝前端 JSON。選股評分、投組優化尚未實作；隊友另開 branch 負責回測。
+- **後端**（計算層）：`backend/indicators/` 提供共用 `add_indicators(df)`，計算 SMA/EMA/RSI/MACD/KD/ATR 與均量；數值指標使用 pandas，TA-Lib 用於型態辨識。`backend/api/get_stock_data.py` 組裝個股 JSON；`backend/screening/technical.py` 與 `backend/api/screen_stock.py` 提供單股技術規則、分數與理由。多因子選股、投組優化尚未實作；隊友另開 branch 負責回測。
 - 本機開發：`./scripts/dev.sh` 同時啟動中台＋前端（Ctrl+C 一起關）。
 
 ### API 合約原則（接後端時的關鍵）

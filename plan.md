@@ -61,12 +61,14 @@
 ### 第四層：技術面擇時 — 什麼時候進？什麼時候出？
 
 **買進**（需同時符合）：
+
+單股 technical-v1 已實作下列技術門檻，僅代表技術篩選通過；分數權重、交叉定義、排除當日 K 的限制見 [技術篩選規格](docs/technical-screening.md)。尚未合併前三層資料，也未驗證為可獲利策略。
 - 趨勢（必要）：站上 20MA 且 20MA > 60MA；MACD 零軸以上或金叉剛形成
 - 動能（至少一）：RSI 40–70；KD 金叉且 K < 80
-- 量能（必要）：突破時成交量 > 5 日均量 1.5 倍
+- 量能（必要）：本根成交量 > 前 5 根日 K 均量 1.5 倍（不含本根）；v1 不另宣稱突破事件
 - K 線型態加分（選配）：晨星、錘子線、吞噬（TA-Lib）
 
-**賣出**（觸發任一）：
+**賣出**（後續持倉／回測模組，尚未實作；觸發任一）：
 - 止損（優先）：跌破進場價 7%；跌破 20MA 且放量；ATR 停損（進場價 − 2×ATR）
 - 獲利出場：RSI > 75 且回頭；MACD 死叉且放量；月營收連 3 個月 YoY 轉負
 
@@ -100,7 +102,7 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 - [x] `backend/data/universe.py`：一般股票清單（上市＋上櫃），從 twstock codes 本地快照產生；`uv run python -m backend.data.universe` 印出兩市場檔數。
 - [x] 共用 `yahoo_symbol()`，K 線／分時／基本面／前收盤及 SQLite 鍵依市場選 `.TW`／`.TWO`；兩市場測試與實際 Docker 驗收通過。
-- [ ] 用股票清單建立批次掃描與頻率控制，保留來源缺值／失敗狀態，之後再串選股評分。
+- [ ] 用股票清單建立批次掃描與頻率控制，保留來源缺值／失敗狀態，批次套用單股技術篩選。
 - [ ] ~~`backend/data/fetcher.py`、`backend/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `backend/data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
 - [ ] `backend/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
 
@@ -142,7 +144,8 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 ### Phase 6 — 選股系統、投組優化與排程
 
-- [ ] `backend/screening/technical.py`：技術面條件集合
+- [x] `backend/screening/technical.py`：單股技術條件、0–100 符合度、各項理由及無法評分狀態；`backend.api.screen_stock` 經中台取日 K，55 項測試及兩市場實際 Docker 驗收通過
+- [ ] 技術面規則回測／權重校準、持倉與賣出規則，以及總體／基本面／籌碼綜合評分
 - [ ] 批次掃描：每週輸出 TOP 20 候選股 CSV + 摘要
 - [ ] `backend/portfolio/optimizer.py`：pyportfolioopt 均值-方差 / 風險平價，單股上限 20%
 - [ ] `backend/alerts/`：feedparser 監控 TWSE 重大訊息、APScheduler（本機測試）、Telegram 推播
@@ -188,7 +191,8 @@ FinMind（法人買賣超 / 融資券）
 
 【第四層：技術面擇時】
 中台 raw candles → add_indicators()（TA-Lib）
-        └── screening/technical.py → 買進訊號 → ATR 停損 → 賣出訊號
+        └── screening/technical.py → 單股規則／分數／理由（已實作）
+                └── ATR 停損／持倉／賣出訊號（待實作）
 
 【整合輸出】
 scorer.py（四層加權評分）

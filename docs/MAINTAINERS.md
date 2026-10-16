@@ -1,6 +1,6 @@
 # CI 與 server 部署
 
-GitHub 雲端 CI 用 pytest 執行 31 個指標、個股 JSON、上市櫃來源與快取離線測試，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
+GitHub 雲端 CI 用 pytest 執行 55 個指標、個股 JSON、上市櫃來源、快取與單股技術篩選離線測試，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
 搜尋使用 twstock 本機代碼表，不把外部行情來源的暫時失敗當成 CI 失敗。
 所有 push 都跑 CI；只有 main 的 CI 成功後會自動部署。PR 不會使用正式 server runner。
 
@@ -44,6 +44,11 @@ docker run --rm --network none --mount "type=bind,src=$PWD/frontend,dst=/checks,
 ```
 
 最後一條使用剛建置的專案 image 和唯讀原始碼，無需額外安裝 Node 測試框架。
+
+單股技術面篩選需運行中的中台，可執行 `uv run python -m backend.api.screen_stock 2330`，
+或 `docker compose exec -T -w /app frontend python -m backend.api.screen_stock 2330`。
+此功能尚未接到選股頁；JSON 分數為規則符合度，CLI 一律排除當日 K，需檢查 `as_of`。
+完整規則與狀態見 [technical-screening.md](technical-screening.md)。
 
 ## Server 首次設定
 

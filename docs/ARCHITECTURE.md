@@ -14,6 +14,8 @@ tw-stock-quant/
 ├── backend/                  # Python 程式，與前端共用根目錄的 uv 環境
 │   ├── api/get_stock_data.py # 原有個股計算與前端 JSON 組裝
 │   ├── data/universe.py     # 本機一般股票清單與上市／上櫃代碼解析
+│   ├── api/screen_stock.py # 單股日 K 技術篩選 CLI，中台唯一行情來源
+│   ├── screening/technical.py # 純規則、符合度分數與解釋
 │   ├── indicators/           # 共用數值指標與 TA-Lib K 線型態
 │   └── data_service/         # FastAPI raw 資料 API
 │       ├── main.py
@@ -56,6 +58,12 @@ PR #6 的目錄搬移沒有更改資料檔位置、API contract、服務 port �
 中台 K 線、前收盤、基本面及分時共用市場解析，上市用 `.TW`、上櫃用 `.TWO`；
 SQLite 鍵也使用完整代碼，兩市場不混用。端點及成功 JSON 形狀不變，未知代碼在網路抓取前回 404。
 這項擴充尚未包含批次掃描、頻率控制或真實全市場排行榜。
+
+單股技術篩選透過 `backend.api.screen_stock` 向中台取一年日 K，先排除當日，
+再交給純計算的 `backend.screening.technical.evaluate_technical` 重用指標層。
+結果包含 technical-v1 分數、必要門檻與各項理由；品質／來源問題回 null 分數，不冒充低分。
+目前僅 Python／CLI 使用，不新增 HTTP endpoint，亦不替換 `/api/screening` 的多因子示範合約。
+詳細資料流邊界與限制見 [技術篩選](technical-screening.md)。
 自選股保存在瀏覽器 localStorage；部分籌碼、新聞、排行榜、選股資料仍是畫面有標記的示範資料。
 
 Docker image 同時包含 Node 與 Python，分成前端及中台兩個服務。對外僅發布前端
