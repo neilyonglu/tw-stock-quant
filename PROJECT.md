@@ -18,7 +18,15 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 個股頁指標串接與說明完成，含 KD／ATR 副圖、速查卡與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。中台 `stale_adjust` 已在共用組裝入口阻擋，API 回 503、前端隱藏舊資料並自動重試。23 個 Python 測試、前端／Docker 建置及手機／桌面流程通過。公開公式與參考計算已核對，指定券商逐筆比對仍需同批來源資料。詳見 [docs/indicator-review.md](docs/indicator-review.md)。
 
-本次變更由 [PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 送審；功能分支為 `feature/indicators-module`。分支 push 只跑 CI，合併 main 後通過 CI 才部署到 server，不能以本機驗證代替部署成功紀錄。頁面現為六層圖表，控制欄隱藏捲軸但仍可捲動。本機避開 Forge 的 3000，使用 3107 預覽，指令見 [部署與預覽文件](docs/MAINTAINERS.md#本機預覽與重新建置)。
+指標變更已由 [PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 合併 main，功能分支已刪除。分支 push 只跑 CI，合併 main 後通過 CI 才部署到 server，不能以本機驗證代替部署成功紀錄。頁面現為六層圖表，控制欄隱藏捲軸但仍可捲動。本機避開 Forge 的 3000，使用 3107 預覽，指令見 [部署與預覽文件](docs/MAINTAINERS.md#本機預覽與重新建置)。
+
+## 股票清單與上市／上櫃來源（2026-10-16）
+
+`feature/stock-universe` 從最新 main 開發。共用 `backend/data/universe.py` 讀取已安裝的 twstock 代碼表，提供一般股票清單與 `yahoo_symbol()` 市場解析；上市 `.TW`、上櫃 `.TWO`。K 線、前收盤、基本面、分時和 SQLite 快取鍵都使用同一解析，不再固定 `.TW`。搜尋沿用既有回傳欄位，改用同一清單。ETF／權證／特別股不進選股清單，已知 ETF 等直接查詢仍保留；未知或不支援市場回既有格式的 HTTP 404，不猜上市櫃別。
+
+`uv run python -m backend.data.universe` 離線印出數量；目前安裝快照為上市 1045、上櫃 880，共 1925 檔，數量會隨代碼表更新，並非即時掛牌名單。沒有新增 HTTP endpoint、套件或批次掃描排程。既有正確 `.TW` 快取不需搬移，新增 `.TWO` 獨立儲存，舊錯誤後綴資料不自動刪除或挪用。
+
+31 個 Python 測試通過，包含兩市場來源、快取隔離、未知代碼無網路即 404，以及 raw K 線到指標組裝。實際 2330／6488 搜尋、日 K、分時、基本面及指標驗收通過；正式 Docker 前端→中台的兩市場 smoke check 通過，測試使用獨立網路、暫存 SQLite 與 3108，不變更既有 3107 預覽。這些結果不代表所有股票資料都完整；下一步才是批次掃描與頻率控制。
 
 ## 目標
 

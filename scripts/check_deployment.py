@@ -11,15 +11,18 @@ base = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:3000").rstrip("/
 with urllib.request.urlopen(base, timeout=10) as response:
     assert response.status == 200
 
-with urllib.request.urlopen(f"{base}/api/stock/search?q=2330", timeout=15) as response:
-    matches = json.load(response)
-    assert any(row["ticker"] == "2330" and row["name"] == "台積電" for row in matches)
+for ticker, market in [("2330", "上市"), ("6488", "上櫃")]:
+    with urllib.request.urlopen(f"{base}/api/stock/search?q={ticker}", timeout=15) as response:
+        assert any(row["ticker"] == ticker for row in json.load(response))
 
-with urllib.request.urlopen(f"{base}/api/stock/2330?period=6mo", timeout=40) as response:
-    stock = json.load(response)
-    assert stock["ticker"] == "2330" and stock["candles"] and stock["rsi"]
-    assert stock["sma20"] and stock["macd"]["line"]
-    assert stock["kd"]["k"] and stock["kd"]["d"] and stock["atr14"]
-    assert stock["stale_adjust"] is False
+    with urllib.request.urlopen(f"{base}/api/stock/{ticker}?period=6mo", timeout=40) as response:
+        stock = json.load(response)
+        assert stock["ticker"] == ticker and stock["candles"] and stock["rsi"]
+        assert stock["sma20"] and stock["macd"]["line"]
+        assert stock["kd"]["k"] and stock["kd"]["d"] and stock["atr14"]
+        assert stock["stale_adjust"] is False
 
-print("PASS: frontend, data-service connection, Python indicators")
+    with urllib.request.urlopen(f"{base}/api/stock/{ticker}/profile", timeout=40) as response:
+        assert json.load(response)["listed_market"] == market
+
+print("PASS: frontend, TWSE/TPEX sources, Python indicators")

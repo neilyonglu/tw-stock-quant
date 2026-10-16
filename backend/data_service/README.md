@@ -26,6 +26,19 @@ uv run uvicorn backend.data_service.main:app --reload --port 8001
 
 `period`/`interval` 是 yfinance 的字串格式，例如 `period=6mo&interval=1d`、`period=1d&interval=5m`。
 
+### 上市／上櫃與股票清單
+
+個股路徑使用裸代碼，例如 `/stocks/2330/candles`、`/stocks/6488/candles`，不帶後綴。
+共用 `backend.data.universe.yahoo_symbol()` 依已安裝的 `twstock.codes` 選上市 `.TW`、
+上櫃 `.TWO`；K 線、前收盤、基本面、分時與 SQLite 鍵一致。五檔沿用 twstock 的裸代碼介面。
+成功回傳欄位與 endpoints 不變；未知、帶後綴或不支援市場的代碼回 404 + `{"detail":"..."}`，
+不再把未知代碼猜成上市或上櫃。新掛牌若不在本機表內，需先更新代碼表。
+
+搜尋與 `backend.data.universe.stock_universe()` 共用一般股票清單，排除 ETF／權證／特別股及興櫃。
+已知 ETF 等仍可經裸代碼直接查詢，僅不進入一般股票搜尋與選股清單。
+清單函式回 `ticker`、`name`、`market`、`symbol`，按代碼排序；沒有另增 HTTP endpoint。
+在根目錄執行 `uv run python -m backend.data.universe` 可離線印出上市／上櫃數量，這是安裝快照而非即時掛牌名單。
+
 ### 回傳格式的兩個注意事項（2026-07-29 起）
 
 **1. 拿不到的數值一律是 `null`，不會是 `0`。** 這個系統的產出會影響真實投資決策，捏造一個看起來合法的 `0` 比留白危險。目前已知會是 `null` 的欄位：
@@ -56,3 +69,6 @@ uv run uvicorn backend.data_service.main:app --reload --port 8001
    相對差 >0.1% 視為除權息還原價平移，該股整段重抓覆寫。分鐘 K 等即時資料不落地。
 
 對外 HTTP contract 不受快取層影響，回傳格式與純現抓完全一致。
+
+持久化 key 使用完整市場代碼，如 `2330.TW`、`6488.TWO`。不更動資料庫 schema，既有上市
+快取沿用；上櫃只讀寫 `.TWO`，舊錯誤後綴的 `.TW` 資料不刪除、不視為上櫃快取。

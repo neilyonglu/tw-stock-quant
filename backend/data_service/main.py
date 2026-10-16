@@ -8,9 +8,17 @@ PROJECT.md「架構：中台 / 前端 / 後端」。
 """
 from fastapi import FastAPI, HTTPException
 
+from backend.data.universe import yahoo_symbol
 from backend.data_service.sources import intraday, market, stock
 
 app = FastAPI(title="tw-stock-quant data service")
+
+
+def _stock_symbol(ticker: str) -> str:
+    try:
+        return yahoo_symbol(ticker)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @app.get("/health")
@@ -25,6 +33,7 @@ def search_stocks(q: str = ""):
 
 @app.get("/stocks/{ticker}/candles")
 def get_candles(ticker: str, period: str = "6mo", interval: str = "1d"):
+    _stock_symbol(ticker)
     data = stock.fetch_candles(ticker, period, interval)
     if "error" in data:
         raise HTTPException(status_code=404, detail=data["error"])
@@ -33,11 +42,13 @@ def get_candles(ticker: str, period: str = "6mo", interval: str = "1d"):
 
 @app.get("/stocks/{ticker}/profile")
 def get_profile(ticker: str):
+    _stock_symbol(ticker)
     return stock.fetch_profile(ticker)
 
 
 @app.get("/stocks/{ticker}/orderbook")
 def get_orderbook(ticker: str):
+    _stock_symbol(ticker)
     data = stock.fetch_orderbook(ticker)
     if "error" in data:
         raise HTTPException(status_code=404, detail=data["error"])
@@ -46,7 +57,7 @@ def get_orderbook(ticker: str):
 
 @app.get("/stocks/{ticker}/intraday")
 def get_stock_intraday(ticker: str):
-    data = intraday.fetch_intraday(f"{ticker}.TW")
+    data = intraday.fetch_intraday(_stock_symbol(ticker))
     if "error" in data:
         raise HTTPException(status_code=404, detail=data["error"])
     return data

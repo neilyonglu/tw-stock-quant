@@ -8,7 +8,7 @@ from backend.data_service.cache import ttl_cache
 
 @ttl_cache(seconds=30)
 def fetch_intraday(symbol: str) -> dict:
-    """symbol：完整 yfinance 代碼，個股傳 "2330.TW"，大盤傳 "^TWII"。"""
+    """symbol：完整 Yahoo 代碼，如 "2330.TW"、"6488.TWO" 或大盤 "^TWII"。"""
     ticker = yf.Ticker(symbol)
     intraday = ticker.history(period="1d", interval="1m").dropna(subset=["Close", "Volume"])
     if intraday.empty:

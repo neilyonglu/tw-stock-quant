@@ -1,6 +1,6 @@
 # CI 與 server 部署
 
-GitHub 雲端 CI 用 pytest 執行 23 個指標及個股 JSON 離線測試，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
+GitHub 雲端 CI 用 pytest 執行 31 個指標、個股 JSON、上市櫃來源與快取離線測試，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
 搜尋使用 twstock 本機代碼表，不把外部行情來源的暫時失敗當成 CI 失敗。
 所有 push 都跑 CI；只有 main 的 CI 成功後會自動部署。PR 不會使用正式 server runner。
 
@@ -89,7 +89,15 @@ docker compose -p tw-stock-quant logs --tail 100
 docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deployment.py
 ```
 
-最後一個檢查會抓真實行情，只在需要驗證外部來源時手動跑。
+最後一個檢查會抓上市 2330 與上櫃 6488 的搜尋、K 線／指標與基本面市場別，需兩市場來源都可達，只在需要驗證外部來源時手動跑。它不取代離線 CI，也不代表已掃描所有股票。
+
+清單與市場解析可在根目錄離線驗證：
+
+```bash
+uv run python -m backend.data.universe
+```
+
+數量隨 twstock 代碼表快照變動；新掛牌查不到時先檢查代碼表，不要靠改後綴猜市場。上櫃來源支援不等於已補齊櫃買指數 `^TWOII`，後者仍是獨立資料來源待辦。
 不要使用 `down -v`，它會刪除正式 SQLite volume。
 可在 Actions → Test and deploy stock dashboard → Run workflow 選 main 手動重跑。
 CI／部署是否可用以 GitHub 實際執行結果為準；workflow 推送成功不代表 server 已部署。

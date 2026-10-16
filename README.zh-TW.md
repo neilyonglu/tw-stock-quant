@@ -107,6 +107,18 @@ docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deplo
 
 此選用的完整檢查需要連到真實行情來源。
 
+股票清單與市場代碼共用已安裝的 `twstock.codes` 快照。K 線、分時、基本面與 SQLite
+快取鍵依市場選擇上市 `.TW`、上櫃 `.TWO`。搜尋與選股清單只含一般股票，已知 ETF
+仍可直接查詢；查無代碼或市場不支援時回 404，不猜後綴。新掛牌需先更新代碼表。
+
+```bash
+uv run python -m backend.data.universe
+```
+
+此離線指令印出上市／上櫃檔數；Python 可呼叫 `backend.data.universe.stock_universe()`，
+取得按代碼排序的 `ticker`、`name`、`market`、`symbol` 記錄。真實部署 smoke check
+涵蓋上市 2330 與上櫃 6488；批次掃描尚未實作。
+
 ---
 
 ## 開發路線
@@ -114,7 +126,7 @@ docker compose -p tw-stock-quant exec -T frontend python - < scripts/check_deplo
 | 階段 | 說明 | 狀態 |
 |------|------|------|
 | 0 | 環境建置 | ✅ 完成 |
-| 1 | 資料管線 — 全市場掃描 | 👉 下一個 — 剩股票清單 + 上櫃股（`.TWO`）支援（K 線快取持久化已完成，用 SQLite） |
+| 1 | 資料管線 — 全市場掃描 | 股票清單與上市／上櫃來源已實作，沿用 SQLite；批次掃描與頻率控制待做 |
 | 2 | 技術指標 | 計算與串接完成，含 KD／ATR、說明及還原品質處理；參考對照通過，券商逐筆對齊仍需相同來源資料，見[指標檢查報告](docs/indicator-review.md) |
 | 3 | 策略回測（backtesting.py） | 隊友負責（另一條 branch） |
 | 4 | 基本面整合（CasualMarket） | 待開始 |

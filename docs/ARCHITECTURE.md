@@ -13,6 +13,7 @@ tw-stock-quant/
 │       └── lib/              # 中台 client、Python 子程序、指標判讀與合約型別
 ├── backend/                  # Python 程式，與前端共用根目錄的 uv 環境
 │   ├── api/get_stock_data.py # 原有個股計算與前端 JSON 組裝
+│   ├── data/universe.py     # 本機一般股票清單與上市／上櫃代碼解析
 │   ├── indicators/           # 共用數值指標與 TA-Lib K 線型態
 │   └── data_service/         # FastAPI raw 資料 API
 │       ├── main.py
@@ -50,6 +51,11 @@ Next Route Handler 對此回 503，個股頁清除舊資料並顯示原因，定
 由 `store.py` 寫入 `data/cache.db`，Docker 掛載 `stock-data` volume 保存。
 PR #6 的目錄搬移沒有更改資料檔位置、API contract、服務 port 或容器名稱；
 後續指標擴充由 PR #7 同步調整 Python 輸出與前端型別。
+
+`backend.data.universe` 只讀本機 twstock 表，不抓行情；搜尋與未來批次掃描共用它的一般股票清單。
+中台 K 線、前收盤、基本面及分時共用市場解析，上市用 `.TW`、上櫃用 `.TWO`；
+SQLite 鍵也使用完整代碼，兩市場不混用。端點及成功 JSON 形狀不變，未知代碼在網路抓取前回 404。
+這項擴充尚未包含批次掃描、頻率控制或真實全市場排行榜。
 自選股保存在瀏覽器 localStorage；部分籌碼、新聞、排行榜、選股資料仍是畫面有標記的示範資料。
 
 Docker image 同時包含 Node 與 Python，分成前端及中台兩個服務。對外僅發布前端
