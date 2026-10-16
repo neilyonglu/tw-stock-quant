@@ -123,6 +123,11 @@ uv run python -m backend.data.universe
 
 ## 開發路線
 
+中台啟動後，可用 `uv run python -m backend.api.screen_stock 2330` 執行單股日線技術篩選，
+輸出五項條件、0–100 規則符合度與無法評分狀態。CLI 排除當日 K（即使當天已收盤），請看
+`as_of` 評分日期；不取代示範選股頁，也不表示策略已驗證。規則與 Docker 指令見
+[技術篩選 v1](docs/technical-screening.md)。
+
 | 階段 | 說明 | 狀態 |
 |------|------|------|
 | 0 | 環境建置 | ✅ 完成 |
@@ -131,7 +136,7 @@ uv run python -m backend.data.universe
 | 3 | 策略回測（backtesting.py） | 隊友負責（另一條 branch） |
 | 4 | 基本面整合（CasualMarket） | 待開始 |
 | 5 | 籌碼面 + 總體環境（FinMind） | 待開始 |
-| 6 | 選股系統 + 投組優化 + 排程推播 | 待開始 |
+| 6 | 選股系統 + 投組優化 + 排程推播 | 單股技術規則／分數／理由已實作；批次、多因子、投組與排程待做 |
 | 7 | 因子驗證 + 事件研究 | 待開始 |
 | 8 | 情緒面（Google Trends / pytrends） | 待開始 |
 | 9 | 資料中台（FastAPI） | ✅ 完成 — `backend/data_service/`，port 8001 |

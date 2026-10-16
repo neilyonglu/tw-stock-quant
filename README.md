@@ -133,6 +133,13 @@ covers both 2330 (TWSE) and 6488 (TPEX); bulk scanning is a later step.
 
 ## Roadmap
 
+Single-stock daily technical screening is available through
+`uv run python -m backend.api.screen_stock 2330` with the data service running.
+It returns five rule results, a 0–100 rule-match score and explicit unavailable-data
+states. The CLI excludes today's bar, including after market close; inspect `as_of`.
+It does not replace the sample screening page or provide a validated trading strategy.
+See [technical screening v1](docs/technical-screening.md) for rules and Docker commands.
+
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 0 | Environment setup | ✅ Done |
@@ -141,7 +148,7 @@ covers both 2330 (TWSE) and 6488 (TPEX); bulk scanning is a later step.
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
 | 4 | Fundamental integration (CasualMarket) | Pending |
 | 5 | Chip data + macro context (FinMind) | Pending |
-| 6 | Stock screener + portfolio optimizer + scheduling | Pending |
+| 6 | Stock screener + portfolio optimizer + scheduling | Single-stock technical rules/score/reasons implemented; batch and multi-factor screening, portfolio and scheduling remain pending. |
 | 7 | Factor validation + event study | Pending |
 | 8 | Sentiment (Google Trends / pytrends) | Pending |
 | 9 | Data service (FastAPI) | ✅ Done — `backend/data_service/` on port 8001 |

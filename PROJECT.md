@@ -22,11 +22,15 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 ## 股票清單與上市／上櫃來源（2026-10-16）
 
-`feature/stock-universe` 從最新 main 開發。共用 `backend/data/universe.py` 讀取已安裝的 twstock 代碼表，提供一般股票清單與 `yahoo_symbol()` 市場解析；上市 `.TW`、上櫃 `.TWO`。K 線、前收盤、基本面、分時和 SQLite 快取鍵都使用同一解析，不再固定 `.TW`。搜尋沿用既有回傳欄位，改用同一清單。ETF／權證／特別股不進選股清單，已知 ETF 等直接查詢仍保留；未知或不支援市場回既有格式的 HTTP 404，不猜上市櫃別。
+股票清單已由 PR #8 合併 main，功能分支已刪除。共用 `backend/data/universe.py` 讀取已安裝的 twstock 代碼表，提供一般股票清單與 `yahoo_symbol()` 市場解析；上市 `.TW`、上櫃 `.TWO`。K 線、前收盤、基本面、分時和 SQLite 快取鍵都使用同一解析，不再固定 `.TW`。搜尋沿用既有回傳欄位，改用同一清單。ETF／權證／特別股不進選股清單，已知 ETF 等直接查詢仍保留；未知或不支援市場回既有格式的 HTTP 404，不猜上市櫃別。
 
 `uv run python -m backend.data.universe` 離線印出數量；目前安裝快照為上市 1045、上櫃 880，共 1925 檔，數量會隨代碼表更新，並非即時掛牌名單。沒有新增 HTTP endpoint、套件或批次掃描排程。既有正確 `.TW` 快取不需搬移，新增 `.TWO` 獨立儲存，舊錯誤後綴資料不自動刪除或挪用。
 
 31 個 Python 測試通過，包含兩市場來源、快取隔離、未知代碼無網路即 404，以及 raw K 線到指標組裝。實際 2330／6488 搜尋、日 K、分時、基本面及指標驗收通過；正式 Docker 前端→中台的兩市場 smoke check 通過，測試使用獨立網路、暫存 SQLite 與 3108，不變更既有 3107 預覽。這些結果不代表所有股票資料都完整；下一步才是批次掃描與頻率控制。
+
+## 單股技術篩選（2026-10-16）
+
+單股技術篩選已在 `feature/technical-screening` 實作：`backend/screening/technical.py` 純計算，`backend/api/screen_stock.py` 經中台取一年日 K。固定 technical-v1 權重為趨勢 30／MACD 25／動能 25／量能 15／當根偏多型態 5，前四項必須全過，分數不代表勝率。金叉比較相鄰兩根；資料不足、異常或還原失敗回 null 分數及原因。CLI 保守排除台北日期的當日 K，含當日已收盤情況；輸出實際 `as_of`，不冒充今日訊號。55 項測試與兩市場真實資料／Docker CLI 驗收通過，規則與指令見 [technical-screening.md](docs/technical-screening.md)。批次掃描、多因子整合、賣出／持倉、回測與投組仍未實作，整體選股頁仍是示範資料。
 
 ## 目標
 
@@ -44,7 +48,7 @@ Python 程式集中在 `backend/`：中台為 `backend/data_service/`，個股�
 
 - **中台 `backend/data_service/`**：獨立 FastAPI 服務（`uv run uvicorn backend.data_service.main:app --reload --port 8001`，`/docs` 有互動文件）。只回 **raw 資料**，不算任何指標。快取兩層：記憶體 TTL（`cache.py`）三級——五檔/分時/指數 30 秒、K 線 60 秒、基本面 1800 秒；日/週/月 K 另落地 SQLite（`store.py`，`data/cache.db`，gitignored）——重啟不掉、只向 yfinance 增量要缺口、增量時重疊抓 5 根比對 close 偵測除權息（相對差 >0.1% 即整段重抓覆寫）。分鐘 K 等即時資料不落地。Endpoints 見 `backend/data_service/README.md`。**HTTP contract 是給後端隊友的穩定介面，改 endpoint 或回傳格式前一律先問使用者。**
 - **前端 `frontend/`**：Next.js 16.2.9 + Tailwind v4 + shadcn/ui 4.12（`base-nova` style，底層 @base-ui 非 Radix）+ lightweight-charts v5。只負責顯示。三個頁面：`/market`（市場總覽）、`/stock/[ticker]`（個股分析）、`/screening`（每週選股）。
-- **後端**（計算層）：`backend/indicators/` 提供共用 `add_indicators(df)`，計算 SMA/EMA/RSI/MACD/KD/ATR 與均量；數值指標使用 pandas，TA-Lib 用於最近 5 根 K 棒的型態辨識。`backend/api/get_stock_data.py` 取得中台 raw candles，再組裝前端 JSON。選股評分、投組優化尚未實作；隊友另開 branch 負責回測。
+- **後端**（計算層）：`backend/indicators/` 提供共用 `add_indicators(df)`，計算 SMA/EMA/RSI/MACD/KD/ATR 與均量；數值指標使用 pandas，TA-Lib 用於型態辨識。`backend/api/get_stock_data.py` 組裝個股 JSON；`backend/screening/technical.py` 與 `backend/api/screen_stock.py` 提供單股技術規則、分數與理由。多因子選股、投組優化尚未實作；隊友另開 branch 負責回測。
 - 本機開發：`./scripts/dev.sh` 同時啟動中台＋前端（Ctrl+C 一起關）。
 
 ### API 合約原則（接後端時的關鍵）
@@ -133,6 +137,30 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | Route Handler 用 `uv run python` 不用系統 `python3` | Windows PATH 的 `python3` 會解析到 Store stub 靜默失敗；順帶讓前後端共用同一個 `.venv`，TA-Lib 兩邊都可用（2026-09-20） |
 | Phase 維持水平順序推進（1→2→…→6），不改成先跑通最小管線 | 2026-09-22 討論後決定；Phase 3 回測是隊友範圍，跳過而非重排 |
 | PTT 情緒分析直接呼叫 Claude API | 不跑本地 NLP 模型 |
+
+## 考量區（參考，尚未採用；2026-10-16）
+
+參考 [Open-Dev-Society/OpenStock](https://github.com/Open-Dev-Society/OpenStock)。以下記錄可借鏡的產品設計，不視為新增需求或已排定開發，也不替代目前技術篩選的回測驗證。
+
+| 可參考項目 | 對本專案的考量 |
+|---|---|
+| 個股資訊分區 | 圖表、技術摘要、財務、公司介紹分區，讓使用者容易找到數字與來源；整體選股接真資料時再評估摘要配置。 |
+| 全域快捷搜尋 | OpenStock 提供 Cmd/Ctrl+K、搜尋防抖與預設熱門股票。現有代碼／名稱搜尋可先沿用，有跨頁操作需求時再考慮快捷入口。 |
+| 個人自選股 | OpenStock 使用帳號與資料庫保存自選股；本專案目前為 localStorage，多裝置同步成為實際需求時再評估後端保存。 |
+| 資料可用性呈現 | 依市場、資料商能力顯示可用資訊，圖表不可嵌入時提供外部連結；可借鏡其延遲行情、來源限制與缺資料狀態說明。 |
+
+來源：[功能與架構](https://github.com/Open-Dev-Society/OpenStock#readme)、[個股頁實作](https://github.com/Open-Dev-Society/OpenStock/blob/main/app/%28root%29/stocks/%5Bsymbol%5D/page.tsx)、[市場限制](https://github.com/Open-Dev-Society/OpenStock/blob/main/MARKET_SUPPORT.md)。檢查的是目前 main，後續採用前仍需核對版本。
+
+OpenStock 的技術面摘要使用 TradingView 的嵌入 widget，不是可直接沿用的 Python 選股引擎。它的市場支援文件也列出台灣嵌入 K 線及 Finnhub 免費報價限制。程式庫目前標示 [AGPL-3.0](https://github.com/Open-Dev-Society/OpenStock/blob/main/LICENSE)；本專案為 MIT，搬用程式前需確認授權相容性，介面構想參考與複製程式分開評估。
+
+**TradingView 名詞區分**：
+
+- [TradingView 網站](https://www.tradingview.com/)：線上看盤與分析平台，提供圖表、指標、篩選與社群。
+- [Lightweight Charts](https://www.tradingview.com/lightweight-charts/)：TradingView 提供的圖表程式庫，本專案用它繪圖；行情由本專案中台供應，指標與分數由 Python 計算。
+- TradingView widget：外部服務提供的可嵌入元件；OpenStock 個股頁使用它呈現圖表與技術摘要。
+- [Technical Ratings](https://www.tradingview.com/support/solutions/43000614331-technical-ratings/)：公開的多指標評級規格，可考慮作評分對照基準；尚未採用。完整規格包含 26 項，不可用本專案現有少數指標就宣稱已完整對齊，也不等於已驗證的交易策略。
+
+目前 technical-v1 的自訂權重仍是實驗設定。後續評估先比較規則來源、台股資料可取得性及回測方式，再決定是否保留、調整或採用其他評級；沒有因這次調查直接更換算法。
 
 ## 前端慣例與踩坑
 
