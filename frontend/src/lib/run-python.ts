@@ -11,11 +11,12 @@ const execFileAsync = promisify(execFile)
 // 不是專案 .venv（沒裝 yfinance/pandas），跑起來沒有 stdout 也沒有錯誤訊息，只會讓呼叫端
 // JSON.parse 失敗。改用 uv 直接在專案虛擬環境裡跑，避免依賴系統 PATH 解析到哪個 python。
 
-export async function runPythonModule<T>(moduleName: string, args: string[]): Promise<T> {
+export async function runPythonModule<T>(moduleName: string, args: string[], options: { timeout?: number; signal?: AbortSignal } = {}): Promise<T> {
   const projectRoot = path.resolve(process.cwd(), "..")
   const { stdout } = await execFileAsync("uv", ["run", "python", "-m", `backend.api.${moduleName}`, ...args], {
     cwd: projectRoot,
-    timeout: 30_000,
+    timeout: options.timeout ?? 30_000,
+    signal: options.signal,
   })
   return JSON.parse(stdout) as T
 }

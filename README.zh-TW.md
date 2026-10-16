@@ -29,7 +29,7 @@ cd tw-stock-quant
 uv sync
 ```
 
-複製 `.env.example` 為 `.env` 並填入 API key（均為選填，系統會自動 fallback 至免費替代來源）。
+需要時複製 `.env.example` 為 `.env`，API key 均為選填；未填 token 時 FinMind 使用匿名額度，限額或來源失敗會明確回報。本機載入 token 使用 `uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 8001`；Docker Compose 會自動傳入。
 
 ---
 
@@ -59,6 +59,12 @@ uv sync
 **畫面上每個示範資料都有明確的「示範資料」標記**——這個系統的產出會影響真實投資決策，示範資料絕對不能被誤認為真的。拿不到真實來源時 UI 顯示「—」，不會給一個看起來合理的假數字。
 
 ### 架構：中台 / 前端 / 後端
+
+執行 `uv run python -m backend.api.check_fundamentals 2330` 可查看實際期間及人工核對的已知差異。未知資料維持尚未驗證，這是品質報告，尚非選股結果；見[資料品質文件](docs/fundamental-data-review.md)。
+執行 `uv run python -m backend.api.screen_fundamental 6488` 可查看四季 EPS、TTM ROE、三個月營收 YoY 與 F-score 九項訊號。2330／6488 指定年度已由官方財報人工核對補足長債與普通股發行，其他股票／年度缺項仍留空；最終已驗證合格判定保持 null，見[計算定義](docs/fundamental-screening.md)。
+個股「基本面」已呈現上述指標、可展開九項訊號、真實六個月營收、期間與品質提示，註明人工核對年度資料並處理失敗／重試；每週選股頁仍是示範資料。文件整理了公式、操作、來源證據與驗證範圍，方便後續回查與討論。
+
+中台已可取得 FinMind 原始損益表、資產負債表、現金流量表、月營收及股利，例如 `/stocks/2330/fundamentals?dataset=income_statement`。類型與日期限制見 [API 合約](backend/data_service/README.md#基本面原始資料)；全市場已驗證基本面候選清單尚待完成。
 
 抓資料的工作獨立成一個**中台**（`backend/data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。
 
@@ -134,7 +140,7 @@ uv run python -m backend.data.universe
 | 1 | 資料管線 — 全市場掃描 | 股票清單與上市／上櫃來源已實作，沿用 SQLite；批次掃描與頻率控制待做 |
 | 2 | 技術指標 | 計算與串接完成，含 KD／ATR、說明及還原品質處理；參考對照通過，券商逐筆對齊仍需相同來源資料，見[指標檢查報告](docs/indicator-review.md) |
 | 3 | 策略回測（backtesting.py） | 隊友負責（另一條 branch） |
-| 4 | 基本面整合（CasualMarket） | 待開始 |
+| 4 | 基本面整合（FinMind） | 個股研究 UI 與月營收已換真；兩檔指定年度補齊 F-score，全市場驗證待完成 |
 | 5 | 籌碼面 + 總體環境（FinMind） | 待開始 |
 | 6 | 選股系統 + 投組優化 + 排程推播 | 單股技術規則／分數／理由已實作；批次、多因子、投組與排程待做 |
 | 7 | 因子驗證 + 事件研究 | 待開始 |
@@ -149,7 +155,7 @@ uv run python -m backend.data.universe
 |------|------|
 | [twstock](https://github.com/mlouielu/twstock) | 台股歷史 OHLCV、即時報價 |
 | [FinMind](https://finmind.github.io/) | 三大法人、融資券、財務報表 |
-| [CasualMarket](https://github.com/sacahan/CasualMarket) | 財報、月營收、股利（MCP Server） |
+| [CasualMarket](https://github.com/sacahan/CasualMarket) | 選用 MCP 研究工具；執行期基本面資料改由 FinMind 取得 |
 | TWSE OpenAPI | 漲跌家數、官方行情 |
 | yfinance | USD/TWD 匯率、美債殖利率 |
 | data.gov.tw | 台灣景氣燈號 |

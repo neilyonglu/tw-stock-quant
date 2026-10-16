@@ -176,18 +176,18 @@ export interface StockData {
 
 // ─── /api/stock/[ticker]/profile ────────────────────────────────────────────────
 // [真實] 產業別/上市櫃別來自 twstock；本益比/股價淨值比/殖利率/市值/股本來自 yfinance .info
-// [mock] 月營收——Phase 4：CasualMarket /financial/revenue
+// 月營收另由 /api/stock/[ticker]/fundamentals 回傳計算層結果。
 
 export interface MonthlyRevenue {
   month: string // YYYY-MM
-  revenue: number // 億元
-  yoy: number // 年增率 %
+  revenue: number | null // 新台幣元，顯示時才換算億元
+  yoy: number | null // 年增率 %，去年同月缺值／為零時 null
 }
 
 export interface StockProfile {
   industry: string // twstock group
   listed_market: "上市" | "上櫃"
-  // 缺值一律 null（不是 0）——0 會被讀成「市值真的是 0 億」而不是「查不到」
+  // 缺值一律 null；有效零 EPS／零殖利率保留 0。
   market_cap: number | null // 億元
   shares_outstanding: number | null // 億股
   pe_ratio: number | null
@@ -198,7 +198,46 @@ export interface StockProfile {
   week52_low: number | null
   analyst_target: number | null // 分析師平均目標價
   analyst_count: number | null // 提供目標價的分析師人數
-  monthly_revenue: MonthlyRevenue[] // mock，近 6 個月
+}
+
+export type FundamentalStatus = "calculated_unverified" | "incomplete" | "pending_update" | "needs_review" | "insufficient_data" | "invalid_data" | "missing_data" | "source_error" | "service_outdated" | "unverified"
+
+export interface FundamentalSupplement {
+  ticker: string
+  year: number
+  source_url: string
+  reviewed_on: string
+  method: "manual_company_filing"
+  basis: string
+}
+
+interface FundamentalRuleBase {
+  status: FundamentalStatus
+  condition_met: boolean | null
+  passed: null
+  reason: string | null
+}
+
+export type FundamentalRule = FundamentalRuleBase & (
+  | { id: "eps_positive_four_quarters"; value: { period: string; eps: number }[] | null }
+  | { id: "roe_ttm"; value: { percent: number; periods: string[]; opening_period: string } | null }
+  | { id: "revenue_yoy_three_months"; value: { period: string; yoy_percent: number }[] | null }
+  | { id: "piotroski_f_score"; value: {
+      year: number; score: number | null; score_max: number; known_signals: number
+      signals: { id: string; passed: boolean | null; reason: string | null }[]
+      inputs: { current: { supplement?: FundamentalSupplement }; previous: { supplement?: FundamentalSupplement } }
+      limitations: string[]
+    } | null }
+)
+
+export interface FundamentalAnalysis {
+  ticker: string
+  status: FundamentalStatus
+  passed: null
+  conditions_met?: boolean | null
+  rules: FundamentalRule[]
+  monthly_revenue?: MonthlyRevenue[]
+  quality?: Record<string, { status: FundamentalStatus; source?: string; fetched_at?: string; latest_period?: string }>
 }
 
 // ─── /api/stock/[ticker]/chip ───────────────────────────────────────────────────

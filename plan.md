@@ -104,7 +104,7 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 - [x] 共用 `yahoo_symbol()`，K 線／分時／基本面／前收盤及 SQLite 鍵依市場選 `.TW`／`.TWO`；兩市場測試與實際 Docker 驗收通過。
 - [ ] 用股票清單建立批次掃描與頻率控制，保留來源缺值／失敗狀態，批次套用單股技術篩選。
 - [ ] ~~`backend/data/fetcher.py`、`backend/data/store.py`（Parquet）~~ 已由中台取代（抓取唯一入口是 `backend/data_service/`）；Parquet 降級為未來「回測批次匯出」的可選格式，需要時再加
-- [ ] `backend/data/fundamental.py`：CasualMarket MCP 拉財務資料（併入 Phase 4 一起做）
+- [x] `backend/data_service/sources/fundamental.py`：FinMind 五類原始財務資料（Phase 4 資料入口），不另建計算層 fetcher
 
 **限制**：twstock 對 TWSE 每 5 秒最多 3 request，批次下載要 sleep；FinMind 免費 600 req/hr。
 
@@ -129,9 +129,12 @@ SQLite 兩層快取上線。最終狀態、schema 與踩坑（yfinance 還原價
 
 ### Phase 4 — 基本面整合（第二層）
 
-- [ ] CasualMarket：`/financial/statements`（EPS/ROE/毛利率）、`/revenue`（月營收 YoY）、`/dividend`（殖利率）
-- [ ] `backend/indicators/health.py`：Piotroski F-score、FCF 轉換率、Altman Z-score（自建，無現成台股套件）
-- [ ] `backend/screening/fundamental.py`：硬性門檻篩選
+- [x] FinMind：損益表／資產負債表／現金流量表／月營收／股利，經中台 `/stocks/{ticker}/fundamentals` 分類取原始資料。CasualMarket 提供 MCP 工具，原先列的 REST 路徑未經確認，不作為介面。
+- [ ] 核對科目、單季／累計與單位，明訂 ROE 期間、FCF 轉換率及 F-score／Altman 適用範圍；缺值與公告日期不得猜測
+- [x] `backend/indicators/fundamental.py`：TTM ROE、營收 YoY、F-score 九項研究計算；缺訊號不湊分，兩檔指定年度以官方財報人工核對補足長債與普通股發行，其他股票／年度仍待補
+- [x] 個股基本面前端呈現研究指標／訊號、期間與品質、人工來源註記，月營收換真；未將每週選股多因子示範合約冒充真實篩選
+- [ ] FCF 轉換率、Altman Z-score 加分項及資料口徑
+- [x] `backend/screening/fundamental.py` + `backend.api.screen_fundamental`：四項研究門檻、連續期間、缺值及品質限制；尚非完整已驗證篩選，passed=null，見 docs/fundamental-screening.md
 - [ ] 驗收：能從全市場篩出基本面合格的候選清單
 
 ### Phase 5 — 籌碼面與總體環境（第一、三層）
@@ -181,9 +184,9 @@ data.gov.tw / yfinance / FRED / TWSE OpenAPI
         └── macro/context.py → 市場環境分類 → 決定本週操作強度
 
 【第二層：基本面篩選】
-CasualMarket MCP（statements / revenue / dividend）
-        └── health.py（F-score, FCF, Altman Z）
-                └── screening/fundamental.py → 排除地雷股
+FinMind → 中台 /stocks/{ticker}/fundamentals（五類 raw；已接入）
+                └── indicators/fundamental.py（ROE／YoY／F-score；FCF、Altman 尚未做）
+                └── screening/fundamental.py → 單股研究條件，品質與缺項仍限制判定
 
 【第三層：籌碼面確認】
 FinMind（法人買賣超 / 融資券）

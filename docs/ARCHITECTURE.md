@@ -19,7 +19,7 @@ tw-stock-quant/
 │   ├── indicators/           # 共用數值指標與 TA-Lib K 線型態
 │   └── data_service/         # FastAPI raw 資料 API
 │       ├── main.py
-│       ├── sources/          # yfinance／twstock
+│       ├── sources/          # yfinance／twstock／FinMind（fundamental.py）
 │       ├── cache.py          # 記憶體 TTL
 │       └── store.py          # SQLite 歷史 K 線
 ├── data/                     # 執行期資料，data/cache.db 保留既有位置
@@ -64,6 +64,18 @@ SQLite 鍵也使用完整代碼，兩市場不混用。端點及成功 JSON 形�
 結果包含 technical-v1 分數、必要門檻與各項理由；品質／來源問題回 null 分數，不冒充低分。
 目前僅 Python／CLI 使用，不新增 HTTP endpoint，亦不替換 `/api/screening` 的多因子示範合約。
 詳細資料流邊界與限制見 [技術篩選](technical-screening.md)。
+基本面資料透過中台 `/stocks/{ticker}/fundamentals` 依類型取 FinMind 三張財報、月營收及股利，
+沿用 1800 秒記憶體快取，未另存 SQLite。保留來源科目與日期。
+`backend.api.check_fundamentals` CLI 經中台取資料，交由 `screening/fundamental_quality.py`
+依 `data/fundamental_references.json` 的人工公告／精度比對回品質摘要，不改 raw 或新增選股評分。
+`backend.api.screen_fundamental` 共用 raw client 取四張表，交給 `screening/fundamental.py`
+判斷連續期間並呼叫 `indicators/fundamental.py` 計算 EPS／ROE／YoY 與 F-score 訊號。
+規則附依賴科目與品質理由；`backend/data/fundamental_supplements.json` 按股票／年度補官方人工核對的
+長債與普通股發行。未補年度仍不湊分，最終 passed 保持 null。
+這是研究計算，尚無已驗證候選名單；見 [基本面規格](fundamental-screening.md)。
+Next `/api/stock/{ticker}/fundamentals` 經 runPythonModule 呼叫相同研究計算，
+`fundamental-panel.tsx` 呈現指標、九項訊號、真實六個月營收與來源品質；profile 卡片獨立載入。
+前端 `/profile` 不再補月營收 mock，中台原 `/profile` 欄位維持。新入口與限制見 [中台文件](../backend/data_service/README.md#基本面原始資料)。
 自選股保存在瀏覽器 localStorage；部分籌碼、新聞、排行榜、選股資料仍是畫面有標記的示範資料。
 
 Docker image 同時包含 Node 與 Python，分成前端及中台兩個服務。對外僅發布前端
