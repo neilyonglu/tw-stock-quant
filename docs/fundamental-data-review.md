@@ -85,6 +85,7 @@ uv run python -m backend.api.check_fundamentals 6488 monthly_revenue
 | missing_data | 沒有資料／中台回 404，不等於股票不合格 | false |
 | invalid_data | 結構、來源、股票、日期或數值不合法 | false |
 | source_error | 中台連線、限額或其他來源錯誤 | false |
+| service_outdated | 中台沒有新路由，確認 DATA_SERVICE_URL 並重啟本分支中台 | false |
 | unverified | 沒有上述阻擋，仍未全面驗證 | null |
 
 can_screen 尚無任何情況回 true；null 不能當已驗證通過。
@@ -102,3 +103,9 @@ freshness=unknown 表示沒有適用的人工公告紀錄；at_least_reviewed_pe
 區間外的歷史比較也不阻擋本次查詢；這不提供歷史可知時間保證。
 若同時落後公告與數值有差異，主狀態為 pending_update，checks／issues 仍保留所有問題。
 尚未自動追蹤全部公告，已知 EPS 與營收差異仍待追查。
+
+若舊版中台未重啟，新增路由會回 FastAPI 的 404 Not Found，並非 FinMind 查無財報。
+CLI 會區分此情況與真正沒有資料的 404。先停止原本的本機中台，再執行
+`uv run uvicorn backend.data_service.main:app --reload --host 127.0.0.1 --port 8001`；
+`--reload` 可在後續改動 Python 時重新載入。若使用 Docker 或自訂 DATA_SERVICE_URL，
+需更新該服務；啟動另一個服務不會改變 CLI 原先指向的位址。

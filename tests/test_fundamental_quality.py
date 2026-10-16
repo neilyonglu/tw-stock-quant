@@ -113,10 +113,27 @@ def test_cli_uses_data_service_and_does_not_turn_failures_into_failed_stock(monk
     monkeypatch.setattr(check_fundamentals, "urlopen", source)
     assert check_fundamentals.check_fundamentals("6488")["status"] == "needs_review"
     for failure, status in [(URLError("private"), "source_error"),
-                            (HTTPError("private", 404, "private", {}, None), "missing_data")]:
+                            (HTTPError("private", 404, "private", {}, io.BytesIO(
+                                json.dumps({"detail": "指定股票與期間沒有這類基本面資料"}).encode())), "missing_data")]:
         def broken(*args, failure=failure, **kwargs):
             raise failure
         monkeypatch.setattr(check_fundamentals, "urlopen", broken)
         result = check_fundamentals.check_fundamentals("6488")
         assert result["status"] == status and result["can_screen"] is False
         assert "private" not in json.dumps(result)
+
+
+@pytest.mark.parametrize(("body", "status"), [
+    (b'{"detail":"Not Found"}', "service_outdated"),
+    (b'{"detail":"private"}', "source_error"),
+    (b'not json', "source_error"),
+    (b'[]', "source_error"),
+])
+def test_missing_route_is_not_reported_as_missing_financial_data(body, status, monkeypatch):
+    def source(*args, **kwargs):
+        raise HTTPError("private", 404, "private", {}, io.BytesIO(body))
+
+    monkeypatch.setattr(check_fundamentals, "urlopen", source)
+    result = check_fundamentals.check_fundamentals("2330")
+    assert result["status"] == status and result["can_screen"] is False
+    assert "private" not in json.dumps(result)

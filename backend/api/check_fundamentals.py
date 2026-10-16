@@ -20,9 +20,20 @@ def check_fundamentals(ticker: str, dataset: str = "income_statement") -> dict:
             raw = json.load(response)
         return assess_fundamentals(raw)
     except HTTPError as error:
-        status = "missing_data" if error.code == 404 else "source_error"
+        status, reason = "source_error", "中台無法提供這類基本面資料"
+        if error.code == 404:
+            try:
+                with error:
+                    detail = json.load(error).get("detail")
+            except (OSError, ValueError, AttributeError):
+                detail = None
+            if detail == "Not Found":
+                status = "service_outdated"
+                reason = "中台沒有基本面路由，請確認 DATA_SERVICE_URL 並重啟本分支中台"
+            elif detail == "指定股票與期間沒有這類基本面資料":
+                status = "missing_data"
         return {"ticker": ticker, "status": status, "can_screen": False,
-                "http_status": error.code, "reason": "中台無法提供這類基本面資料"}
+                "http_status": error.code, "reason": reason}
     except (OSError, ValueError):
         return {"ticker": ticker, "status": "source_error", "can_screen": False,
                 "reason": "股票代碼無效，或中台連線／JSON 格式異常"}
