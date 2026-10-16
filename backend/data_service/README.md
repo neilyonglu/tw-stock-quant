@@ -73,6 +73,8 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 資料定義見 [FinMind 官方文件](https://finmind.github.io/tutor/TaiwanMarket/Fundamental/)。
 兩市場官方公告抽查結果與已發現差異見 [基本面資料核對](../../docs/fundamental-data-review.md)；
 原始入口尚未自動辨識公告更新延遲或阻擋跨來源差異，計算前必須處理這些限制。
+計算層現提供 `uv run python -m backend.api.check_fundamentals 2330`，依人工查核紀錄回報
+已知更新落後與數值差異；不改此 raw 合約，也不把未驗證資料當已通過篩選。
 
 ### 上市／上櫃與股票清單
 

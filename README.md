@@ -62,6 +62,8 @@ See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 
 ### Architecture: data tier / frontend / backend
 
+Run `uv run python -m backend.api.check_fundamentals 2330` to report actual periods and known discrepancies against manual references. Unknown data stays unverified; this is a quality report, not a screening result. See [data quality](docs/fundamental-data-review.md).
+
 The data tier now provides raw income statements, balance sheets, cash flows, monthly revenue and dividends from FinMind: `/stocks/2330/fundamentals?dataset=income_statement`. See the [API contract](backend/data_service/README.md#基本面原始資料) for dataset names and date limitations. Fundamental screening and the revenue tab's real-data integration remain pending.
 
 Data fetching is owned by an independent **data tier** (`backend/data_service/`, FastAPI; in-memory TTL cache for realtime data + SQLite persistent cache for historical daily/weekly/monthly candles with incremental fetch and dividend-adjustment detection) — both the frontend (display) and the backend (computation: indicators, scoring, and portfolio optimization built in this repo; backtesting contributed from a teammate's branch) fetch raw data from it instead of hitting external APIs directly. See [backend/data_service/README.md](backend/data_service/README.md) for the API contract.

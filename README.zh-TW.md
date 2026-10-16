@@ -60,6 +60,8 @@ uv sync
 
 ### 架構：中台 / 前端 / 後端
 
+執行 `uv run python -m backend.api.check_fundamentals 2330` 可查看實際期間及人工核對的已知差異。未知資料維持尚未驗證，這是品質報告，尚非選股結果；見[資料品質文件](docs/fundamental-data-review.md)。
+
 中台已可取得 FinMind 原始損益表、資產負債表、現金流量表、月營收及股利，例如 `/stocks/2330/fundamentals?dataset=income_statement`。類型與日期限制見 [API 合約](backend/data_service/README.md#基本面原始資料)；基本面篩選與前端月營收換真尚待實作。
 
 抓資料的工作獨立成一個**中台**（`backend/data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。

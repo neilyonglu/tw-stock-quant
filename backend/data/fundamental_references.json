@@ -1,0 +1,50 @@
+{
+  "reviewed_on": "2026-10-16",
+  "announcements": [
+    {
+      "ticker": "2330",
+      "dataset": "TaiwanStockFinancialStatements",
+      "period": "2026-09-30",
+      "published_on": "2026-10-15",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000726/a3q26e_withguidancexfinal.htm"
+    }
+  ],
+  "comparisons": [
+    {
+      "ticker": "2330",
+      "dataset": "TaiwanStockFinancialStatements",
+      "field": "Revenue",
+      "period": "2026-06-30",
+      "basis": "quarterly",
+      "unit": "TWD",
+      "reference_value": "1270381000000",
+      "precision": "1000000",
+      "source_kind": "company_financial_statement",
+      "source_url": "https://investor.tsmc.com/english/encrypt/files/encrypt_file/reports/2026-07/114aaca0fea2050e96b91fffbab9ed04ba09cd92/FS.pdf"
+    },
+    {
+      "ticker": "6488",
+      "dataset": "TaiwanStockFinancialStatements",
+      "field": "EPS",
+      "period": "2025-12-31",
+      "basis": "quarterly",
+      "unit": "TWD/share",
+      "reference_value": "4.60",
+      "precision": "0.01",
+      "source_kind": "company_presentation",
+      "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2026/03/GWC_company-profile_20260311-EN.pdf"
+    },
+    {
+      "ticker": "6488",
+      "dataset": "TaiwanStockFinancialStatements",
+      "field": "EPS",
+      "period": "2026-06-30",
+      "basis": "quarterly",
+      "unit": "TWD/share",
+      "reference_value": "7.90",
+      "precision": "0.01",
+      "source_kind": "company_financial_statement",
+      "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2026/05/GlobalWafers_2026Q2-consolidated-financial-statement_CN.pdf"
+    }
+  ]
+}

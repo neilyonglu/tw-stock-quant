@@ -1,0 +1,37 @@
+"""uv run python -m backend.api.check_fundamentals 2330 [income_statement]"""
+
+import argparse
+import json
+import os
+from urllib.error import HTTPError
+from urllib.parse import quote
+from urllib.request import urlopen
+
+from backend.data.universe import yahoo_symbol
+from backend.screening.fundamental_quality import assess_fundamentals
+
+
+def check_fundamentals(ticker: str, dataset: str = "income_statement") -> dict:
+    try:
+        yahoo_symbol(ticker)
+        base = os.environ.get("DATA_SERVICE_URL", "http://localhost:8001").rstrip("/")
+        url = f"{base}/stocks/{quote(ticker, safe='')}/fundamentals?dataset={quote(dataset, safe='')}"
+        with urlopen(url, timeout=40) as response:
+            raw = json.load(response)
+        return assess_fundamentals(raw)
+    except HTTPError as error:
+        status = "missing_data" if error.code == 404 else "source_error"
+        return {"ticker": ticker, "status": status, "can_screen": False,
+                "http_status": error.code, "reason": "中台無法提供這類基本面資料"}
+    except (OSError, ValueError):
+        return {"ticker": ticker, "status": "source_error", "can_screen": False,
+                "reason": "股票代碼無效，或中台連線／JSON 格式異常"}
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="基本面資料品質檢查，不是選股結果")
+    parser.add_argument("ticker")
+    parser.add_argument("dataset", nargs="?", default="income_statement",
+                        choices=["income_statement", "balance_sheet", "cash_flow", "monthly_revenue", "dividends"])
+    args = parser.parse_args()
+    print(json.dumps(check_fundamentals(args.ticker, args.dataset), ensure_ascii=False, allow_nan=False))

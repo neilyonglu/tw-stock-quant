@@ -66,6 +66,8 @@ SQLite 鍵也使用完整代碼，兩市場不混用。端點及成功 JSON 形�
 詳細資料流邊界與限制見 [技術篩選](technical-screening.md)。
 基本面資料透過中台 `/stocks/{ticker}/fundamentals` 依類型取 FinMind 三張財報、月營收及股利，
 沿用 1800 秒記憶體快取，未另存 SQLite。保留來源科目與日期，計算層尚未加入基本面規則。
+`backend.api.check_fundamentals` CLI 經中台取資料，交由 `screening/fundamental_quality.py`
+依 `data/fundamental_references.json` 的人工公告／精度比對回品質摘要，不改 raw 或新增選股評分。
 現有前端月營收仍有示範標記；新入口與資料限制見 [中台文件](../backend/data_service/README.md#基本面原始資料)。
 自選股保存在瀏覽器 localStorage；部分籌碼、新聞、排行榜、選股資料仍是畫面有標記的示範資料。
 

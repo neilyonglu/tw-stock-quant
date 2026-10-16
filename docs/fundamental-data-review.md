@@ -62,4 +62,43 @@
 
 結論：原始資料入口可用，但不具備「所有科目皆正確且為最新」的保證。
 本次保留原始資料，不以公告值靜默覆寫來源。基本面計算前須處理期間、缺值、更新狀態，
-並追查上列 EPS 與季營收差異；尚未實作自動公告比對、資料差異阻擋或完整 point-in-time 資料集。
+並追查上列 EPS 與季營收差異；尚未實作自動公告比對或完整 point-in-time 資料集。
+
+## 計算層品質檢查
+
+啟動本分支中台後，在根目錄執行：
+
+```bash
+uv run python -m backend.api.check_fundamentals 2330
+uv run python -m backend.api.check_fundamentals 6488 income_statement
+uv run python -m backend.api.check_fundamentals 6488 monthly_revenue
+```
+
+沿用 DATA_SERVICE_URL（預設 http://localhost:8001），每次只查指定一張表，
+交給 `backend.screening.fundamental_quality.assess_fundamentals()` 回品質摘要。
+不新增中台 HTTP contract、不改原始值，也不回股票合格／不合格或投資分數。
+
+| status | 意義 | can_screen |
+|---|---|---|
+| pending_update | 來源落後人工確認的公告期間 | false |
+| needs_review | 抽查值不符、缺值或有多筆候選值 | false |
+| missing_data | 沒有資料／中台回 404，不等於股票不合格 | false |
+| invalid_data | 結構、來源、股票、日期或數值不合法 | false |
+| source_error | 中台連線、限額或其他來源錯誤 | false |
+| unverified | 沒有上述阻擋，仍未全面驗證 | null |
+
+can_screen 尚無任何情況回 true；null 不能當已驗證通過。
+latest_period 是實際期間，月營收使用所屬年月首日；period_basis 分別為
+quarterly／point_in_time／year_to_date／monthly／distribution_record。
+此步不把累計現金流轉成單季，必要科目與連續期間仍由後續指標驗證。
+
+`backend/data/fundamental_references.json` 保存此次人工公告及三筆比較，包含科目、期間、
+口徑、單位、參考值、顯示精度、來源種類與網址。以 Decimal 按顯示精度四捨五入比較，
+沒有任意百分比容差；不因營收很大就忽略 75 萬差異。簡報差異只要求核對，
+不會覆寫來源或自動選成權威值。人工紀錄更新時需重新查證原始文件。
+
+freshness=unknown 表示沒有適用的人工公告紀錄；at_least_reviewed_period 只表示
+不落後該筆紀錄，不代表目前最新。查詢結束日以後的公告不列入更新要求，
+區間外的歷史比較也不阻擋本次查詢；這不提供歷史可知時間保證。
+若同時落後公告與數值有差異，主狀態為 pending_update，checks／issues 仍保留所有問題。
+尚未自動追蹤全部公告，已知 EPS 與營收差異仍待追查。

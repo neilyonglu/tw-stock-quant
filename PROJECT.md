@@ -59,6 +59,14 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 2330 已公告 Q3，而來源此次僅取得 Q2，因此抓取成功不等於取得最新公告。
 單季損益與累計現金流也不能直接混算。來源、精度及待查項目見 [基本面資料核對](docs/fundamental-data-review.md)。
 
+計算層已新增 `fundamental_quality.assess_fundamentals()` 與 `backend.api.check_fundamentals`
+CLI，向中台取指定資料表後回品質摘要。人工核對檔 `backend/data/fundamental_references.json`
+保留公告、口徑、單位、來源種類、顯示精度與網址；Decimal 按公告精度比較，不覆寫來源。
+已知落後公告、差異或缺值回 can_screen:false，其餘為 null（尚未全面驗證），沒有任何情況
+冒稱已驗證可篩選。freshness unknown／at_least_reviewed_period 不代表即時最新；
+月營收顯示實際年月、現金流標示累計。基本面規則、自動公告抓取與已知差異解決仍待實作。
+此階段共 87 項測試通過；2330／6488 真實 CLI→中台→來源，以及 Docker 離線品質判定均驗證通過。
+
 ## 目標
 
 台灣股市量化系統：定期掃全市場 → 四層篩選出候選股（總體→基本面→籌碼→技術，見 plan.md）→ 投組優化配置 → GitHub Actions 定時執行 → Telegram 推播。不依賴付費黑盒子，完全自控。
