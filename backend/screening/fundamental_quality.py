@@ -81,7 +81,16 @@ def assess_fundamentals(raw: dict) -> dict:
             report["reviewed_announcement"] = latest
             if report["latest_period"] < latest["period"]:
                 report.update(freshness="pending_update", status="pending_update", can_screen=False)
-                report["issues"].append("來源期間落後已人工確認的公司公告")
+                source_kind = latest.get("source_kind")
+                if source_kind == "earnings_release":
+                    message = (f"{latest['period']} 業績摘要已公布；FinMind 財報資料目前僅到 "
+                               f"{report['latest_period']}。業績摘要不代表完整核閱財報。")
+                elif source_kind == "reviewed_financial_statement":
+                    message = (f"{latest['period']} 完整核閱財報已公布；FinMind 財報資料目前僅到 "
+                               f"{report['latest_period']}。")
+                else:
+                    message = "來源期間落後已人工確認的公司公告"
+                report["issues"].append(message)
             else:
                 # 只確認不落後這筆公告；沒有自動追蹤之後的新公告。
                 report["freshness"] = "at_least_reviewed_period"

@@ -6,7 +6,10 @@
       "dataset": "TaiwanStockFinancialStatements",
       "period": "2026-09-30",
       "published_on": "2026-10-15",
-      "source_url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000726/a3q26e_withguidancexfinal.htm"
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617926000726/a3q26e_withguidancexfinal.htm",
+      "source_kind": "earnings_release",
+      "reviewed_on": "2026-10-20",
+      "note": "公司Q3業績摘要註明數字尚未經董事會通過；不等同完整核閱財報。"
     }
   ],
   "comparisons": [
@@ -17,10 +20,14 @@
       "period": "2026-06-30",
       "basis": "quarterly",
       "unit": "TWD",
-      "reference_value": "1270381000000",
-      "precision": "1000000",
+      "reference_value": "1270380250000",
+      "precision": "1000",
       "source_kind": "company_financial_statement",
-      "source_url": "https://investor.tsmc.com/english/encrypt/files/encrypt_file/reports/2026-07/114aaca0fea2050e96b91fffbab9ed04ba09cd92/FS.pdf"
+      "source_url": "https://investor.tsmc.com/sites/ir/financial-report/2026/TSMC%202026Q2%20Consolidated%20Financial%20Statements_E_2.pdf",
+      "reviewed_on": "2026-10-20",
+      "source_page": "印刷頁4／PDF第5頁，單季欄位，單位千元",
+      "supporting_source_url": "https://investor.tsmc.com/english/encrypt/files/encrypt_file/reports/2026-07/114aaca0fea2050e96b91fffbab9ed04ba09cd92/FS.pdf",
+      "note": "完整核閱財報與FinMind相符；法說簡明報表為1,270,381百萬元，兩份公司文件差異原因未確認，不以簡明值覆寫來源。"
     },
     {
       "ticker": "6488",
