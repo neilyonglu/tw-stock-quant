@@ -122,3 +122,51 @@ CLI 會區分此情況與真正沒有資料的 404。先停止原本的本機中
 `uv run uvicorn backend.data_service.main:app --reload --host 127.0.0.1 --port 8001`；
 `--reload` 可在後續改動 Python 時重新載入。若使用 Docker 或自訂 DATA_SERVICE_URL，
 需更新該服務；啟動另一個服務不會改變 CLI 原先指向的位址。
+
+## 官方年度文件批次查證
+
+啟動本分支的中台後執行：
+
+```bash
+uv run python -m backend.api.audit_financials 2409 3481 1303 --year 2025
+uv run python -m backend.api.audit_financials --all --year 2025
+```
+
+使用 Docker 時，可直接在已更新的本機中台容器執行，報告保存在既有 data volume：
+
+```bash
+docker compose -p tw-stock-quant exec -w /app data-service python -m backend.api.audit_financials 2409 3481 1303 --year 2025
+```
+
+`--all` 使用本機 twstock 一般上市／上櫃股票名單，不含 ETF。預設僅查指定股票，年度限
+2019 起已結束年度；不是保證該年度文件已公告。沿用 `DATA_SERVICE_URL`。
+每家公司間隔 6 秒，串行查詢；上游限流（429／503）會停下並列出 `remaining`，不持續重試。
+舊中台沒有新路由時標為 `service_outdated` 並停止，先重建／重啟中台再執行。
+來源額度、可用性及名單更新仍須依實際環境處理。
+
+預設輸出 `data/processed/official-audit-2025.jsonl`，逐公司寫入並 flush；
+相鄰 `.exceptions.json` 依科目／錯誤種類合併公司，包含已處理家數、官方文件快取命中數及
+未完成公司。可用 `--output` 指定路徑。重新執行會重建這兩個報告，但中台保存的原件不受影響。
+
+中台是唯一對外取資料的地方：從 MOPS 取得年度合併 inline XBRL，保存在既有 SQLite
+`official_filings`，包含來源網址（可重建）、SHA-256、取得時間與原始位元組；不同內容保留版本。
+已解析有效的最新文件快取 24 小時，`--refresh` 強制重新下載；無效文件保留作追查，不視為有效快取。
+因此重跑不用重抓有效官方文件；FinMind 則沿用原本 1800 秒記憶體快取，重啟後仍需重新查詢。
+中台需使用此分支版本；舊版 Docker 需要重建映像並重啟，不能只重跑 CLI。
+
+目前抽取非流動長期借款、公司債及租賃三個指定 XBRL 科目，涵蓋當年及前年年底。
+嚴格檢查公司、年度、合併口徑、無維度期末 context、TWD 單位、格式與 scale；
+UTF-8 無法嚴格解碼才改 CP950，沒有以替代字元掩蓋錯誤。
+缺少標籤留 `missing_data`，不推定零；多筆候選留 `ambiguous_data`，不挑第一筆。
+其他標籤別名、金融業、不同會計年度或報表格式尚不支援，應列例外後補共通映射。
+
+計算層比對 FinMind 同股票、同日期的長期借款／公司債原值，完全相等才標 `matched`；
+不相等或多筆標 `needs_review`。租賃目前只保存官方抽取結果，未宣稱交叉驗證。
+共同缺項以一組例外處理，不必逐公司手填。
+
+所有結果 `can_screen=false`、`equity_issued=null`，抽取狀態 `extracted_unverified`。
+本流程尚未涵蓋普通股發行及全部年度 F-score 輸入，沒有自動覆寫人工補充或改動選股分數；
+借款／公司債相符也不表示整份財報或股票已全面驗證。
+
+實際驗證：2409／3481／1303 的 2025 年報共 8 筆借款／公司債比較與 FinMind 相符；
+三家公司重跑均命中官方原件快取。友達／群創公司債標籤未取得，三檔普通股發行仍未知。

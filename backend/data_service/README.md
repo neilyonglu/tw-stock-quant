@@ -122,3 +122,22 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 
 持久化 key 使用完整市場代碼，如 `2330.TW`、`6488.TWO`。不更動資料庫 schema，既有上市
 快取沿用；上櫃只讀寫 `.TWO`，舊錯誤後綴的 `.TW` 資料不刪除、不視為上櫃快取。
+
+## 官方年度財報原件
+
+`GET /stocks/{ticker}/official-financials?year=2025&refresh=false`
+
+新增獨立路由，既有 fundamentals 合約不變。`ticker` 使用既有上市／櫃代碼驗證，
+`year` 必填且為 2019 起已結束的西元年度，無效年度 422、代碼 404。
+`refresh=true` 強制重新取得；預設有效最新文件 SQLite 快取 24 小時。
+
+回傳 `ticker`、`filing_year`、`source=MOPS`、`source_url`、`sha256`、`fetched_at`、
+`cache_hit`、`encoding`（成功時）、`status`、`records`、`issues`、
+`equity_issued=null`、`can_screen=false`。每筆 records 含 `period`、`field`、`tag`、
+`value`（依 scale 換算的整數元或 null）、`unit=TWD`、`status`。
+涵蓋當年／前年年底的非流動借款、公司債與租賃三個指定標籤。
+文件驗證失敗回 `status=invalid_data`；HTTP 200 不表示抽取成功。
+上游拒絕／限流回 503、逾時 504、其他取得失敗 502，不轉傳上游敏感訊息。
+原件保存 `data/cache.db`，沿用既有 Docker data volume。
+此路由不比對 FinMind、不計算指標；批次比對由後端 CLI 執行。
+詳細限制及用法見 [官方年度文件批次查證](../../docs/fundamental-data-review.md#官方年度文件批次查證)。

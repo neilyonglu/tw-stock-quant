@@ -66,6 +66,8 @@ uv sync
 執行 `uv run python -m backend.api.screen_fundamental 6488` 可查看四季 EPS、TTM ROE、三個月營收 YoY 與 F-score 九項訊號。2330／6488 指定年度已由官方財報人工核對補足長債與普通股發行，其他股票／年度缺項仍留空；最終已驗證合格判定保持 null，見[計算定義](docs/fundamental-screening.md)。
 個股「基本面」已呈現上述指標、可展開九項訊號、真實六個月營收、期間與品質提示，註明人工核對年度資料並處理失敗／重試；每週選股頁仍是示範資料。文件整理了公式、操作、來源證據與驗證範圍，方便後續回查與討論。
 
+執行 `uv run python -m backend.api.audit_financials 2409 3481 1303 --year 2025`，可透過中台取得官方年度財報、比對可取得的 FinMind 借款／公司債並合併例外。`--all` 可查本機一般股票名單；官方原件保存在 SQLite 並快取 24 小時，選股判定仍阻擋。見[批次查證](docs/fundamental-data-review.md#官方年度文件批次查證)。
+
 中台已可取得 FinMind 原始損益表、資產負債表、現金流量表、月營收及股利，例如 `/stocks/2330/fundamentals?dataset=income_statement`。類型與日期限制見 [API 合約](backend/data_service/README.md#基本面原始資料)；全市場已驗證基本面候選清單尚待完成。
 
 抓資料的工作獨立成一個**中台**（`backend/data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。
