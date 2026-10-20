@@ -32,7 +32,7 @@ def test_known_conflict_blocks_but_preserves_values_and_provenance():
 
 
 def test_recent_fetch_is_not_recent_financial_period():
-    raw = snapshot("2330", [("2026-06-30", "Revenue", 1270380250000)])
+    raw = snapshot("2330", [("2026-06-30", "Revenue", 1270381000000)])
     result = assess_fundamentals(raw)
     assert result["status"] == "pending_update" and result["can_screen"] is False
     assert result["reviewed_announcement"]["period"] == "2026-09-30"
@@ -82,7 +82,7 @@ def test_revenue_uses_revenue_month_cash_flow_uses_ytd_and_unreviewed_is_unknown
 
 
 def test_historical_range_does_not_require_an_announcement_after_query_end():
-    raw = snapshot("2330", [("2026-06-30", "Revenue", 1270381000000)])
+    raw = snapshot("2330", [("2026-06-30", "Revenue", 1270380250000)])
     raw["end_date"] = "2026-06-30"
     result = assess_fundamentals(raw)
     assert result["freshness"] == "unknown" and result["can_screen"] is None
@@ -137,3 +137,52 @@ def test_missing_route_is_not_reported_as_missing_financial_data(body, status, m
     result = check_fundamentals.check_fundamentals("2330")
     assert result["status"] == status and result["can_screen"] is False
     assert "private" not in json.dumps(result)
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    (1270380250000, "matched"),
+    (1270380251000, "needs_review"),
+    (1270381000000, "needs_review"),
+])
+def test_tsmc_revenue_uses_reviewed_statement_without_clearing_freshness_warning(value, expected):
+    raw = snapshot("2330", [("2026-06-30", "Revenue", value)])
+    original = copy.deepcopy(raw)
+    result = assess_fundamentals(raw)
+    assert raw == original
+    check = result["checks"][0]
+    assert check["status"] == expected
+    assert check["reference_value"] == "1270380250000"
+    assert check["precision"] == "1000"
+    assert check["source_url"].endswith("Consolidated%20Financial%20Statements_E_2.pdf")
+    assert result["status"] == "pending_update" and result["can_screen"] is False
+    raw["end_date"] = "2026-06-30"
+    result = assess_fundamentals(raw)
+    assert result["status"] == ("unverified" if expected == "matched" else "needs_review")
+    assert result["can_screen"] is (None if expected == "matched" else False)
+
+
+def test_earnings_release_warning_names_available_period_without_claiming_reviewed_filing():
+    raw = snapshot("2330", [("2026-06-30", "Revenue", 1270380250000)])
+    original = copy.deepcopy(raw)
+    result = assess_fundamentals(raw)
+    assert result["reviewed_announcement"]["source_kind"] == "earnings_release"
+    assert result["issues"] == ["2026-09-30 業績摘要已公布；FinMind 財報資料目前僅到 2026-06-30。業績摘要不代表完整核閱財報。"]
+    assert result["status"] == "pending_update" and result["can_screen"] is False
+    assert result["checks"][0]["status"] == "matched"
+    assert raw == original
+    raw["records"].append({"stock_id": "2330", "date": "2026-09-30", "type": "EPS", "value": 29.43})
+    updated = assess_fundamentals(raw)
+    assert updated["status"] == "unverified" and updated["can_screen"] is None
+    assert updated["issues"] == []
+
+
+def test_reviewed_filing_warning_stays_distinct_from_earnings_release(monkeypatch):
+    from backend.screening import fundamental_quality
+
+    references = copy.deepcopy(fundamental_quality._REFERENCES)
+    references["announcements"][0]["source_kind"] = "reviewed_financial_statement"
+    monkeypatch.setattr(fundamental_quality, "_REFERENCES", references)
+    result = assess_fundamentals(snapshot("2330", [("2026-06-30", "Revenue", 1270380250000)]))
+    assert result["status"] == "pending_update" and result["can_screen"] is False
+    assert "完整核閱財報已公布" in result["issues"][0]
+    assert "業績摘要" not in result["issues"][0]

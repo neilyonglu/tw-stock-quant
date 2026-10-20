@@ -19,6 +19,8 @@ A personal quantitative analysis system for the Taiwan stock market (TWSE/TPEX).
 - **Automated Scheduling**: Runs every Friday after market close
 - **Push Notifications**: Telegram Bot
 
+Fundamental warnings distinguish earnings releases from reviewed financial statements and show the actual source period; affected rules remain blocked until the required data is available.
+
 ---
 
 ## Installation

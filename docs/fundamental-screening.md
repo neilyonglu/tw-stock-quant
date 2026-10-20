@@ -42,7 +42,7 @@ F-score 的 known_signals=7 是可計算七項，不是七分，也不是 7/9 �
 2026-10-16 驗收時，6488 的四季 EPS 均正、TTM ROE 約 10.85%、9 月營收 YoY 約 -13.13%；
 ROE 與三個月營收門檻未符合，F-score 為 2025 年度 5/9，研究條件亦未符合 >= 6；
 整體為 calculated_unverified／passed=null，因為來源未全面驗證，不能宣稱已驗證選股結論。
-2330 所取得財報只到 Q2，而人工紀錄已知公告 Q3，依賴最新季度的條件因此為 pending_update。
+2330 所取得財報只到 Q2，而人工紀錄已知 Q3 業績摘要公布，依賴最新季度的條件因此為 pending_update。公告種類區分 `earnings_release` 與 `reviewed_financial_statement`；頁面顯示摘要或完整核閱財報已公布及來源實際期間，不把摘要當作完整核閱財報。
 這是當次資料快照，之後來源更新時應以新輸出及其期間為準。
 
 ## 文件與程式對照

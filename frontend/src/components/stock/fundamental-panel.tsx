@@ -54,14 +54,18 @@ export function FundamentalPanel({ ticker }: { ticker: string }) {
   const latestMonth = rows.at(-1)?.month
   const supplement = fscore?.value?.inputs.current.supplement
   const quality = data.quality ?? {}
-  const pending = Object.values(quality).some((item) => item.status === "pending_update")
+  const pending = Object.values(quality).filter((item) => item.status === "pending_update")
+  const pendingReasons = [...new Set(pending.flatMap((item) => item.issues ?? []))]
   const tableLabels: Record<string, string> = { income_statement: "損益表", balance_sheet: "資產負債表", cash_flow: "現金流量表", monthly_revenue: "月營收" }
 
   return <section aria-labelledby="fundamental-heading" className="space-y-4">
     <div>
       <h3 id="fundamental-heading" className="font-medium text-zinc-100">基本面研究</h3>
       <p className="mt-1 text-xs leading-relaxed text-zinc-400">來源：FinMind。條件符合度僅供研究，尚未完成全面驗證，不代表已通過選股或買進建議。</p>
-      {pending && <p role="status" className="mt-2 rounded-md border border-amber-800/60 bg-amber-950/20 p-3 text-sm text-amber-300">部分財報落後已知公告。以下顯示實際使用期間，受影響條件暫不判定。</p>}
+      {pending.length > 0 && <div role="status" className="mt-2 rounded-md border border-amber-800/60 bg-amber-950/20 p-3 text-sm text-amber-300">
+        {pendingReasons.length > 0 ? pendingReasons.map((reason) => <p key={reason}>{reason}</p>) : <p>部分財報落後已知公告。</p>}
+        <p>以下顯示實際使用期間，受影響條件暫不判定。</p>
+      </div>}
     </div>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <StatCard label="ROE（近四季）" value={roe?.value ? `${roe.value.percent.toFixed(2)}%` : "—"}

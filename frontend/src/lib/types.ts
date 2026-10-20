@@ -237,7 +237,7 @@ export interface FundamentalAnalysis {
   conditions_met?: boolean | null
   rules: FundamentalRule[]
   monthly_revenue?: MonthlyRevenue[]
-  quality?: Record<string, { status: FundamentalStatus; source?: string; fetched_at?: string; latest_period?: string }>
+  quality?: Record<string, { status: FundamentalStatus; source?: string; fetched_at?: string; latest_period?: string; issues?: string[] }>
 }
 
 // ─── /api/stock/[ticker]/chip ───────────────────────────────────────────────────
