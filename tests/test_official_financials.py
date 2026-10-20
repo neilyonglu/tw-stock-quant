@@ -28,6 +28,10 @@ def filing(ticker="2409", extra="", unit="iso4217:TWD", amount="76,256,091"):
 def test_parser_preserves_units_scope_unknowns_and_encoding():
     report = official.parse_filing(filing().encode("cp950"), "2409", 2025)
     assert report["encoding"] == "cp950"
+    extended = (filing() + b"\xfd\x40".decode("big5hkscs")).encode("big5hkscs")
+    extended_report = official.parse_filing(extended, "2409", 2025)
+    assert extended_report["encoding"] == "big5hkscs" and extended_report["records"][0]["value"] == 76_256_091_000
+    assert official.parse_filing(b"\x80", "2409", 2025)["status"] == "invalid_data"
     assert report["records"][0]["value"] == 76_256_091_000
     assert all(row["value"] is None for row in report["records"][1:])
     assert report["equity_issued"] is None and report["can_screen"] is False

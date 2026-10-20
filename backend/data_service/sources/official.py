@@ -90,8 +90,12 @@ def parse_filing(raw: bytes, ticker: str, year: int) -> dict:
             text = raw.decode("utf-8-sig")
             encoding = "utf-8"
         except UnicodeDecodeError:
-            text = raw.decode("cp950")
-            encoding = "cp950"
+            try:
+                text = raw.decode("cp950")
+                encoding = "cp950"
+            except UnicodeDecodeError:
+                text = raw.decode("big5hkscs")
+                encoding = "big5hkscs"
         parser = _Filing()
         parser.feed(text)
         parser.close()
