@@ -154,7 +154,7 @@ docker compose -p tw-stock-quant exec -w /app data-service python -m backend.api
 因此重跑不用重抓有效官方文件；FinMind 則沿用原本 1800 秒記憶體快取，重啟後仍需重新查詢。
 中台需使用此分支版本；舊版 Docker 需要重建映像並重啟，不能只重跑 CLI。
 
-目前抽取非流動長期借款、公司債及租賃三個指定 XBRL 科目，涵蓋當年及前年年底。
+目前抽取非流動長期借款、公司債及租賃三個指定 XBRL 科目，涵蓋指定年度（`year`）及前一年度（`year - 1`）年底。
 嚴格檢查公司、年度、合併口徑、無維度期末 context、TWD 單位、格式與 scale；
 依序嚴格嘗試 UTF-8、CP950、Big5-HKSCS，全部失敗才列 invalid_data，沒有以替代字元掩蓋錯誤。
 中信金 2025 原件的附註含 Big5-HKSCS 擴充字元，僅支援 CP950 會讓整份文件誤判為無法讀取。

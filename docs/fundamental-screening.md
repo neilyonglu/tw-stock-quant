@@ -58,7 +58,7 @@ ROE 與三個月營收門檻未符合，F-score 為 2025 年度 5/9，研究條�
 | 完整長債與普通股發行怎麼補 | backend/data/fundamental_supplements.json；下方年度補充規則 |
 | 系統整體狀態及接下來缺什麼 | [PROJECT.md](../PROJECT.md)、[todo.md](../todo.md) |
 
-驗證：110 項 Python 測試、TypeScript 與正式前端建置通過。瀏覽器驗證 6488 實際數值、
+當次功能驗收的 Python 測試、TypeScript 與正式前端建置通過；目前測試請執行 `uv run pytest -q`。瀏覽器驗證 6488 實際數值、
 桌面與 375px 無橫向溢出、來源失敗／重試、6488→2330→2317 搜尋切換不殘留分數。
 完整 Docker image 另以 fundamental-preview 標籤建置，不影響既有 latest 與正式容器；
 隔離容器端到端驗證前端、中台與 FinMind 的實際資料流程，並確認中台停止時前端 API 回傳 503。
@@ -153,5 +153,5 @@ value 可保留有品質限制的計算值供檢查，必須一起讀 status／r
 
 calculated_unverified 只表示已依公式計算，未全面驗證來源。各 rule.passed 及整體 passed
 保持 null，不將未知資料宣告已驗證合格。任一條件未知時 conditions_met=null、status=incomplete；
-否則可顯示研究條件合取值，仍非已驗證選股結論。沒有全市場排名、歷史可知時間資料或前端整合。
-原始資料、EPS 正式財報核對與未解季營收差異見 [資料核對](fundamental-data-review.md)。
+否則可顯示研究條件合取值，仍非已驗證選股結論。個股基本面已接前端；尚無全市場排名或歷史可知時間資料。
+原始資料、EPS 正式財報核對與已修正的季營收參考值見 [資料核對](fundamental-data-review.md)。仍須處理來源更新落後及全市場科目完整性。

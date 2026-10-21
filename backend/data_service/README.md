@@ -114,9 +114,11 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 
 1. **記憶體 TTL**（`cache.py`）：依資料更新頻率分三級——近即時資料（五檔/分時/大盤指數）30s、
    K 線 60s、基本面 1800s。重啟清空、多實例不共享。
-2. **SQLite 持久化**（`store.py`，`data/cache.db`，gitignored）：只存歷史日/週/月 K 線。
+2. **SQLite 持久化**（`data/cache.db`，gitignored）：`store.py` 儲存歷史日／週／月 K 線。
    重啟不掉；請求時只向 yfinance 增量要缺口（從庫存倒數 5 根重疊抓起），重疊處 close
    相對差 >0.1% 視為除權息還原價平移，該股整段重抓覆寫。分鐘 K 等即時資料不落地。
+   `sources/official.py` 另以同一資料庫的 `official_filings` 表儲存官方財報原件、SHA 與抓取時間，
+   有效原件快取 24 小時，重啟保留。見下方[官方年度財報原件](#官方年度財報原件)。
 
 對外 HTTP contract 不受快取層影響，回傳格式與純現抓完全一致。
 
@@ -135,7 +137,7 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 `cache_hit`、`encoding`（成功時）、`status`、`records`、`issues`、
 `equity_issued`、`equity_evidence`、`can_screen=false`。每筆 records 含 `period`、`field`、`tag`、
 `value`（依 scale 換算的整數元或 null）、`unit=TWD`、`status`。
-涵蓋當年／前年年底的非流動借款、公司債與租賃三個指定標籤。
+涵蓋指定年度（`year`）與前一年度（`year - 1`）年底的非流動借款、公司債與租賃三個指定標籤。
 `equity_evidence` 保留兩年度普通股欄事實與期初／變動／期末勾稽。
 只有明確普通股發行正值且證據無衝突時，對應年度 `equity_issued=true`；其他情況為 null。
 發行列缺席不代表未發行；此路由不產生 false 或自動更新 F-score 補充資料。

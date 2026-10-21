@@ -44,7 +44,7 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 2330／6488 五類真實 HTTP 資料均已驗證，財報最新取到 2026-06-30、月營收對應
 2026 年 9 月。驗收快照存於本機已忽略的 `data/raw/fundamentals/{ticker}/{dataset}.json`，
-不提交市場資料。正式 API 仍只使用記憶體快取，沒有新增財報 SQLite 儲存或快照讀取功能。
+不提交市場資料。FinMind 原始 API 仍只使用記憶體快取，不讀本機快照；官方年度財報另由 official-financials 路由以 SQLite 保存原件與 SHA 版本。
 73 項離線測試通過，含來源異常、限額、輸入、缺值與快取；不代表所有個股科目齊全。
 
 計算層已加入四季 EPS、TTM ROE、三個月營收 YoY 及 F-score 九項研究判斷；
@@ -195,7 +195,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | 籌碼面用 FinMind | TWSE 官方 API 格式散，FinMind 整合好（免費 600 req/hr） |
 | 事件研究自建（`statsmodels`+`scipy`） | PyPI 無現成台股套件，約 100 行 |
 | Dashboard 用 Next.js（非 Streamlit） | 目標使用者是一般大眾，需手機支援與視覺公信力 |
-| 部署規劃：前端 Vercel、後端 Railway/Render | 免費 tier 足夠 |
+| Docker Compose＋self-hosted runner 部署 | 同一 Node＋Python image 分別跑前端與中台，main CI 通過後部署指定 SHA；取代早期 Vercel／Railway／Render 規劃，設定見 docs/MAINTAINERS.md |
 | 資料中台獨立成 `backend/data_service/`（FastAPI） | 前後端都要 raw 資料；隊友需要穩定的 HTTP contract，不該讀 Next.js 內部細節 |
 | 快取持久化選 SQLite 不選 Parquet | 每日補 K 棒、除權息覆寫都是逐列 upsert，SQLite 天生支援；Parquet 一次寫整檔不適合快取，降級為未來回測匯出格式（2026-07-23） |
 | 指標共用入口在 `backend/indicators/`，個股 wrapper 在 `backend/api/get_stock_data.py` | 個股頁與未來批次掃描共用計算，JSON 組裝不混入資料中台 |

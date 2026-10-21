@@ -1,6 +1,6 @@
 # CI 與 server 部署
 
-GitHub 雲端 CI 用 pytest 執行 55 個指標、個股 JSON、上市櫃來源、快取與單股技術篩選離線測試，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
+GitHub 雲端 CI 用 `pytest -q` 執行完整離線測試，涵蓋指標、個股 JSON、上市櫃來源、快取及單股技術與基本面研究，再跑 production image build、image 內離線 Node 指標判讀檢查、容器健康檢查及前端到中台的搜尋請求。
 搜尋使用 twstock 本機代碼表，不把外部行情來源的暫時失敗當成 CI 失敗。
 所有 push 都跑 CI；只有 main 的 CI 成功後會自動部署。PR 不會使用正式 server runner。
 
