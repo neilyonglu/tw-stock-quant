@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -18,6 +18,9 @@ export function TickerSearch({
   placeholder?: string
   id?: string
 }) {
+  const generatedId = useId()
+  const inputId = id ?? generatedId
+  const listId = `${inputId}-results`
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<TickerSearchResult[]>([])
   const [open, setOpen] = useState(false)
@@ -70,7 +73,7 @@ export function TickerSearch({
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault()
-      setHighlighted((h) => Math.min(h + 1, results.length - 1))
+      setHighlighted((h) => Math.max(0, Math.min(h + 1, results.length - 1)))
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
       setHighlighted((h) => Math.max(h - 1, 0))
@@ -86,7 +89,13 @@ export function TickerSearch({
     <div ref={containerRef} className="relative">
       <div className="flex gap-1.5">
         <Input
-          id={id}
+          id={inputId}
+          aria-label="股票代碼或名稱"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
+          aria-controls={open ? listId : undefined}
+          aria-activedescendant={open && results[highlighted] ? `${listId}-${highlighted}` : undefined}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -105,10 +114,15 @@ export function TickerSearch({
         </Button>
       </div>
       {open && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900 shadow-lg overflow-hidden">
+        <div id={listId} role="listbox" aria-label="股票搜尋結果" className="absolute z-20 mt-1 w-full rounded-md border border-zinc-800 bg-zinc-900 shadow-lg overflow-hidden">
           {results.map((r, i) => (
             <button
               key={r.ticker}
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={i === highlighted}
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => pick(r.ticker)}
               onMouseEnter={() => setHighlighted(i)}
               className={`flex w-full items-center gap-2 px-3 py-2.5 min-h-11 text-left text-sm transition-colors ${

@@ -99,6 +99,9 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 
 **2. `candles` 多了 `stale_adjust` 欄位（布林）。** `true` 代表偵測到除權息、但整段重抓失敗，**這批價格仍是平移前的舊還原價**。拿去跑回測會得到錯的績效，請當作「這次資料不可信、稍後重取」處理。正常情況是 `false`。
 
+待還原狀態保存於 SQLite 的 `adjustment_pending`，服務重啟及後續來源回空仍會保留。
+只有重抓涵蓋全部既有歷史區間，才在同一筆交易更新價格並清除狀態；發現或修復還原時，也會清除行情記憶體快取。
+
 另外，`limit_up`/`limit_down` 的計算基準一律是**前一交易日收盤價**，跟查詢的 `interval` 無關（看 5 分線和看日線拿到的漲跌停價相同）。
 
 ## 給後端（計算層）的邊界
@@ -114,11 +117,38 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 
 1. **記憶體 TTL**（`cache.py`）：依資料更新頻率分三級——近即時資料（五檔/分時/大盤指數）30s、
    K 線 60s、基本面 1800s。重啟清空、多實例不共享。
-2. **SQLite 持久化**（`store.py`，`data/cache.db`，gitignored）：只存歷史日/週/月 K 線。
+2. **SQLite 持久化**（`data/cache.db`，gitignored）：`store.py` 儲存歷史日／週／月 K 線。
    重啟不掉；請求時只向 yfinance 增量要缺口（從庫存倒數 5 根重疊抓起），重疊處 close
    相對差 >0.1% 視為除權息還原價平移，該股整段重抓覆寫。分鐘 K 等即時資料不落地。
+   `sources/official.py` 另以同一資料庫的 `official_filings` 表儲存官方財報原件、SHA 與抓取時間，
+   有效原件快取 24 小時，重啟保留。見下方[官方年度財報原件](#官方年度財報原件)。
 
 對外 HTTP contract 不受快取層影響，回傳格式與純現抓完全一致。
 
-持久化 key 使用完整市場代碼，如 `2330.TW`、`6488.TWO`。不更動資料庫 schema，既有上市
+各抓取函式最多保存256筆結果，按寫入順序淘汰，過期結果於下一次存取清理。
+固定64把分段鎖避免鎖集合隨查詢增長；相同key只由一個請求取數，不同key碰撞時可能串行。
+
+持久化 key 使用完整市場代碼，如 `2330.TW`、`6488.TWO`。既有資料表保持相容，另新增待還原狀態表；既有上市
 快取沿用；上櫃只讀寫 `.TWO`，舊錯誤後綴的 `.TW` 資料不刪除、不視為上櫃快取。
+
+## 官方年度財報原件
+
+`GET /stocks/{ticker}/official-financials?year=2025&refresh=false`
+
+新增獨立路由，既有 fundamentals 合約不變。`ticker` 使用既有上市／櫃代碼驗證，
+`year` 必填且為 2019 起已結束的西元年度，無效年度 422、代碼 404。
+`refresh=true` 強制重新取得；預設有效最新文件 SQLite 快取 24 小時。
+
+回傳 `ticker`、`filing_year`、`source=MOPS`、`source_url`、`sha256`、`fetched_at`、
+`cache_hit`、`encoding`（成功時）、`status`、`records`、`issues`、
+`equity_issued`、`equity_evidence`、`can_screen=false`。每筆 records 含 `period`、`field`、`tag`、
+`value`（依 scale 換算的整數元或 null）、`unit=TWD`、`status`。
+涵蓋指定年度（`year`）與前一年度（`year - 1`）年底的非流動借款、公司債與租賃三個指定標籤。
+`equity_evidence` 保留兩年度普通股欄事實與期初／變動／期末勾稽。
+只有明確普通股發行正值且證據無衝突時，對應年度 `equity_issued=true`；其他情況為 null。
+發行列缺席不代表未發行；此路由不產生 false 或自動更新 F-score 補充資料。
+文件驗證失敗回 `status=invalid_data`；HTTP 200 不表示抽取成功。
+上游拒絕／限流回 503、逾時 504、其他取得失敗 502，不轉傳上游敏感訊息。
+原件保存 `data/cache.db`，沿用既有 Docker data volume。
+此路由不比對 FinMind、不計算指標；批次比對由後端 CLI 執行。
+詳細限制及用法見 [官方年度文件批次查證](../../docs/fundamental-data-review.md#官方年度文件批次查證)。

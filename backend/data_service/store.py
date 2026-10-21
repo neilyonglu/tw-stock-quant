@@ -7,7 +7,7 @@
 """
 import sqlite3
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # repo 根目錄下的 data/cache.db（gitignored；WAL 會另產生 -wal/-shm）
@@ -31,6 +31,12 @@ CREATE TABLE IF NOT EXISTS source_meta (
     ticker       TEXT NOT NULL,
     interval     TEXT NOT NULL,
     source_start TEXT NOT NULL,  -- 資料源最早只有到這天（新上市股票避免反覆全抓）
+    PRIMARY KEY (ticker, interval)
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS adjustment_pending (
+    ticker TEXT NOT NULL,
+    interval TEXT NOT NULL,
     PRIMARY KEY (ticker, interval)
 ) WITHOUT ROWID;
 """
@@ -111,9 +117,20 @@ def rows_since(ticker: str, interval: str, start_ts: str | None) -> list[dict]:
     ]
 
 
-def upsert(ticker: str, interval: str, rows: list[dict]) -> None:
+def adjustment_pending(ticker: str, interval: str) -> bool:
+    with closing(_conn()) as conn:
+        return conn.execute("SELECT 1 FROM adjustment_pending WHERE ticker=? AND interval=?",
+                            (ticker, interval)).fetchone() is not None
+
+
+def mark_adjustment_pending(ticker: str, interval: str) -> None:
+    with closing(_conn()) as conn, conn:
+        conn.execute("INSERT OR IGNORE INTO adjustment_pending VALUES (?, ?)", (ticker, interval))
+
+
+def upsert(ticker: str, interval: str, rows: list[dict], *, clear_adjustment_pending: bool = False) -> None:
     """寫入 K 棒，同 (ticker, interval, ts) 直接覆寫（除權息重抓、當日棒更新都靠這個）。"""
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     with closing(_conn()) as conn, conn:
         conn.executemany(
             """INSERT OR REPLACE INTO candles
@@ -125,3 +142,5 @@ def upsert(ticker: str, interval: str, rows: list[dict]) -> None:
                 for r in rows
             ],
         )
+        if clear_adjustment_pending:
+            conn.execute("DELETE FROM adjustment_pending WHERE ticker=? AND interval=?", (ticker, interval))

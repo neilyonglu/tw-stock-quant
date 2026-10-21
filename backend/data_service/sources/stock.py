@@ -5,6 +5,7 @@
 import calendar
 import logging
 import math
+from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 
 import pandas as pd
 import twstock
@@ -65,13 +66,13 @@ def _tick_size(price: float) -> float:
 
 def _limit_prices(prev_close: float) -> tuple[float, float]:
     """漲跌停價估算：前收盤 ±10%，再依跳動單位取整。"""
-    raw_up = prev_close * 1.1
-    raw_down = prev_close * 0.9
-    tick_up = _tick_size(raw_up)
-    tick_down = _tick_size(raw_down)
-    limit_up = (raw_up // tick_up) * tick_up
-    limit_down = -(-raw_down // tick_down) * tick_down
-    return round(limit_up, 2), round(limit_down, 2)
+    raw_up = Decimal(str(prev_close)) * Decimal("1.1")
+    raw_down = Decimal(str(prev_close)) * Decimal("0.9")
+    tick_up = Decimal(str(_tick_size(float(raw_up))))
+    tick_down = Decimal(str(_tick_size(float(raw_down))))
+    limit_up = (raw_up / tick_up).to_integral_value(rounding=ROUND_FLOOR) * tick_up
+    limit_down = (raw_down / tick_down).to_integral_value(rounding=ROUND_CEILING) * tick_down
+    return float(limit_up), float(limit_down)
 
 
 def _yf_rows(ticker: str, interval: str, is_intraday: bool, **history_kwargs) -> list[dict]:
@@ -207,6 +208,7 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
     cutoff = _period_cutoff(period)
     start_str = _serve_start(cutoff, interval) if cutoff is not None else None
     cov = store.coverage(yft, interval)
+    pending = store.adjustment_pending(yft, interval)
 
     # 庫存起點已是資料源的最早資料 → 不管要多早（含 period=max）都不必全抓
     have_all_history = cov is not None and _front_fill_impossible(yft, interval, cov[0])
@@ -218,7 +220,9 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         rows = _yf_rows(ticker, interval, False, period=period)
         if not rows:
             return {"error": f"No data found for {yft}"}
-        store.upsert(yft, interval, rows)
+        if pending and cov and (rows[0]["time"] > cov[0] or rows[-1]["time"] < cov[1]):
+            return _render(store.rows_since(yft, interval, start_str), _prev_daily_close(ticker), stale_adjust=True)
+        store.upsert(yft, interval, rows, clear_adjustment_pending=True)
         _maybe_record_source_start(yft, interval, period, cutoff, rows[0]["time"])
         logger.info("%s %s %s: 全抓 %d 根（%s）", yft, interval, period, len(rows),
                     "庫空" if cov is None else "要補更早區間")
@@ -229,12 +233,12 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
     new_rows = _yf_rows(ticker, interval, False, start=overlap_start)
 
     if not new_rows:
-        # 外部來源暫時抓不到 → 歷史 K 線用庫存頂上（歷史不會過期），記一筆警告
+        # 來源回空時保留庫存的已知品質狀態，不能讓待還原價格恢復為可用。
         rows = store.rows_since(yft, interval, start_str)
         if not rows:
             return {"error": f"No data found for {yft}"}
         logger.warning("%s %s: yfinance 回空，以庫存 %d 根回應", yft, interval, len(rows))
-        return _render(rows, _prev_daily_close(ticker))
+        return _render(rows, _prev_daily_close(ticker), stale_adjust=pending)
 
     stored_closes = store.closes_since(yft, interval, overlap_start)
     adjusted = any(
@@ -244,12 +248,15 @@ def _fetch_candles_persistent(ticker: str, period: str, interval: str) -> dict:
         for r in new_rows
     )
     stale_adjust = False
-    if adjusted:
+    if adjusted or pending:
+        store.mark_adjustment_pending(yft, interval)
+        fetch_candles.cache_clear()
         # 除權息：還原價整條平移了，庫存跟新資料對不上 → 已存區間整段重抓覆寫
         logger.info("%s %s: 重疊處 close 對不上（除權息還原），整段重抓", yft, interval)
         full_rows = _yf_rows(ticker, interval, False, start=cov[0])
-        if full_rows:
-            store.upsert(yft, interval, full_rows)
+        if full_rows and full_rows[0]["time"] <= cov[0] and full_rows[-1]["time"] >= cov[1]:
+            store.upsert(yft, interval, full_rows, clear_adjustment_pending=True)
+            fetch_candles.cache_clear()
         else:
             # 重抓失敗不能裝沒事：本次回應仍是平移前的舊還原價。除了記 log，回應本身
             # 也要帶 stale_adjust 標記——只寫 server log 的話，呼叫端（含隊友的回測
@@ -355,7 +362,7 @@ def fetch_profile(ticker: str) -> dict:
 
 def _levels(prices: list, volumes: list) -> list:
     out = []
-    for p, v in zip(prices, volumes):
+    for p, v in zip(prices, volumes, strict=False):
         if p == "-" or v == "-":
             continue
         out.append({"price": round(float(p), 2), "volume": int(v)})

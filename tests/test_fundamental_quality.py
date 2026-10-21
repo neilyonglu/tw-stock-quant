@@ -186,3 +186,47 @@ def test_reviewed_filing_warning_stays_distinct_from_earnings_release(monkeypatc
     assert result["status"] == "pending_update" and result["can_screen"] is False
     assert "完整核閱財報已公布" in result["issues"][0]
     assert "業績摘要" not in result["issues"][0]
+
+
+@pytest.mark.parametrize(("year", "month"), [(2026, 9), (2026, 11), (2099, 9)])
+def test_quality_rejects_revenue_period_after_source_date_or_query_end(year, month):
+    raw = snapshot("2317")
+    raw["dataset"] = "TaiwanStockMonthRevenue"
+    raw["records"] = [{"stock_id": "2317", "date": "2026-08-01", "revenue_year": year,
+                       "revenue_month": month, "revenue": 100}]
+    result = assess_fundamentals(raw)
+    assert result["status"] == "invalid_data" and result["can_screen"] is False
+    assert result["latest_period"] is None and result["issues"]
+
+
+def test_quality_accepts_prior_year_revenue_before_query_start():
+    raw = snapshot("2317")
+    raw.update(dataset="TaiwanStockMonthRevenue", start_date="2026-01-01",
+               end_date="2026-01-31")
+    raw["records"] = [{"stock_id": "2317", "date": "2026-01-10", "revenue_year": 2025,
+                       "revenue_month": 12, "revenue": 100}]
+    result = assess_fundamentals(raw)
+    assert result["status"] == "unverified" and result["can_screen"] is None
+    assert result["latest_period"] == "2025-12-01"
+
+
+@pytest.mark.parametrize(("dataset", "name"), [
+    ("TaiwanStockFinancialStatements", "income_statement"),
+    ("TaiwanStockBalanceSheet", "balance_sheet"),
+    ("TaiwanStockCashFlowsStatement", "cash_flow"),
+])
+@pytest.mark.parametrize("duplicate_value", [1, -999])
+def test_quality_cli_reports_unreviewed_duplicate_financial_pairs(dataset, name, duplicate_value, monkeypatch):
+    raw = snapshot("2317", [("2025-06-30", "UnreviewedField", 1),
+                            ("2025-06-30", "OtherField", 2),
+                            ("2025-09-30", "UnreviewedField", 3)])
+    raw["dataset"] = dataset
+    assert assess_fundamentals(raw)["can_screen"] is None
+    raw["records"].append({**raw["records"][0], "value": duplicate_value})
+    original = copy.deepcopy(raw)
+    monkeypatch.setattr(check_fundamentals, "fetch_fundamental_data", lambda *a: raw)
+    result = check_fundamentals.check_fundamentals("2317", name)
+    assert result["status"] == "needs_review" and result["can_screen"] is False
+    assert result["checks"] == []
+    assert result["issues"] == ["2025-06-30 UnreviewedField: ambiguous_data"]
+    assert raw == original

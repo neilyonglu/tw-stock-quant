@@ -8,21 +8,25 @@ const EMPTY: string[] = []
 
 // useSyncExternalStore 要求 snapshot 沒變就回傳同一個陣列參考，否則每次 render 都被當成「變了」會無限迴圈。
 // 用 cachedRaw 記住上次讀到的原始字串，raw 沒變就直接回傳快取的陣列。
+let readFailed = false
 let cachedRaw: string | null = null
 let cachedParsed: string[] = EMPTY
 
 function readRaw(): string[] {
   if (typeof window === "undefined") return EMPTY
-  const raw = window.localStorage.getItem(STORAGE_KEY)
+  let raw: string | null
+  try {
+    raw = window.localStorage.getItem(STORAGE_KEY)
+  } catch {
+    readFailed = true
+    return cachedParsed
+  }
+  readFailed = false
   if (raw === cachedRaw) return cachedParsed
   cachedRaw = raw
   try {
-    if (!raw) {
-      cachedParsed = EMPTY
-    } else {
-      const parsed = JSON.parse(raw)
-      cachedParsed = Array.isArray(parsed) ? parsed.filter((t) => typeof t === "string") : EMPTY
-    }
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    cachedParsed = Array.isArray(parsed) ? parsed.filter((t) => typeof t === "string") : EMPTY
   } catch {
     cachedParsed = EMPTY
   }
@@ -30,21 +34,26 @@ function readRaw(): string[] {
 }
 
 function writeRaw(tickers: string[]) {
-  if (typeof window === "undefined") return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tickers))
-  window.dispatchEvent(new Event("watchlist-changed"))
+  if (typeof window === "undefined" || readFailed) return false
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tickers))
+    window.dispatchEvent(new Event("watchlist-changed"))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function removeFromWatchlist(ticker: string) {
-  writeRaw(readRaw().filter((t) => t !== ticker))
+  return writeRaw(readRaw().filter((t) => t !== ticker))
 }
 
 export function toggleWatchlist(ticker: string) {
   const current = readRaw()
   if (current.includes(ticker)) {
-    writeRaw(current.filter((t) => t !== ticker))
+    return writeRaw(current.filter((t) => t !== ticker))
   } else {
-    writeRaw([...current, ticker])
+    return writeRaw([...current, ticker])
   }
 }
 

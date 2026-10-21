@@ -90,15 +90,21 @@ function SortButton({
 
 export function ScreeningView() {
   const [data, setData] = useState<ScreeningData | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortKey, setSortKey] = useState<SortKey>("rank")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch("/api/screening")
+      if (!res.ok) throw new Error("暫時無法載入選股結果")
       setData(await res.json())
+    } catch {
+      setData(null)
+      setError("暫時無法載入選股結果")
     } finally {
       setLoading(false)
     }
@@ -150,7 +156,9 @@ export function ScreeningView() {
         </Button>
       </div>
 
-      {loading || !data ? (
+      {error ? (
+        <div role="alert" className="text-sm text-amber-400">{error}，請按上方「重新整理」重試。</div>
+      ) : loading || !data ? (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           <Skeleton className="h-96 bg-zinc-900" />
           <Skeleton className="h-96 bg-zinc-900" />

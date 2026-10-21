@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 from fastapi import FastAPI, HTTPException
 
 from backend.data.universe import yahoo_symbol
-from backend.data_service.sources import fundamental, intraday, market, stock
+from backend.data_service.sources import fundamental, intraday, market, official, stock
 
 app = FastAPI(title="tw-stock-quant data service")
 
@@ -63,6 +63,14 @@ def get_fundamentals(
     if not start_date <= end_date <= today:
         raise HTTPException(422, "日期須符合 start_date ≤ end_date ≤ 台北今日")
     return fundamental.fetch_fundamentals(ticker, dataset, start_date, end_date)
+
+
+@app.get("/stocks/{ticker}/official-financials")
+def get_official_financials(ticker: str, year: int, refresh: bool = False):
+    _stock_symbol(ticker)
+    if not 2019 <= year < datetime.now(ZoneInfo("Asia/Taipei")).year:
+        raise HTTPException(422, "年度必須為 2019 起已結束的西元年度")
+    return official.fetch_official_financials(ticker, year, refresh)
 
 
 @app.get("/stocks/{ticker}/orderbook")

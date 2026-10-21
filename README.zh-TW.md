@@ -2,7 +2,7 @@
 
 繁體中文 | [English](README.md)
 
-台灣股市（上市 / 上櫃）個人量化分析系統。涵蓋完整流程：資料擷取、技術指標、多因子選股、投組優化、定時排程、Telegram 推播 — 全程自建，不依賴付費黑盒子。
+台灣股市（上市／上櫃）個人量化研究 Dashboard。目前提供行情、技術指標、單股研究計算與資料品質檢查。全市場選股、投組優化、定時排程與 Telegram 推播仍在規劃中。
 
 > **免責聲明**：本專案僅供個人學習與研究，不構成任何投資建議。
 
@@ -10,14 +10,15 @@
 
 ## 功能
 
-- **技術分析**：TA-Lib（150+ 指標、61 種 K 線型態）
-- **策略回測**：`backtesting.py`，含夏普比率、最大回撤、勝率報告
-- **基本面篩選**：Piotroski F-Score、FCF 轉換率、月營收年增率
-- **籌碼面**：外資、投信、自營商、融資融券（FinMind）
-- **多因子評分**：總體 → 基本面 → 籌碼 → 技術，四層框架
-- **投組優化**：`pyportfolioopt`（均值-方差、風險平價）
-- **自動排程**：每週五收盤後自動執行
-- **推播通知**：Telegram Bot
+| 狀態 | 功能 |
+|------|------|
+| 已接真資料 | 個股 K 線與技術指標、自選股、搜尋及可取得的大盤指數 |
+| 研究計算 | 單股技術條件與評分、EPS、TTM ROE、營收 YoY、F-score，保留品質限制。四檔股票有人工年度補充；已驗證合格判定仍為未知。 |
+| 示範介面 | 每週選股結果與投組配置、市場廣度、法人、期貨及新聞 |
+| 規劃中 | 全市場與多因子選股、籌碼分析、投組優化、週五排程及 Telegram 推播 |
+| 獨立分支 | 隊友負責策略回測，待整合 |
+
+已安裝的 `backtesting.py`、`pyportfolioopt`、TA-Lib 是研究工具，不代表各項指標及流程已接入 Dashboard。
 
 基本面警示區分業績摘要與完整核閱財報，並顯示來源實際期別；必要資料未取得前，受影響條件仍暫不判定。
 
@@ -25,10 +26,13 @@
 
 ## 安裝
 
+先安裝 Git、[uv](https://docs.astral.sh/uv/)、Python 3.12 以上及含 npm 的 Node.js 22。Docker 建置也使用 Node.js 22。`uv sync` 安裝 Python 依賴；前端依賴另由 `npm ci` 按 lockfile 安裝。
+
 ```bash
 git clone https://github.com/neilyonglu/tw-stock-quant.git
 cd tw-stock-quant
 uv sync
+npm --prefix frontend ci
 ```
 
 需要時複製 `.env.example` 為 `.env`，API key 均為選填；未填 token 時 FinMind 使用匿名額度，限額或來源失敗會明確回報。本機載入 token 使用 `uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 8001`；Docker Compose 會自動傳入。
@@ -37,7 +41,7 @@ uv sync
 
 ## Dashboard
 
-個股頁已加入可展開的指標定義、週期說明及 KD／ATR 圖表與速查卡。缺值顯示 —，價格還原失敗時停止計算、回傳 HTTP 503，資料恢復後自動更新。已通過 23 個 Python 測試、原生 Node 檢查、正式／Docker 建置及桌面／手機檢查。數值對照與平台差異見[指標檢查報告](docs/indicator-review.md)。
+個股頁已加入可展開的指標定義、週期說明及 KD／ATR 圖表與速查卡。缺值顯示 —，價格還原失敗時停止計算、回傳 HTTP 503，資料恢復後自動更新。當時指標驗收包含 Python 測試、原生 Node 檢查、正式／Docker 建置及桌面／手機檢查。目前 Python 測試請執行 `uv run pytest -q`。數值對照與平台差異見[指標檢查報告](docs/indicator-review.md)。
 
 程式目錄：`frontend/` 放 Next.js 頁面與 Route Handlers；`backend/api/` 放 Python
 個股計算；`backend/data_service/` 放 FastAPI 中台、資料來源與快取。Docker／Compose
@@ -58,23 +62,27 @@ uv sync
 
 完整的「哪些欄位是真資料、哪些是 mock」對照表，見 [PROJECT.md](PROJECT.md)。
 
-**畫面上每個示範資料都有明確的「示範資料」標記**——這個系統的產出會影響真實投資決策，示範資料絕對不能被誤認為真的。拿不到真實來源時 UI 顯示「—」，不會給一個看起來合理的假數字。
+示範區塊必須標示「示範資料」。示範的市場方向或投組配置不是計算後的操作建議。真實來源缺值時顯示「—」。
 
 ### 架構：中台 / 前端 / 後端
 
 執行 `uv run python -m backend.api.check_fundamentals 2330` 可查看實際期間及人工核對的已知差異。未知資料維持尚未驗證，這是品質報告，尚非選股結果；見[資料品質文件](docs/fundamental-data-review.md)。
-執行 `uv run python -m backend.api.screen_fundamental 6488` 可查看四季 EPS、TTM ROE、三個月營收 YoY 與 F-score 九項訊號。2330／6488 指定年度已由官方財報人工核對補足長債與普通股發行，其他股票／年度缺項仍留空；最終已驗證合格判定保持 null，見[計算定義](docs/fundamental-screening.md)。
+執行 `uv run python -m backend.api.screen_fundamental 6488` 可查看四季 EPS、TTM ROE、三個月營收 YoY 與 F-score 九項訊號。2330／6488／2409／3481 的 2025／2024 年度已由官方財報人工核對補足長債與普通股發行，其他股票／年度缺項仍留空；最終已驗證合格判定保持 null，見[計算定義](docs/fundamental-screening.md)。
 個股「基本面」已呈現上述指標、可展開九項訊號、真實六個月營收、期間與品質提示，註明人工核對年度資料並處理失敗／重試；每週選股頁仍是示範資料。文件整理了公式、操作、來源證據與驗證範圍，方便後續回查與討論。
+
+執行 `uv run python -m backend.api.audit_financials 2409 3481 1303 --year 2025`，可透過中台取得官方年度財報、比對可取得的 FinMind 借款／公司債並合併例外。`--all` 可查本機一般股票名單；官方原件保存在 SQLite 並快取 24 小時，選股判定仍阻擋。見[批次查證](docs/fundamental-data-review.md#官方年度文件批次查證)。
+
+查核報告包含兩年度普通股變動明細與期初、變動、期末勾稽。明確的普通股發行正值保留為證據；發行列缺席或股本不變均不足以證明未發行。這些報告不會更新 F-score 補充資料。
 
 中台已可取得 FinMind 原始損益表、資產負債表、現金流量表、月營收及股利，例如 `/stocks/2330/fundamentals?dataset=income_statement`。類型與日期限制見 [API 合約](backend/data_service/README.md#基本面原始資料)；全市場已驗證基本面候選清單尚待完成。
 
-抓資料的工作獨立成一個**中台**（`backend/data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。
+**中台**（`backend/data_service/`，FastAPI）負責抓取外部資料。即時資料用記憶體 TTL 快取；歷史日／週／月 K 與官方財報原件版本保存在 SQLite。K 線增量抓缺口並偵測除權息還原。前端負責顯示，後端計算指標及單股研究結果；投組優化待開發，回測由隊友 branch 貢獻。前後端都向中台取得 raw 資料。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。
 
-本機開發中台跟前端要同時跑起來。`./scripts/dev.sh` 一個指令同時啟動兩個（Ctrl+C 會兩個一起關掉）；或分開手動啟動：
+先完成 Python 與前端依賴安裝，再同時啟動中台與前端。Bash 可用 `./scripts/dev.sh` 啟動兩個服務，Ctrl+C 一起關閉。也可以在兩個終端機分別執行：
 
 ```bash
 uv run uvicorn backend.data_service.main:app --reload --port 8001   # 中台
-cd frontend && npm run dev                                   # 前端
+npm --prefix frontend run dev                                  # 前端
 ```
 
 ---
@@ -142,7 +150,7 @@ uv run python -m backend.data.universe
 | 1 | 資料管線 — 全市場掃描 | 股票清單與上市／上櫃來源已實作，沿用 SQLite；批次掃描與頻率控制待做 |
 | 2 | 技術指標 | 計算與串接完成，含 KD／ATR、說明及還原品質處理；參考對照通過，券商逐筆對齊仍需相同來源資料，見[指標檢查報告](docs/indicator-review.md) |
 | 3 | 策略回測（backtesting.py） | 隊友負責（另一條 branch） |
-| 4 | 基本面整合（FinMind） | 個股研究 UI 與月營收已換真；兩檔指定年度補齊 F-score，全市場驗證待完成 |
+| 4 | 基本面整合（FinMind） | 個股研究 UI 與月營收已換真；四檔指定年度補齊 F-score，全市場驗證待完成 |
 | 5 | 籌碼面 + 總體環境（FinMind） | 待開始 |
 | 6 | 選股系統 + 投組優化 + 排程推播 | 單股技術規則／分數／理由已實作；批次、多因子、投組與排程待做 |
 | 7 | 因子驗證 + 事件研究 | 待開始 |

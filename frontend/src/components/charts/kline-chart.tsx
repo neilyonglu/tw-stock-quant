@@ -10,6 +10,7 @@ import {
   ColorType,
   CrosshairMode,
   LineStyle,
+  type LogicalRange,
 } from "lightweight-charts"
 import type { Candle, VolumeBar, TimeValue, MacdPayload } from "@/lib/types"
 import { boundChartZoom } from "@/lib/chart-zoom-bound"
@@ -50,6 +51,7 @@ function trendArrow(series: TimeValue[]): string {
 
 export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSma10, rsi, macd, kd, atr14 }: KlineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const visibleRangeRef = useRef<LogicalRange | null>(null)
 
   const legend = useMemo(() => {
     const sma20Last = sma20[sma20.length - 1]?.value
@@ -237,7 +239,10 @@ export function KlineChart({ candles, volume, sma20, sma60, volumeSma5, volumeSm
     // 縮到最小（最多資料）時，畫面兩側還是要有資料，不能拉出空白
     const disposeZoomBound = boundChartZoom(chart, containerRef.current, candles.length)
 
+    if (visibleRangeRef.current) chart.timeScale().setVisibleLogicalRange(visibleRangeRef.current)
+
     return () => {
+      visibleRangeRef.current = chart.timeScale().getVisibleLogicalRange()
       disposeZoomBound()
       chart.remove()
     }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -61,7 +62,10 @@ function fmtChange(change: number, pct: number) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function StockAnalysisView({ initialTicker }: { initialTicker: string }) {
-  const [activeTicker, setActiveTicker] = useState(initialTicker)
+  const router = useRouter()
+  const activeTicker = initialTicker
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [saveError, setSaveError] = useState(false)
   const [interval, setIntervalValue] = useState<(typeof INTERVALS)[number]["value"]>("1d")
   const [period, setPeriod] = useState("6mo")
   const [data, setData] = useState<StockData | null>(null)
@@ -78,6 +82,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
   const refreshMs = activeInterval.value.endsWith("m") ? 30_000 : 60_000
 
   const fetchData = useCallback(async (ticker: string, p: string, iv: string, silent = false) => {
+    setRefreshKey((key) => key + 1)
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -156,7 +161,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {/* 搜尋 */}
           <div>
             <label htmlFor="ticker-input" className="text-xs text-muted-foreground mb-2 block">股票代碼</label>
-            <TickerSearch id="ticker-input" onSelect={(t) => setActiveTicker(t)} placeholder="2330 或名稱關鍵字" />
+            <TickerSearch id="ticker-input" onSelect={(t) => router.push(`/stock/${encodeURIComponent(t)}`)} placeholder="2330 或名稱關鍵字" />
           </div>
 
           {/* K 線週期 */}
@@ -233,7 +238,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           {latest && (
             <div>
               <p className="text-xs text-muted-foreground mb-2">五檔報價</p>
-              <OrderBook ticker={activeTicker} />
+              <OrderBook key={activeTicker} ticker={activeTicker} refreshKey={refreshKey} />
             </div>
           )}
 
@@ -257,7 +262,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
           </h1>
           {!error && (
             <button
-              onClick={() => toggleWatchlist(activeTicker)}
+              onClick={() => setSaveError(!toggleWatchlist(activeTicker))}
               aria-label={inWatchlist ? "移出自選股" : "加入自選股"}
               aria-pressed={inWatchlist}
               className="flex items-center justify-center h-11 w-11 -mx-2.5 rounded-md text-zinc-400 hover:text-amber-400 transition-colors"
@@ -265,6 +270,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               <Star size={18} className={inWatchlist ? "fill-amber-400 text-amber-400" : ""} />
             </button>
           )}
+          {saveError && <p role="alert" className="text-xs text-amber-400">無法儲存自選股，請檢查瀏覽器儲存空間或權限。</p>}
           {loading && <Skeleton className="h-6 w-32 bg-zinc-800" />}
           {!loading && latest && (
             <>
@@ -312,7 +318,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
 
             {/* 分時走勢 */}
             <TabsContent value="intraday">
-              <IntradayTab ticker={activeTicker} />
+              <IntradayTab key={activeTicker} ticker={activeTicker} refreshKey={refreshKey} />
             </TabsContent>
 
             {/* 圖表 */}
@@ -328,6 +334,7 @@ export function StockAnalysisView({ initialTicker }: { initialTicker: string }) 
               )}
               {!loading && data && (
                 <KlineChart
+                  key={`${activeTicker}:${interval}:${period}`}
                   candles={data.candles}
                   volume={data.volume}
                   sma20={data.sma20}

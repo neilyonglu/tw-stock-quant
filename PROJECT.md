@@ -14,11 +14,13 @@ main 通過後交給 `[self-hosted, Linux, X64, tw-stock]` runner，部署到
 `/mnt/ssd/self-proj/tw-stock-quant` 的精確 SHA。設定與驗收見 `docs/MAINTAINERS.md`。
 main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完成容器改名 PR #5 的部署。
 
-## 指標目前狀態（2026-10-15）
+## 指標目前狀態（2026-10-21）
 
-個股頁指標串接與說明完成，含 KD／ATR 副圖、速查卡與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。中台 `stale_adjust` 已在共用組裝入口阻擋，API 回 503、前端隱藏舊資料並自動重試。23 個 Python 測試、前端／Docker 建置及手機／桌面流程通過。公開公式與參考計算已核對，指定券商逐筆比對仍需同批來源資料。詳見 [docs/indicator-review.md](docs/indicator-review.md)。
+個股頁指標串接與說明完成，含 KD／ATR 副圖、速查卡與 K 棒週期；缺值顯示 —，MACD／SMA 僅描述位置。中台 `stale_adjust` 已在共用組裝入口阻擋，API 回 503、前端隱藏舊資料並自動重試。待還原狀態保存於 SQLite，跨請求與重啟不解除，完整區間重抓成功後才原子清除；同時失效其他顯示期間的行情快取。漲跌停金額改用十進位按檔位向內取整。公開公式與參考計算已核對，指定券商逐筆比對仍需同批來源資料。詳見 [docs/indicator-review.md](docs/indicator-review.md)。
 
 指標變更已由 [PR #7](https://github.com/neilyonglu/tw-stock-quant/pull/7) 合併 main，功能分支已刪除。分支 push 只跑 CI，合併 main 後通過 CI 才部署到 server，不能以本機驗證代替部署成功紀錄。頁面現為六層圖表，控制欄隱藏捲軸但仍可捲動。本機避開 Forge 的 3000，使用 3107 預覽，指令見 [部署與預覽文件](docs/MAINTAINERS.md#本機預覽與重新建置)。
+
+個股頁以網址為股票選擇來源，分時與五檔跟隨父層刷新；分時顯示來源資料時間，五檔僅顯示取得時間。背景更新保留 K 線可視區間，換股票、週期或期間則重設。選股失敗可重試，自選股儲存遭拒會提示失敗；市場環境與操作強度明確標示示範，股票搜尋支援具名稱的 combobox 與鍵盤選取。
 
 ## 股票清單與上市／上櫃來源（2026-10-16）
 
@@ -44,11 +46,11 @@ main CI 與 server 部署已驗證成功；2026-10-13 的 run 38337855813 已完
 
 2330／6488 五類真實 HTTP 資料均已驗證，財報最新取到 2026-06-30、月營收對應
 2026 年 9 月。驗收快照存於本機已忽略的 `data/raw/fundamentals/{ticker}/{dataset}.json`，
-不提交市場資料。正式 API 仍只使用記憶體快取，沒有新增財報 SQLite 儲存或快照讀取功能。
+不提交市場資料。FinMind 原始 API 仍只使用記憶體快取，不讀本機快照；官方年度財報另由 official-financials 路由以 SQLite 保存原件與 SHA 版本。
 73 項離線測試通過，含來源異常、限額、輸入、缺值與快取；不代表所有個股科目齊全。
 
 計算層已加入四季 EPS、TTM ROE、三個月營收 YoY 及 F-score 九項研究判斷；
-2330／6488 指定年度已由官方合併財報人工核對補足普通股發行與非流動長債，完整總分可算；
+2330／6488／2409／3481 指定年度已由官方合併財報人工核對補足普通股發行與非流動長債，完整總分可算；
 其他股票／年度缺項仍保留 null。FCF 等加分項尚未實作。
 月營收 date 與所屬月不同；create_time 是 FinMind 入庫日而非正式公告日，
 報表期末也不是公告日，因此現有 end_date 不能當歷史回測的當時可知資料保證。
@@ -77,9 +79,18 @@ CLI，向中台取指定資料表後回品質摘要。人工核對檔 `backend/d
 ROE 明訂四季合併淨利／期初期末平均合併權益，不混歸母口徑；EPS 分季判斷不加總；
 營收 YoY 保留三個所屬月及去年同月本值。F-score 採完整前兩年度，九項輸入齊備才回總分；
 缺長債與普通股發行時不湊分；`backend/data/fundamental_supplements.json` 依股票／年度提供
-2330、6488 的 2025／2024 官方合併財報人工核對資料及來源證據。
+2330、6488、2409、3481 的 2025／2024 官方合併財報人工核對資料及來源證據。
+2409／3481 已核對完整 PDF 的負債明細、金融負債附註與普通股變動，補入零公司債及未發行證據；
+逐筆保留來源 SHA、PDF 頁碼及核對日期，新資料不改寫舊資料日期。
+新增官方年度財報批次查證：中台保存 MOPS 原件／SHA 版本並快取 24 小時，計算層比對 FinMind
+借款／公司債，按科目合併例外；CLI 支援指定股票或一般股票全名單，限流停止並記下未完成公司。
+2409／3481／1303 可共用抽取規則；2409／3481 的原件沒有公司債期末標籤，仍保留缺值。
+普通股證據新增當年及前年度完整普通股維度明細、期初／變動／期末勾稽與明確發行事件；
+6488 的 2024 年增資可抽取，其餘未見發行列不等於未發行。不自動覆寫補充或升級 F-score。
+用法與限制見 [批次查證](docs/fundamental-data-review.md#官方年度文件批次查證)。
 長債是非流動公司債＋長期借款＋非流動租賃，排除流動部分與非借款負債；不由股本變動推測發行。
-兩檔 2025 年度分別為 9／9、5／9；2317 等未補資料股票仍無完整分數，一般產業版本不套金融業。
+2025 年度 2330、6488、2409、3481 分別為 9／9、5／9、7／9、7／9；
+2317 等未補資料股票仍無完整分數，一般產業版本不套金融業。
 各 rule.condition_met 僅為研究條件，已知來源品質問題依所用期間／科目阻擋；
 整體與各 rule.passed 保持 null，不宣稱完成已驗證候選清單。110 項測試、TypeScript、正式前端／Docker
 建置及兩市場真實 API 通過，細節見 [基本面計算](docs/fundamental-screening.md)。
@@ -142,7 +153,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
   - **RSI 演算法**：原本用簡單移動平均，市面平台（TradingView/券商）用 Wilder's smoothing，數字對不上會讓人以為系統算錯。改用 Wilder（種子＝前 14 根簡單平均，之後遞迴平滑），已對 Wilder 原著範例資料驗證（第 14/15/17 根完全吻合）。
   - **API 失敗白屏**：12 個元件補上 `res.ok` 檢查與錯誤畫面。另外注意**錯誤畫面不要直接渲染後端回傳的錯誤字串**（會把技術訊息丟給使用者），一律顯示自己寫的中文提示。
   - **race condition**：6 個依 ticker 抓資料的元件補上 AbortController。
-  - 其餘：`fetch_profile()` 缺值 `0`→`None`（0 會被讀成「市值真的是 0 億」）；除權息重抓失敗時回應新增 `stale_adjust` 標記（原本只寫 server log，呼叫端無從得知這批是舊還原價）；`ttl_cache` 加 per-key 鎖防 cache stampede（實測同 key 並發 20 次只執行 1 次、不同 key 不互相阻塞）；只有 1 根 K 棒時的 IndexError（含 MACD 同類問題）；圖表色碼抽到 `frontend/src/lib/chart-colors.ts`（原本兩個圖表元件各複製一份）；`watchlist.ts` 移除 3 個沒用到的 export。
+  - 其餘：`fetch_profile()` 缺值 `0`→`None`（0 會被讀成「市值真的是 0 億」）；除權息重抓失敗回 `stale_adjust` 並保存待還原狀態；`ttl_cache` 以固定64把分段鎖合併同key請求，最多保存256筆結果，下一次存取清理過期項目，不同key碰撞時可能串行；只有1根K棒時不再IndexError；圖表色碼共用 `frontend/src/lib/chart-colors.ts`；`watchlist.ts` 移除未使用的export。
   - **刻意沒做**：稽核建議「把 `--stock-up/--stock-down` token 統一到所有漲跌顏色」——實際查證後發現這條建議是錯的。那組 token 是**圖表**用色（#EF5350/#26A69A），而畫面文字用的 `text-red-400`/`text-emerald-400` 是依 WCAG 對比度實測選的，兩者用途不同，硬統一會破壞無障礙合規。改為只把重複的圖表色碼集中，並在 `globals.css` 與 `chart-colors.ts` 兩邊都註記這個區別。
 - **Route Handler 改用 `uv run` 執行 Python**（2026-09-20）：`run-python.ts` 從 `execFile("python3")` 改成 `execFile("uv", ["run", "python", ...])`。直接原因是 Windows PATH 上的 `python3` 會解析到 Store stub 導致靜默失敗；副作用是前端呼叫的腳本從此跑在專案 `.venv`，「兩個 Python 環境、TA-Lib 只在其中一邊」的問題一併消失（見上方「Python 環境」）。
 - **archify 架構圖工具裝進專案**（2026-09-22）：`npx skills add tt-a1i/archify`（專案層級，非全域），落在 `.agents/skills/`，Claude Code 可用 `archify` skill 從文字描述產生可互動的架構圖 HTML。`.agents/` 與 `skills-lock.json` 是否進版控待定（見 todo.md）。
@@ -186,7 +197,7 @@ twstock 股票代碼表會過期（新掛牌股票查不到名稱/產業別）�
 | 籌碼面用 FinMind | TWSE 官方 API 格式散，FinMind 整合好（免費 600 req/hr） |
 | 事件研究自建（`statsmodels`+`scipy`） | PyPI 無現成台股套件，約 100 行 |
 | Dashboard 用 Next.js（非 Streamlit） | 目標使用者是一般大眾，需手機支援與視覺公信力 |
-| 部署規劃：前端 Vercel、後端 Railway/Render | 免費 tier 足夠 |
+| Docker Compose＋self-hosted runner 部署 | 同一 Node＋Python image 分別跑前端與中台，main CI 通過後部署指定 SHA；取代早期 Vercel／Railway／Render 規劃，設定見 docs/MAINTAINERS.md |
 | 資料中台獨立成 `backend/data_service/`（FastAPI） | 前後端都要 raw 資料；隊友需要穩定的 HTTP contract，不該讀 Next.js 內部細節 |
 | 快取持久化選 SQLite 不選 Parquet | 每日補 K 棒、除權息覆寫都是逐列 upsert，SQLite 天生支援；Parquet 一次寫整檔不適合快取，降級為未來回測匯出格式（2026-07-23） |
 | 指標共用入口在 `backend/indicators/`，個股 wrapper 在 `backend/api/get_stock_data.py` | 個股頁與未來批次掃描共用計算，JSON 組裝不混入資料中台 |

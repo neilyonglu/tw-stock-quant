@@ -28,6 +28,38 @@
       "equity_issued": true,
       "source_url": "https://www.sas-globalwafers.com/wp-content/uploads/2025/11/FY2025_GlobalWafers-Financial-Statement_consolidated-CH.pdf",
       "evidence": "2024 比較欄；權益變動表列普通股現金增資 420,000 千元及資本公積；租賃非流動 749,455 千元。"
+    },
+    {
+      "ticker": "2409", "year": 2025, "reviewed_on": "2026-10-21",
+      "noncurrent_bonds": 0, "noncurrent_borrowings": 76256091000, "noncurrent_leases": 7574204000,
+      "equity_issued": false,
+      "source_url": "https://www.auo.com/upload/media/ir/Financial_Information/4Q2025_TC.pdf",
+      "source_sha256": "b77ddfb5f9d248c9cdb55c24e48bd69b1f4fde77157aa1a3429b0b67f9e378f6",
+      "evidence": "人工核對官方2025合併財報。PDF第8頁（印刷第5頁）非流動負債六項合計94,654,739千元，無公司債；第77–78頁籌資負債調節與完整金融負債分類無期末公司債。第60頁借款已扣一年內到期部分，第53頁非流動租賃7,574,204千元。第10頁完整普通股欄僅庫藏股註銷1,207,820千元，第64頁股本附註核對；第69–70頁員工新股／認股權屬ADTSZ及凌華，未當成友達母公司發行。TWD千元乘1000。"
+    },
+    {
+      "ticker": "2409", "year": 2024, "reviewed_on": "2026-10-21",
+      "noncurrent_bonds": 0, "noncurrent_borrowings": 102020544000, "noncurrent_leases": 8656785000,
+      "equity_issued": false,
+      "source_url": "https://www.auo.com/upload/media/ir/Financial_Information/4Q2025_TC.pdf",
+      "source_sha256": "b77ddfb5f9d248c9cdb55c24e48bd69b1f4fde77157aa1a3429b0b67f9e378f6",
+      "evidence": "同份官方合併財報2024比較欄。PDF第8頁非流動負債六項合計123,784,275千元；第77頁可轉換公司債調節明列併購轉入381,890千元及同額償還、年底為零，第78頁金融負債分類確認無期末公司債。第60／53頁核對非流動借款及租賃。第10頁完整普通股欄僅庫藏股註銷315,151千元，第64頁股本附註一致，非由股本淨減少推定未發行。"
+    },
+    {
+      "ticker": "3481", "year": 2025, "reviewed_on": "2026-10-21",
+      "noncurrent_bonds": 0, "noncurrent_borrowings": 18324509000, "noncurrent_leases": 2489910000,
+      "equity_issued": false,
+      "source_url": "https://www.innolux.com/Uploads/20/114Q4%E7%BE%A4%E5%89%B5%E5%90%88%E4%BD%B5%E8%B2%A1%E5%A0%B1%E9%9B%BB%E5%AD%90%E6%9B%B8(%E5%B7%B2%E7%94%A8%E5%8D%B0)_7463fd.pdf",
+      "source_sha256": "24c76100a100f98acf7c1350642af92db8d5175390eff8ec10ac077c3f71b1d8",
+      "evidence": "人工核對官方2025合併財報。PDF第12頁非流動負債為長借18,324,509、遞延稅6,807,944、租賃2,489,910、其他5,202,382千元，合計32,824,745千元；第61頁完整金融負債分類列借款而無公司債，第42頁借款附註已扣流動部分。第15頁完整普通股欄無發行、第48頁母公司普通股股數調節無新增、第17頁籌資現金流核對；第45–46頁限制員工新股屬CarUX子公司，不算群創母公司發行。TWD千元乘1000。"
+    },
+    {
+      "ticker": "3481", "year": 2024, "reviewed_on": "2026-10-21",
+      "noncurrent_bonds": 0, "noncurrent_borrowings": 20988497000, "noncurrent_leases": 2478962000,
+      "equity_issued": false,
+      "source_url": "https://www.innolux.com/Uploads/20/114Q4%E7%BE%A4%E5%89%B5%E5%90%88%E4%BD%B5%E8%B2%A1%E5%A0%B1%E9%9B%BB%E5%AD%90%E6%9B%B8(%E5%B7%B2%E7%94%A8%E5%8D%B0)_7463fd.pdf",
+      "source_sha256": "24c76100a100f98acf7c1350642af92db8d5175390eff8ec10ac077c3f71b1d8",
+      "evidence": "同份官方合併財報2024比較欄。PDF第12頁非流動負債為長借20,988,497、遞延稅1,788,237、租賃2,478,962、其他2,008,830千元，合計27,264,526千元；第61頁金融負債分類確認無公司債。第42頁長借已扣一年內到期。第15頁普通股欄僅現金減資10,894,360千元，第48頁母公司股數調節及庫藏股調節一致，第17頁籌資現金流及第45–46頁子公司股份給付交叉核對，未以股本淨減少推定未發行。"
     }
   ]
 }

@@ -42,10 +42,12 @@ const BREADTH_ITEMS: Array<{ key: keyof MarketOverviewData["breadth"]; label: st
 export function MarketOverviewView() {
   const [data, setData] = useState<MarketOverviewData | null>(null)
   const [indices, setIndices] = useState<MarketIndicesData | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async (silent = false) => {
+    setRefreshKey((key) => key + 1)
     if (!silent) setLoading(true)
     try {
       const [overviewRes, indicesRes] = await Promise.all([
@@ -118,7 +120,7 @@ export function MarketOverviewView() {
       ) : (
       <>
       {/* 大盤分時走勢 */}
-      <MarketIntradaySection />
+      <MarketIntradaySection refreshKey={refreshKey} />
 
       {/* 五個指數/指標卡 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -266,7 +268,10 @@ export function MarketOverviewView() {
       {loading || !data ? (
         <Skeleton className="h-20 bg-zinc-900" />
       ) : (
-        <MarketBanner verdict={data.environment.verdict} intensity={data.environment.intensity} />
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">市場環境示範 <MockBadge reason="市場環境與操作強度尚未接入真實計算" /></p>
+          <MarketBanner verdict={data.environment.verdict} intensity={data.environment.intensity} />
+        </div>
       )}
       </>
       )}

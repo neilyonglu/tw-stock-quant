@@ -1,29 +1,31 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { formatTimeShort } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { OrderBookData } from "@/lib/types"
 
-export function OrderBook({ ticker }: { ticker: string }) {
+export function OrderBook({ ticker, refreshKey }: { ticker: string; refreshKey: number }) {
   const [data, setData] = useState<OrderBookData | null>(null)
   const [error, setError] = useState(false)
+  const [receivedAt, setReceivedAt] = useState<string | null>(null)
 
   useEffect(() => {
     const ctrl = new AbortController()
-    setData(null)
     setError(false)
     fetch(`/api/stock/${ticker}/orderbook`, { signal: ctrl.signal })
       .then(async (res) => {
         const json = await res.json()
         if (!res.ok || json.error) throw new Error("error")
         setData(json)
+        setReceivedAt(new Date().toISOString())
       })
       .catch((e: unknown) => {
         if (e instanceof Error && e.name === "AbortError") return
         setError(true)
       })
     return () => ctrl.abort()
-  }, [ticker])
+  }, [ticker, refreshKey])
 
   if (error) {
     return <p className="text-xs text-muted-foreground">查無即時報價</p>
@@ -39,6 +41,7 @@ export function OrderBook({ ticker }: { ticker: string }) {
 
   return (
     <div className="text-xs space-y-0.5">
+      <p className="text-muted-foreground">取得時間 {receivedAt ? formatTimeShort(receivedAt) : "—"}</p>
       {[...data.asks].reverse().map((lvl, i) => (
         <Row key={`ask-${i}`} price={lvl.price} volume={lvl.volume} maxVol={maxVol} side="ask" />
       ))}

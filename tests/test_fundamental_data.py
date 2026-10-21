@@ -112,3 +112,25 @@ def test_profile_preserves_real_zero_and_negative_eps_but_rejects_invalid_number
     assert result["market_cap"] is None and result["analyst_count"] is None
     assert result["week52_low"] is None  # 價格欄位的 0 仍不可冒充有效報價。
     json.dumps(result, allow_nan=False)
+
+
+@pytest.mark.parametrize(("year", "month"), [(2025, 7), (2099, 5)])
+def test_revenue_period_cannot_follow_source_date_or_query_end(year, month, monkeypatch):
+    records = [{"stock_id": "6488", "date": "2025-06-10", "revenue_year": year,
+                "revenue_month": month, "revenue": 100}]
+    monkeypatch.setattr(fundamental, "urlopen", lambda *a, **kw:
+                        io.BytesIO(json.dumps({"status": 200, "data": records}).encode()))
+    with pytest.raises(HTTPException) as error:
+        fundamental.fetch_fundamentals.__wrapped__(
+            "6488", "monthly_revenue", date(2025, 6, 1), date(2025, 12, 31))
+    assert error.value.status_code == 502
+
+
+def test_revenue_month_before_query_start_is_valid_when_source_date_is_in_range(monkeypatch):
+    records = [{"stock_id": "6488", "date": "2025-01-10", "revenue_year": 2024,
+                "revenue_month": 12, "revenue": 100}]
+    monkeypatch.setattr(fundamental, "urlopen", lambda *a, **kw:
+                        io.BytesIO(json.dumps({"status": 200, "data": records}).encode()))
+    raw = fundamental.fetch_fundamentals.__wrapped__(
+        "6488", "monthly_revenue", date(2025, 1, 1), date(2025, 1, 31))
+    assert raw["records"] == records
