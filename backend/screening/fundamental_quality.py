@@ -52,11 +52,18 @@ def assess_fundamentals(raw: dict) -> dict:
             if not start <= period <= end:
                 raise ValueError("來源日期超出查詢範圍")
             if dataset == "TaiwanStockMonthRevenue":
-                period = date(row["revenue_year"], row["revenue_month"], 1)
+                revenue_period = date(row["revenue_year"], row["revenue_month"], 1)
+                if revenue_period > period:
+                    raise ValueError("月營收所屬月份晚於來源日期")
+                period = revenue_period
             if dataset in ("TaiwanStockFinancialStatements", "TaiwanStockBalanceSheet",
                            "TaiwanStockCashFlowsStatement"):
                 if not isinstance(row["type"], str) or not row["type"]:
                     raise ValueError("缺少財報科目")
+                key = (period, row["type"])
+                if key in seen:
+                    report["issues"].append(f"{row['date']} {row['type']}: ambiguous_data")
+                seen.add(key)
                 value = row["value"]
                 if value is not None and (type(value) not in (int, float)
                                           or not Decimal(str(value)).is_finite()):
@@ -71,7 +78,8 @@ def assess_fundamentals(raw: dict) -> dict:
                 seen.add(period)
             periods.append(period.isoformat())
         report["latest_period"] = max(periods)
-        report.update(status="unverified", can_screen=None)
+        report.update(status="needs_review" if report["issues"] else "unverified",
+                      can_screen=False if report["issues"] else None)
 
         announcements = [item for item in _REFERENCES["announcements"]
                          if item["ticker"] == ticker and item["dataset"] == dataset

@@ -204,3 +204,24 @@ def test_reviewed_panel_filings_complete_signals_only_for_reviewed_years(ticker,
     score = evaluate_fundamental(data, industry="光電業")["rules"][3]["value"]
     assert score["year"] == 2026 and score["score"] is None
     assert "supplement" not in score["inputs"]["current"]
+
+
+@pytest.mark.parametrize("table", ["income_statement", "balance_sheet", "cash_flow"])
+def test_duplicate_financial_pairs_remain_invalid_without_failing_stock(table):
+    data = sample()
+    data[table]["records"].append({**data[table]["records"][0], "value": -999})
+    result = evaluate_fundamental(data, industry="電子業")
+    assert result["status"] == "invalid_data" and result["passed"] is None
+    assert result["rules"] == []
+
+
+def test_future_revenue_year_cannot_create_passing_growth_rule():
+    data = sample()
+    for row in data["monthly_revenue"]["records"]:
+        row["revenue_year"] += 73
+    result = evaluate_fundamental(data, industry="電子業")
+    assert result["passed"] is None and result["conditions_met"] is None
+    assert result["quality"]["monthly_revenue"]["status"] == "invalid_data"
+    revenue = result["rules"][2]
+    assert revenue["condition_met"] is None and revenue["value"] is None
+    assert result["monthly_revenue"] == []

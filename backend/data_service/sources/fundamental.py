@@ -68,7 +68,9 @@ def fetch_fundamentals(ticker: str, dataset: Dataset, start_date: date, end_date
                 if value is not None and type(value) not in (int, float):
                     raise ValueError
             elif dataset == "monthly_revenue":
-                date(row["revenue_year"], row["revenue_month"], 1)
+                revenue_period = date(row["revenue_year"], row["revenue_month"], 1)
+                if revenue_period > period:
+                    raise ValueError
                 value = row["revenue"]
                 if value is not None and type(value) not in (int, float):
                     raise ValueError
