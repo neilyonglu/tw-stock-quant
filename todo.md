@@ -5,6 +5,7 @@
 
 ## 現在就可以做（不依賴隊友）
 
+- [x] 全庫審查後修正行情 Decimal 價格、還原失敗狀態持久化與跨週期快取失效、有界 TTL 快取、基本面未來月份及重複財報攔截，並同步現況文件（2026-10-21）。
 - [x] Python 目錄統一為 backend/api 與 backend/data_service，更新啟動／Docker／測試路徑；Archify 升級 3.1.0，架構說明見 docs/ARCHITECTURE.md
 - [x] 現有 main 的 Docker／CI／tw-stock runner 部署設定（獨立 feature/main-deployment 分支，不帶入指標新功能）
 - [x] main 雲端 CI 與 tw-stock runner 自動部署成功；容器改名 PR #5 已合併，2026-10-13 的 main run 38337855813 成功
