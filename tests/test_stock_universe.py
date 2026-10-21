@@ -65,12 +65,13 @@ def test_market_routing_cache_and_indicators(ticker, symbol, market, tmp_path, m
         return client
 
     monkeypatch.setattr(stock.yf, "Ticker", source)
-    monkeypatch.setattr(stock, "fetch_candles", stock.fetch_candles.__wrapped__)
+    stock.fetch_candles.cache_clear()
     # 避免既有 TTL 讓本測試略過前收盤的來源驗證。
     monkeypatch.setattr(stock, "_prev_daily_close", stock._prev_daily_close.__wrapped__)
     raw = main.get_candles(ticker)
     assert len(raw["candles"]) == 80 and raw["stale_adjust"] is False
     assert store.coverage(symbol, "1d") is not None
+    stock.fetch_candles.cache_clear()
     again = main.get_candles(ticker)
     assert again == raw  # SQLite 增量重疊與首抓一致。
     assert main.get_candles(ticker, "1d", "5m")["candles"]  # 非持久化路徑。

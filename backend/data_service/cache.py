@@ -4,50 +4,61 @@
 """
 import threading
 import time
+from collections import OrderedDict
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
-def ttl_cache(seconds: float) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    def decorator(fn: Callable[..., T]) -> Callable[..., T]:
-        store: dict[tuple, tuple[float, T]] = {}
-        # 每個 key 一把鎖：同一個 key 的並發請求只讓第一個真的去打外部 API，
-        # 其餘等它算完直接取快取。FastAPI 的同步 endpoint 跑在 threadpool，
-        # 沒有鎖的話「查快取→沒有→打 API」不是原子操作，同一支股票的並發請求
-        # 會各自打一次 yfinance（cache stampede）。
-        # 不同 key 之間不互相阻塞——鎖只保護同一個 key。
-        locks: dict[tuple, threading.Lock] = {}
-        locks_guard = threading.Lock()
+def ttl_cache(seconds: float, *, maxsize: int = 256) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    if seconds <= 0 or maxsize < 1:
+        raise ValueError("TTL與快取容量必須大於零")
 
-        def _lock_for(key: tuple) -> threading.Lock:
-            with locks_guard:
-                return locks.setdefault(key, threading.Lock())
+    def decorator(fn: Callable[..., T]) -> Callable[..., T]:
+        store: OrderedDict[tuple, tuple[float, T]] = OrderedDict()
+        guard = threading.Lock()
+        # ponytail: 64把固定分段鎖；碰撞會串行，吞吐量有需要時再調整分段數。
+        locks = [threading.Lock() for _ in range(64)]
+        generation = 0
+
+        def clear() -> None:
+            nonlocal generation
+            with guard:
+                store.clear()
+                generation += 1
 
         @wraps(fn)
         def wrapper(*args, **kwargs) -> T:
             key = (args, tuple(sorted(kwargs.items())))
 
             def fresh() -> tuple[float, T] | None:
-                cached = store.get(key)
-                if cached is not None and time.monotonic() - cached[0] < seconds:
-                    return cached
-                return None
+                with guard:
+                    now = time.monotonic()
+                    while store and now - next(iter(store.values()))[0] >= seconds:
+                        store.popitem(last=False)
+                    return store.get(key)
 
             hit = fresh()
             if hit is not None:
                 return hit[1]
 
-            with _lock_for(key):
-                # 二次確認：等鎖期間可能已經有人算好了
+            with locks[hash(key) % len(locks)]:
                 hit = fresh()
                 if hit is not None:
                     return hit[1]
+                with guard:
+                    started_generation = generation
                 value = fn(*args, **kwargs)
-                store[key] = (time.monotonic(), value)
+                with guard:
+                    if started_generation == generation:
+                        store[key] = (time.monotonic(), value)
+                        while len(store) > maxsize:
+                            store.popitem(last=False)
                 return value
 
+        wrapper.cache_clear = clear
         return wrapper
 
     return decorator
