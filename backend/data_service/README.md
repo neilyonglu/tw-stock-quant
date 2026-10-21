@@ -133,9 +133,12 @@ uv run --env-file .env uvicorn backend.data_service.main:app --reload --port 800
 
 回傳 `ticker`、`filing_year`、`source=MOPS`、`source_url`、`sha256`、`fetched_at`、
 `cache_hit`、`encoding`（成功時）、`status`、`records`、`issues`、
-`equity_issued=null`、`can_screen=false`。每筆 records 含 `period`、`field`、`tag`、
+`equity_issued`、`equity_evidence`、`can_screen=false`。每筆 records 含 `period`、`field`、`tag`、
 `value`（依 scale 換算的整數元或 null）、`unit=TWD`、`status`。
 涵蓋當年／前年年底的非流動借款、公司債與租賃三個指定標籤。
+`equity_evidence` 保留兩年度普通股欄事實與期初／變動／期末勾稽。
+只有明確普通股發行正值且證據無衝突時，對應年度 `equity_issued=true`；其他情況為 null。
+發行列缺席不代表未發行；此路由不產生 false 或自動更新 F-score 補充資料。
 文件驗證失敗回 `status=invalid_data`；HTTP 200 不表示抽取成功。
 上游拒絕／限流回 503、逾時 504、其他取得失敗 502，不轉傳上游敏感訊息。
 原件保存 `data/cache.db`，沿用既有 Docker data volume。

@@ -165,8 +165,9 @@ docker compose -p tw-stock-quant exec -w /app data-service python -m backend.api
 不相等或多筆標 `needs_review`。租賃目前只保存官方抽取結果，未宣稱交叉驗證。
 共同缺項以一組例外處理，不必逐公司手填。
 
-所有結果 `can_screen=false`、`equity_issued=null`，抽取狀態 `extracted_unverified`。
-本流程尚未涵蓋普通股發行及全部年度 F-score 輸入，沒有自動覆寫人工補充或改動選股分數；
+所有結果 `can_screen=false`，有效金額抽取狀態為 `extracted_unverified`。
+`equity_issued` 僅在當年明確普通股發行正值且證據無衝突時為 true，其他情況為 null，不自動判 false。
+本流程尚未涵蓋全部年度 F-score 輸入，沒有自動覆寫人工補充或改動選股分數；
 借款／公司債相符也不表示整份財報或股票已全面驗證。
 
 實際驗證：2409／3481／1303 的 2025 年報共 8 筆借款／公司債比較與 FinMind 相符；
@@ -176,3 +177,24 @@ docker compose -p tw-stock-quant exec -w /app data-service python -m backend.api
 修正擴充字元解碼後，15 份年度文件可解析，13 家有可比對金額，共 38 筆借款／公司債均相符；
 重跑 15 份官方原件均命中快取。兩家金控未取得一般產業的這三種科目，應另建適用映射；
 環球晶、和泰車未取得指定租賃標籤，仍需附註證據。以上不代表全部財報科目或 F-score 已驗證。
+
+### 普通股發行證據
+
+`equity_evidence` 保留當年與前一年度普通股欄，包含 `year`、`equity_issued`、`status`、
+`opening`、`closing`、`change`、`reconciled` 與 `records`。每筆明細保留 tag、context_ref、
+instant、start_date、end_date、TWD 金額與解析狀態；原件來源與 SHA 沿用外層報告。
+
+只接受本公司、單一 `ifrs-full:ComponentsOfEquityAxis=tifrs-es:OrdinaryShareMember` 維度，
+不採用普通股以外的股本、資本公積、非控制權益、額外維度或 typed member。
+期間必須是指定曆年全年或年初／年底。負值依 sign 保留，重複事實列 ambiguous_data，
+無法解析的金額列 invalid_data。期初加年度總變動不等於期末時列 needs_review。
+
+`tifrs-es:IssueOfShares` 在完整年度普通股欄的正值構成發行證據；即使同年減資抵銷，
+仍保留發行事實。其他變動標籤先保留明細供查證，不將股份基礎給付等變動一律視為已發行。
+沒有發行列、發行列為零、淨變動為零及勾稽相符都不足以判定未發行。
+金融業仍需獨立適用模型，這些 raw 證據不解除原本的金融業 F-score 阻擋。
+
+2026-10-21 以官方 2025 原件驗證 2409、3481、1303、2330、6488：兩年度共十組普通股
+期初／變動／期末勾稽均相符；6488 的 2024 普通股發行為 420,000,000 TWD，與人工補充一致。
+其餘未取得明確發行事實的年度仍為 null。2409／3481 原件本身沒有公司債餘額標籤，
+仍需完整財報或附註補證據，不能靠新增標籤別名補成零。

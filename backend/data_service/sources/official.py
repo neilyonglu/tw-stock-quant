@@ -19,8 +19,9 @@ FIELDS = {
     "noncurrent_bonds": "ifrs-full:NoncurrentPortionOfNoncurrentBondsIssued",
     "noncurrent_leases": "ifrs-full:NoncurrentFinanceLeaseLiabilities",
 }
-_LEAVES = {"xbrli:identifier", "xbrli:instant", "xbrli:measure"}
+_LEAVES = {"xbrli:identifier", "xbrli:instant", "xbrli:startdate", "xbrli:enddate", "xbrli:measure"}
 _METADATA = {"tifrs-notes:CompanyID", "tifrs-notes:Year", "tifrs-notes:ReportCategory"}
+_ORDINARY_DIMENSION = [("ifrs-full:ComponentsOfEquityAxis", "tifrs-es:OrdinaryShareMember")]
 
 
 class _Filing(HTMLParser):
@@ -32,16 +33,20 @@ class _Filing(HTMLParser):
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if tag == "xbrli:context":
-            self.context = {"id": attrs.get("id"), "dimensioned": False}
+            self.context = {"id": attrs.get("id"), "dimensioned": False, "dimensions": []}
         elif tag == "xbrli:unit":
             self.unit = {"id": attrs.get("id"), "measures": [], "divided": False}
         elif tag == "xbrli:divide" and self.unit is not None:
             self.unit["divided"] = True
         elif tag in ("xbrldi:explicitmember", "xbrldi:typedmember") and self.context is not None:
             self.context["dimensioned"] = True
+            if tag == "xbrldi:typedmember":
+                self.context["typed"] = True
+            if tag == "xbrldi:explicitmember":
+                self.leaf = [tag, "", attrs.get("dimension")]
         elif tag in _LEAVES:
             self.leaf = [tag, ""]
-        elif tag == "ix:nonfraction" and attrs.get("name") in FIELDS.values():
+        elif tag == "ix:nonfraction" and attrs.get("name"):
             self.fact = [tag, attrs, ""]
         elif tag == "ix:nonnumeric" and attrs.get("name") in _METADATA:
             self.fact = [tag, attrs, ""]
@@ -57,6 +62,8 @@ class _Filing(HTMLParser):
             value = self.leaf[1].strip()
             if tag == "xbrli:measure" and self.unit is not None:
                 self.unit["measures"].append(value)
+            elif tag == "xbrldi:explicitmember" and self.context is not None:
+                self.context["dimensions"].append((self.leaf[2], value))
             elif self.context is not None:
                 self.context[tag.split(":")[1]] = value
             self.leaf = None
@@ -81,10 +88,77 @@ class _Filing(HTMLParser):
             self.fact = None
 
 
+def _amount(parser, attrs, value, *, signed=False):
+    unit = parser.units.get(attrs.get("unitref"), {})
+    if (unit.get("measures") != ["iso4217:TWD"] or unit.get("divided", True)
+            or attrs.get("format") not in ("ixt:numdotdecimal", "ixt:num-dot-decimal")
+            or attrs.get("xsi:nil") in ("true", "1")
+            or attrs.get("sign") not in ((None, "-") if signed else (None,))
+            or not re.fullmatch(r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?", value)):
+        raise ValueError("金額格式或單位無法確認")
+    scale = int(attrs.get("scale", "0"))
+    if not -9 <= scale <= 9:
+        raise ValueError("金額倍率超出支援範圍")
+    amount = Decimal(value.replace(",", "")) * Decimal(10) ** scale
+    if amount != amount.to_integral_value():
+        raise ValueError("金額不是整數TWD")
+    return int(amount) * (-1 if attrs.get("sign") == "-" else 1)
+
+
+def _ordinary_equity(parser, ticker, year):
+    """保留完整普通股維度的年度事實；發行列缺席不構成未發行證據。"""
+    result = {"year": year, "equity_issued": None, "status": "unverified", "records": [],
+              "opening": None, "closing": None, "change": None, "reconciled": None}
+    for attrs, value in parser.facts:
+        context = parser.contexts.get(attrs.get("contextref"), {})
+        if (context.get("identifier") != ticker or context.get("dimensions") != _ORDINARY_DIMENSION
+                or context.get("typed")):
+            continue
+        instant = context.get("instant")
+        duration = (context.get("startdate"), context.get("enddate"))
+        if instant not in (f"{year}-01-01", f"{year}-12-31") and duration != (f"{year}-01-01", f"{year}-12-31"):
+            continue
+        record = {"tag": attrs["name"], "context_ref": attrs.get("contextref"),
+                  "instant": instant, "start_date": context.get("startdate"),
+                  "end_date": context.get("enddate"), "unit": "TWD", "value": None,
+                  "status": "invalid_data"}
+        try:
+            record.update(value=_amount(parser, attrs, value, signed=True), status="extracted_unverified")
+        except (ValueError, ArithmeticError):
+            pass
+        result["records"].append(record)
+    records = result["records"]
+    keys = [(r["tag"], r["instant"], r["start_date"], r["end_date"]) for r in records]
+    if len(keys) != len(set(keys)):
+        result["status"] = "ambiguous_data"
+        return result
+    if any(r["status"] == "invalid_data" for r in records):
+        result["status"] = "invalid_data"
+        return result
+    for key, tag, instant in [("opening", "ifrs-full:Equity", f"{year}-01-01"),
+                              ("closing", "ifrs-full:Equity", f"{year}-12-31"),
+                              ("change", "ifrs-full:ChangesInEquity", None)]:
+        matches = [r for r in records if r["tag"] == tag and r["instant"] == instant]
+        if len(matches) == 1:
+            result[key] = matches[0]["value"]
+    if all(result[k] is not None for k in ("opening", "closing", "change")):
+        result["reconciled"] = result["opening"] + result["change"] == result["closing"]
+        if not result["reconciled"]:
+            result["status"] = "needs_review"
+            return result
+    issued = [r for r in records if r["tag"] == "tifrs-es:IssueOfShares" and r["value"] > 0
+              and r["instant"] is None]
+    if issued:
+        result.update(equity_issued=True, status="extracted_unverified")
+    elif not records:
+        result["status"] = "missing_data"
+    return result
+
+
 def parse_filing(raw: bytes, ticker: str, year: int) -> dict:
-    """純解析：只接受指定公司／年度／合併範圍、無維度的期末TWD事實。"""
+    """解析指定公司年度合併報表的無維度期末負債與普通股維度證據。"""
     report = {"ticker": ticker, "filing_year": year, "status": "invalid_data", "records": [],
-              "equity_issued": None, "can_screen": False, "issues": []}
+              "equity_issued": None, "equity_evidence": [], "can_screen": False, "issues": []}
     try:
         try:
             text = raw.decode("utf-8-sig")
@@ -117,28 +191,24 @@ def parse_filing(raw: bytes, ticker: str, year: int) -> dict:
                     record["status"] = "ambiguous_data"
                 elif matches:
                     attrs, value = matches[0]
-                    unit = parser.units.get(attrs.get("unitref"), {})
                     try:
-                        if (unit.get("measures") != ["iso4217:TWD"] or unit.get("divided", True)
-                                or attrs.get("format") not in ("ixt:numdotdecimal", "ixt:num-dot-decimal")
-                                or attrs.get("xsi:nil") in ("true", "1") or attrs.get("sign")
-                                or not re.fullmatch(r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?", value)):
-                            raise ValueError
-                        scale = int(attrs.get("scale", "0"))
-                        if not -9 <= scale <= 9:
-                            raise ValueError
-                        amount = Decimal(value.replace(",", "")) * Decimal(10) ** scale
-                        if amount != amount.to_integral_value():
-                            raise ValueError
-                        record.update(value=int(amount), status="extracted_unverified")
+                        record.update(value=_amount(parser, attrs, value), status="extracted_unverified")
                     except (ValueError, ArithmeticError):
                         record["status"] = "invalid_data"
                 report["records"].append(record)
                 if record["status"] != "extracted_unverified":
-                    report["issues"].append({"period": period, "field": field, "status": record["status"]})
+                    issue = {"period": period, "field": field, "status": record["status"]}
+                    if record["status"] == "missing_data":
+                        issue["reason"] = "原件沒有適用期末科目；不代表餘額為零，需核對完整財報或附註"
+                    report["issues"].append(issue)
         report.update(status="partial", encoding=encoding)
-        report["issues"].append({"period": f"{year}-12-31", "field": "equity_issued",
-                                 "status": "unverified", "reason": "尚未驗證可跨公司判斷普通股發行事件的規則"})
+        report["equity_evidence"] = [_ordinary_equity(parser, ticker, y) for y in (year, year - 1)]
+        report["equity_issued"] = report["equity_evidence"][0]["equity_issued"]
+        for evidence in report["equity_evidence"]:
+            if evidence["equity_issued"] is None:
+                report["issues"].append({"period": f"{evidence['year']}-12-31", "field": "equity_issued",
+                                         "status": evidence["status"],
+                                         "reason": "保留普通股變動明細供核對；發行列缺席、淨變動為零或勾稽相符均不足以證明未發行"})
     except (ValueError, UnicodeError) as error:
         report["issues"] = [{"field": "document", "status": "invalid_data", "reason": str(error)}]
     return report

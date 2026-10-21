@@ -70,6 +70,8 @@ The stock Fundamentals tab now shows these metrics, expandable F-score signals, 
 
 Run `uv run python -m backend.api.audit_financials 2409 3481 1303 --year 2025` to fetch official annual filings through the data tier, compare available borrowing/bond amounts with FinMind and group exceptions. Use `--all` for the local ordinary-stock universe. Official documents are versioned in SQLite and cached for 24 hours; screening remains blocked. See [batch verification](docs/fundamental-data-review.md#官方年度文件批次查證).
 
+Audit reports include two years of ordinary-share movements and opening/change/closing reconciliation. A positive ordinary-share issuance fact is retained as evidence; missing issuance rows or unchanged capital do not prove that no shares were issued. These reports do not update F-score supplements.
+
 The data tier provides raw income statements, balance sheets, cash flows, monthly revenue and dividends from FinMind: `/stocks/2330/fundamentals?dataset=income_statement`. See the [API contract](backend/data_service/README.md#基本面原始資料) for dataset names and date limitations. Verified full-market screening remains pending.
 
 Data fetching is owned by an independent **data tier** (`backend/data_service/`, FastAPI; in-memory TTL cache for realtime data + SQLite persistent cache for historical daily/weekly/monthly candles with incremental fetch and dividend-adjustment detection) — both the frontend (display) and the backend (computation: indicators, scoring, and portfolio optimization built in this repo; backtesting contributed from a teammate's branch) fetch raw data from it instead of hitting external APIs directly. See [backend/data_service/README.md](backend/data_service/README.md) for the API contract.

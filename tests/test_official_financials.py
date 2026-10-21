@@ -69,6 +69,72 @@ def test_persistent_cache_retains_versions_and_rejects_bad_documents(monkeypatch
         assert conn.execute("SELECT valid FROM official_filings WHERE ticker='3481'").fetchone()[0] == 0
 
 
+def equity_filing(*, issue="420", change="420", closing="1420", extra="", member="tifrs-es:OrdinaryShareMember"):
+    context = f'''<xbrli:context id="movement"><xbrli:entity>
+    <xbrli:identifier>2409</xbrli:identifier></xbrli:entity><xbrli:period>
+    <xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-12-31</xbrli:endDate>
+    </xbrli:period><xbrli:scenario><xbrldi:explicitMember dimension="ifrs-full:ComponentsOfEquityAxis">
+    {member}</xbrldi:explicitMember>{extra}</xbrli:scenario></xbrli:context>'''
+
+    def fact(name, context, value):
+        return f'''<ix:nonFraction name="{name}" contextRef="{context}" unitRef="money"
+        format="ixt:numdotdecimal" scale="3">{value}</ix:nonFraction>'''
+
+    content = context
+    for key, instant, value in [("opening", "2025-01-01", "1000"), ("closing", "2025-12-31", closing)]:
+        content += context.replace('id="movement"', f'id="{key}"').replace(
+            '<xbrli:startDate>2025-01-01</xbrli:startDate><xbrli:endDate>2025-12-31</xbrli:endDate>',
+            f'<xbrli:instant>{instant}</xbrli:instant>')
+        content += fact("ifrs-full:Equity", key, value)
+    content += fact("ifrs-full:ChangesInEquity", "movement", change)
+    if issue is not None:
+        content += fact("tifrs-es:IssueOfShares", "movement", issue)
+    return filing(extra=content)
+
+
+def test_ordinary_issuance_keeps_annual_evidence_and_does_not_infer_no_issue():
+    report = official.parse_filing(equity_filing().encode(), "2409", 2025)
+    current, previous = report["equity_evidence"]
+    assert report["equity_issued"] is True and report["can_screen"] is False
+    assert current["reconciled"] is True and current["opening"] == 1_000_000
+    assert current["status"] == "extracted_unverified" and previous["status"] == "missing_data"
+    assert any(r["tag"] == "tifrs-es:IssueOfShares" and r["value"] == 420_000 for r in current["records"])
+    for issue in (None, "0"):
+        report = official.parse_filing(equity_filing(issue=issue, change="0", closing="1000").encode(), "2409", 2025)
+        assert report["equity_issued"] is None
+        assert report["equity_evidence"][0]["reconciled"] is True
+    # A retirement can offset issuance; unchanged closing capital cannot erase the event.
+    report = official.parse_filing(equity_filing(change="0", closing="1000").encode(), "2409", 2025)
+    assert report["equity_issued"] is True
+    source = equity_filing().replace("2025-01-01", "2024-01-01").replace("2025-12-31", "2024-12-31")
+    report = official.parse_filing(source.encode(), "2409", 2025)
+    assert report["equity_issued"] is None and report["equity_evidence"][1]["equity_issued"] is True
+
+
+def test_ordinary_issuance_rejects_ambiguous_invalid_and_other_scope():
+    duplicate = '''<ix:nonFraction name="tifrs-es:IssueOfShares" contextRef="movement"
+    unitRef="money" format="ixt:numdotdecimal" scale="3">420</ix:nonFraction>'''
+    cases = [
+        (equity_filing(closing="1000"), "needs_review"),
+        (equity_filing(issue="4,20"), "invalid_data"),
+        (equity_filing().replace("iso4217:TWD", "iso4217:USD"), "invalid_data"),
+        (equity_filing() + duplicate, "ambiguous_data"),
+        (equity_filing(member="ifrs-full:IssuedCapitalMember"), "missing_data"),
+        (equity_filing(extra='<xbrldi:typedMember dimension="segment">x</xbrldi:typedMember>'), "missing_data"),
+        (equity_filing(extra='<xbrldi:explicitMember dimension="segment">x</xbrldi:explicitMember>'), "missing_data"),
+        (equity_filing().replace("2025-01-01", "2025-04-01"), "unverified"),
+    ]
+    for source, status in cases:
+        report = official.parse_filing(source.encode(), "2409", 2025)
+        assert report["equity_issued"] is None
+        assert report["equity_evidence"][0]["status"] == status
+    signed = equity_filing(issue="0", change="420", closing="580").replace(
+        'name="ifrs-full:ChangesInEquity"', 'sign="-" name="ifrs-full:ChangesInEquity"')
+    report = official.parse_filing(signed.encode(), "2409", 2025)
+    assert report["equity_evidence"][0]["change"] == -420_000
+    assert report["equity_evidence"][0]["reconciled"] is True
+
+
 def test_route_validates_before_fetch_and_upstream_rate_limit_is_safe(monkeypatch, tmp_path):
     monkeypatch.setattr(store, "DB_PATH", tmp_path / "cache.db")
     def blocked(*args, **kwargs):
@@ -95,7 +161,7 @@ def test_batch_groups_issues_reports_differences_and_stops_on_limit(monkeypatch,
         if "/3481/" in url:
             raise HTTPError(url, 503, "limit", {}, None)
         if "official-financials" in url:
-            result = official.parse_filing(filing().encode(), "2409", 2025)
+            result = official.parse_filing(equity_filing().encode(), "2409", 2025)
             result["cache_hit"] = True
         else:
             result = {"ticker": "2409", "dataset": "TaiwanStockBalanceSheet", "records": [
@@ -109,6 +175,8 @@ def test_batch_groups_issues_reports_differences_and_stops_on_limit(monkeypatch,
     assert summary["companies"] == 2 and summary["remaining"] == ["1303"]
     assert summary["cache_hits"] == 1 and len(requested) == 3
     assert rows[0]["comparisons"][0]["status"] == "needs_review"
+    assert rows[0]["equity_issued"] is True
+    assert rows[0]["equity_evidence"][0]["reconciled"] is True
     assert all(row["can_screen"] is False for row in rows)
     assert any(group["field"] == "equity_issued" for group in summary["exceptions"])
     assert json.loads(output.with_suffix(".exceptions.json").read_text(encoding="utf-8")) == summary

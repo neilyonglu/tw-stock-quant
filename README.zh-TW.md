@@ -68,6 +68,8 @@ uv sync
 
 執行 `uv run python -m backend.api.audit_financials 2409 3481 1303 --year 2025`，可透過中台取得官方年度財報、比對可取得的 FinMind 借款／公司債並合併例外。`--all` 可查本機一般股票名單；官方原件保存在 SQLite 並快取 24 小時，選股判定仍阻擋。見[批次查證](docs/fundamental-data-review.md#官方年度文件批次查證)。
 
+查核報告包含兩年度普通股變動明細與期初、變動、期末勾稽。明確的普通股發行正值保留為證據；發行列缺席或股本不變均不足以證明未發行。這些報告不會更新 F-score 補充資料。
+
 中台已可取得 FinMind 原始損益表、資產負債表、現金流量表、月營收及股利，例如 `/stocks/2330/fundamentals?dataset=income_statement`。類型與日期限制見 [API 合約](backend/data_service/README.md#基本面原始資料)；全市場已驗證基本面候選清單尚待完成。
 
 抓資料的工作獨立成一個**中台**（`backend/data_service/`，FastAPI；即時資料用記憶體 TTL 快取＋歷史日/週/月 K 落地 SQLite，增量抓缺口、自動偵測除權息還原）——前端（顯示）和後端（計算：指標/評分/投組優化在本 repo 開發，回測由隊友 branch 貢獻）都跟中台要 raw 資料，不各自打外部 API。API contract 見 [backend/data_service/README.md](backend/data_service/README.md)。
