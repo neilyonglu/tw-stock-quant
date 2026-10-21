@@ -65,7 +65,7 @@ See [PROJECT.md](PROJECT.md) for the full real-vs-mock data inventory per field.
 ### Architecture: data tier / frontend / backend
 
 Run `uv run python -m backend.api.check_fundamentals 2330` to report actual periods and known discrepancies against manual references. Unknown data stays unverified; this is a quality report, not a screening result. See [data quality](docs/fundamental-data-review.md).
-Run `uv run python -m backend.api.screen_fundamental 6488` for four quarterly EPS values, TTM ROE, three monthly revenue YoY values and nine F-score signals. Reviewed company filings supplement debt and equity issuance for 2330/6488 in the specified years; other company/years keep missing values. Final verified pass remains null. See [calculation definitions](docs/fundamental-screening.md).
+Run `uv run python -m backend.api.screen_fundamental 6488` for four quarterly EPS values, TTM ROE, three monthly revenue YoY values and nine F-score signals. Reviewed company filings supplement debt and equity issuance for 2330, 6488, 2409 and 3481 in 2025/2024; other company/years keep missing values. Final verified pass remains null. See [calculation definitions](docs/fundamental-screening.md).
 The stock Fundamentals tab now shows these metrics, expandable F-score signals, real six-month revenue and data periods/quality. It identifies manually reviewed annual inputs and handles unavailable data and retries. The weekly screening page still uses sample data. The guide includes formulas, commands, source evidence and validation limits.
 
 Run `uv run python -m backend.api.audit_financials 2409 3481 1303 --year 2025` to fetch official annual filings through the data tier, compare available borrowing/bond amounts with FinMind and group exceptions. Use `--all` for the local ordinary-stock universe. Official documents are versioned in SQLite and cached for 24 hours; screening remains blocked. See [batch verification](docs/fundamental-data-review.md#官方年度文件批次查證).
@@ -158,7 +158,7 @@ See [technical screening v1](docs/technical-screening.md) for rules and Docker c
 | 1 | Data pipeline — full-market scan | Universe + TWSE/TPEX routing implemented; SQLite already available. Bulk scanning and rate control remain. |
 | 2 | Technical indicators | Implemented and connected, including KD/ATR, help and adjustment-quality handling. Reference checks pass; exact broker-screen matching requires identical source data — see [indicator review](docs/indicator-review.md). |
 | 3 | Strategy backtesting (backtesting.py) | Teammate's scope (separate branch) |
-| 4 | Fundamental integration (FinMind) | Stock Fundamentals UI and real revenue connected; reviewed annual inputs complete F-score for two stocks, full-market verification pending |
+| 4 | Fundamental integration (FinMind) | Stock Fundamentals UI and real revenue connected; reviewed annual inputs complete F-score for four stocks, full-market verification pending |
 | 5 | Chip data + macro context (FinMind) | Pending |
 | 6 | Stock screener + portfolio optimizer + scheduling | Single-stock technical rules/score/reasons implemented; batch and multi-factor screening, portfolio and scheduling remain pending. |
 | 7 | Factor validation + event study | Pending |

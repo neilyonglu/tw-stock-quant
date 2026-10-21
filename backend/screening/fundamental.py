@@ -14,7 +14,7 @@ from backend.indicators.fundamental import (
 )
 from backend.screening.fundamental_quality import assess_fundamentals
 
-# ponytail: 先核對驗收兩檔；依股票與年度精確匹配，其他股票／新年度保持缺資料。
+# ponytail: 僅採人工核對的股票與年度；全市場自動更新前，其他缺項保持未知。
 _SUPPLEMENTS = json.loads(
     (Path(__file__).parents[1] / "data" / "fundamental_supplements.json").read_text(encoding="utf-8")
 )
@@ -178,7 +178,7 @@ def evaluate_fundamental(data: dict, *, industry: str) -> dict:
                 result["long_term_debt"] = number(sum(components))
                 issued = supplement.get("equity_issued")
                 result["equity_issued"] = issued if type(issued) is bool else None
-                result["supplement"] = {**supplement, "reviewed_on": _SUPPLEMENTS["reviewed_on"],
+                result["supplement"] = {**supplement, "reviewed_on": supplement.get("reviewed_on", _SUPPLEMENTS["reviewed_on"]),
                                         "basis": _SUPPLEMENTS["basis"], "method": "manual_company_filing"}
             return result
 

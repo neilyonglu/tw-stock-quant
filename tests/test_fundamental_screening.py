@@ -163,6 +163,7 @@ def test_supplements_match_only_reviewed_company_year_and_revenue_has_six_calend
     assert annual["long_term_debt"] == (35679196 + 7564868 + 649360) * 1000
     assert annual["equity_issued"] is False
     assert annual["supplement"]["method"] == "manual_company_filing"
+    assert annual["supplement"]["reviewed_on"] == "2026-10-16"
     monthly = result["monthly_revenue"]
     assert [row["month"] for row in monthly] == [f"2026-{m:02d}" for m in range(4, 10)]
     assert monthly[0]["revenue"] is None and monthly[-1]["revenue"] == 120
@@ -175,3 +176,31 @@ def test_supplements_match_only_reviewed_company_year_and_revenue_has_six_calend
     current = evaluate_fundamental(data, industry="半導體業")["rules"][3]["value"]["inputs"]["current"]
     assert current["year"] == 2026 and current["long_term_debt"] is None and current["equity_issued"] is None
     assert "supplement" not in current
+
+
+@pytest.mark.parametrize("ticker,current_debt,previous_debt", [
+    ("2409", 83_830_295_000, 110_677_329_000),
+    ("3481", 20_814_419_000, 23_467_459_000),
+])
+def test_reviewed_panel_filings_complete_signals_only_for_reviewed_years(ticker, current_debt, previous_debt):
+    data = sample()
+    for raw in data.values():
+        raw["ticker"] = ticker
+        for row in raw["records"]:
+            row["stock_id"] = ticker
+    result = evaluate_fundamental(data, industry="光電業")
+    score = result["rules"][3]["value"]
+    assert score["year"] == 2025 and score["known_signals"] == 9
+    assert score["score"] is not None and result["passed"] is None
+    assert score["inputs"]["current"]["long_term_debt"] == current_debt
+    assert score["inputs"]["previous"]["long_term_debt"] == previous_debt
+    assert score["inputs"]["current"]["equity_issued"] is False
+    assert score["inputs"]["current"]["supplement"]["reviewed_on"] == "2026-10-21"
+    assert score["inputs"]["current"]["supplement"]["noncurrent_bonds"] == 0
+    for field, value in [("EPS", 1), ("IncomeAfterTaxes", 40), ("Revenue", 200), ("GrossProfit", 80)]:
+        data["income_statement"]["records"].append({"stock_id": ticker, "date": "2026-12-31", "type": field, "value": value})
+    for raw in data.values():
+        raw["end_date"] = "2026-12-31"
+    score = evaluate_fundamental(data, industry="光電業")["rules"][3]["value"]
+    assert score["year"] == 2026 and score["score"] is None
+    assert "supplement" not in score["inputs"]["current"]
