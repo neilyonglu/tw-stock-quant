@@ -45,6 +45,7 @@ function Sparkline({ points, refValue }: { points: number[]; refValue: number })
 
 export function WatchlistView() {
   const tickers = useWatchlist()
+  const [saveError, setSaveError] = useState(false)
   const [rows, setRows] = useState<Record<string, WatchRow>>({})
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -116,6 +117,7 @@ export function WatchlistView() {
         </p>
       </div>
 
+      {saveError && <p role="alert" className="text-sm text-amber-400">無法儲存自選股，請檢查瀏覽器儲存空間或權限。</p>}
       {tickers.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center border border-dashed border-zinc-800 rounded-lg">
           <Star size={28} className="text-zinc-600" />
@@ -195,7 +197,7 @@ export function WatchlistView() {
                 </Link>
 
                 <button
-                  onClick={() => removeFromWatchlist(ticker)}
+                  onClick={() => setSaveError(!removeFromWatchlist(ticker))}
                   aria-label={`移除 ${ticker}`}
                   className="flex items-center justify-center h-11 w-11 -mr-2.5 rounded-md text-zinc-600 hover:text-red-400 transition-colors shrink-0"
                 >

@@ -5,5 +5,5 @@ type Params = Promise<{ ticker: string }>
 
 export default async function StockPage({ params }: { params: Params }) {
   const { ticker } = await params
-  return <StockAnalysisView initialTicker={ticker} />
+  return <StockAnalysisView key={ticker} initialTicker={ticker} />
 }
