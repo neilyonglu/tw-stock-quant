@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 from fastapi import HTTPException
 
 from backend.data_service.cache import ttl_cache
+from backend.data_service.sources.announcements import fetch_announcements
 
 Dataset = Literal["income_statement", "balance_sheet", "cash_flow", "monthly_revenue", "dividends"]
 DATASETS = {
@@ -87,4 +88,5 @@ def fetch_fundamentals(ticker: str, dataset: Dataset, start_date: date, end_date
         "end_date": end_date.isoformat(),
         "fetched_at": datetime.now(UTC).isoformat(),
         "records": sorted(rows, key=lambda row: row["date"]),
+        "announcement_tracking": fetch_announcements(ticker, DATASETS[dataset]),
     }

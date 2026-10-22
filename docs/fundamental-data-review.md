@@ -74,7 +74,34 @@
 
 結論：原始資料入口可用，但不具備「所有科目皆正確且為最新」的保證。
 本次保留原始資料，不以公告值靜默覆寫來源。基本面計算前須處理期間、缺值、更新狀態，
-季營收參考值已依完整核閱財報更正；尚未實作自動公告比對或完整 point-in-time 資料集。
+季營收參考值已依完整核閱財報更正；2330 已加入下述有限自動公告追蹤，仍非完整 point-in-time 資料集。
+
+## 官方自動公告追蹤（2026-10-22）
+
+既有中台 fundamentals 回傳增加 `announcement_tracking`，品質報告亦保留此欄。
+來源為 [TSMC 最新新聞](https://pr.tsmc.com/english/latest-news)，限頁內最近兩份季業績摘要及四筆月營收公告。
+季末日期從業績摘要正文讀取，月營收所屬月從公告標題讀取，保留實際 `published_on`、`period`、`source_url`、`fetched_at`。
+沿用 1800 秒記憶體快取，每頁最多 4,000,000 bytes（含 API 回應）、請求逾時 5 秒，不自動重試。
+僅 2330／2409／6488／3481 四家的損益表及月營收使用此自動追蹤；其他股票、資產負債表、現金流與股利為 `unsupported`。
+無可辨識公告為 `unavailable`，取得或解析失敗為 `source_error`，均不代表資料最新或可選股。
+人工參考保留在 `reviewed_announcement`；`latest_announcement` 合併人工與自動公告，僅採公告日不晚於查詢迄日的期間。
+來源落後時標示 `pending_update`；追上公告仍為未全面驗證，`can_screen` 不會變成 true。
+業績摘要不等同完整核閱財報，不替換原始數值、null 或人工科目參考；此新聞視窗沒有歷史完整性保證。
+離線解析與品質檢查可執行 `uv run python -m scripts.check_announcements`。
+
+新增來源與限制：
+
+| 公司 | 官方日期／期間證據 | 支援及缺口 |
+|---|---|---|
+| 2409 友達 | [近期新聞列表](https://www.auo.com/en-global/New_Archive/index) 的 2026-10-08 September 2026 月營收及 2026-07-30 Second Quarter 2026 Financial Results | 讀取列表實際日期與標題所屬月／季，對應 2026-09-01／2026-06-30。新聞仍屬 earnings_release，不當完整核閱財報；頁內僅一季也不補猜第二季。 |
+| 6488 環球晶 | [近期新聞列表](https://www.sas-globalwafers.com/en/category/news_en/) 的 2026/10/07 與 2026/08/04；[月報正文](https://www.sas-globalwafers.com/en/gwc_news_en_20261007/) 明列 GWC 6488:TT；[Q2 正文](https://www.sas-globalwafers.com/en/gwc_news_en_20260804/) 明列 GlobalWafers 6488 與 June 30, 2026 | 合併同網址的日期／標題 anchor，正文再確認公司與期間。SAS 5483 不歸入 6488；Q2 新聞即使提董事會通過報表，新聞本身仍為 earnings_release。首頁月報不連續，不保證連續四個月或歷史完整。 |
+| 3481 群創 | [官方近期新聞頁](https://www.innolux.com/en/media_center/news_list.html) 使用公開 GET `/api/news/GetNewsList?lang=EN&pageIndex=0&dept=ir&year=`；2026-10-12 September 2026 月營收、2026-08-14 Second Quarter 2026 Financial Results | 以 `news_date` 為公告日、Innolux 公司標題辨識 2026-09-01／2026-06-30 期間，正整數 id 對應 `/en/media_center/news_list/news.html?p=ID`。空白 year 沿用官方近期預設以跨年；僅第一頁，不爬年度封存，無歷史完整性保證。 |
+
+共用來源評估：TWSE OpenAPI `/v1/opendata/t187ap04_L` 為每日重大訊息，每日覆蓋不足以證明完整近期歷史，且 6488 為上櫃公司。未採此上市每日來源涵蓋所有公司，也不把批次匯出／觀察日期當公司公告日。此增量沿用各公司可驗證的近期新聞頁，沒有新增全市場資料架構。
+
+驗證界線：parent 已實際確認 AUO 兩類來源及 Innolux API 成功回應；Innolux Q2 正文亦確認 3481.TW。GWC 官方列表約 3.40 MB、兩篇正文約 3.36 MB，超出舊 2 MB 上限；parent 已證實讀取上限 4,000,000 bytes 時既有 parser 可辨識 Q2 2026-06-30（2026-08-04 公布）及 September 2026（2026-10-07 公布）。GWC Q1 正文寫法與 Q2 不同（「GlobalWafers held its board meeting … first quarter ended on March 31, 2026」，無 (6488) 字樣）；確認規則接受兩種寫法，但須同一句內、季別序數與期間一致，SAS 主詞不算。離線 checker 驗證 API／HTML 解析、欄位型別、白名單、錯公司／來源／期間／季別、公告截止日、null／missing、source_error 與讀取大小邊界。
+
+2026-10-22 驗證：`uv run pytest`（152 passed）與 `uv run python -m scripts.check_announcements` 通過；實際 `fetch_announcements` 對 2330／2409／6488／3481 的財報及月營收八組皆 available、`can_screen` 均為 false。6488 財報取得 2026-06-30（08-04 公布）與 2026-03-31（05-05 公布）；3481 財報取得 2026-06-30（08-14）與 2026-03-31（05-11），月營收 2026-06～09（最新 10-12 公布）。
 
 ## 計算層品質檢查
 
@@ -92,7 +119,7 @@ uv run python -m backend.api.check_fundamentals 6488 monthly_revenue
 
 | status | 意義 | can_screen |
 |---|---|---|
-| pending_update | 來源落後人工確認的公告期間 | false |
+| pending_update | 來源落後人工確認或自動追蹤的已公布期間 | false |
 | needs_review | 抽查值不符、缺值或有多筆候選值 | false |
 | missing_data | 沒有資料／中台回 404，不等於股票不合格 | false |
 | invalid_data | 結構、來源、股票、日期或數值不合法 | false |
@@ -110,8 +137,8 @@ quarterly／point_in_time／year_to_date／monthly／distribution_record。
 沒有任意百分比容差；營收採完整核閱財報的千元精度。簡報差異保留紀錄，
 不會覆寫來源或自動選成權威值。人工紀錄更新時需重新查證原始文件。
 
-freshness=unknown 表示沒有適用的人工公告紀錄；at_least_reviewed_period 只表示
-不落後該筆紀錄，不代表目前最新。查詢結束日以後的公告不列入更新要求，
+freshness=unknown 表示沒有適用的公告紀錄；at_least_reviewed_period 與 at_least_announced_period
+只表示不落後對應人工或自動公告，不代表目前最新。查詢結束日以後的公告不列入更新要求，
 區間外的歷史比較也不阻擋本次查詢；這不提供歷史可知時間保證。
 若同時落後公告與數值有差異，主狀態為 pending_update，checks／issues 仍保留所有問題。
 尚未自動追蹤全部公告；EPS 及此筆季營收已補正式財報核對，更新落後與其他缺項仍獨立阻擋。
