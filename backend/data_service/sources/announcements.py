@@ -150,9 +150,17 @@ def valid_source(ticker: str, item: dict) -> bool:
         return False
     if ticker == "2330":
         return True
+    published = item.get("published_on")
+    if not isinstance(published, str):
+        return False
+    try:
+        if date.fromisoformat(published).isoformat() != published:
+            return False
+    except ValueError:
+        return False
     classified = _title_period(ticker, item.get("title", ""))
     return (classified is not None and classified == (item.get("dataset"), item.get("period"))
-            and (ticker == "3481" or item.get("published_on", "").replace("-", "")
+            and (ticker == "3481" or published.replace("-", "")
                  == re.search(r"(\d{8})/?$", url)[1]))
 
 

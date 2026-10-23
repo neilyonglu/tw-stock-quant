@@ -149,6 +149,13 @@ def check_other_issuers():
                         bad = copy.deepcopy(raw)
                         bad["announcement_tracking"]["records"][0][field] = value
                         assert assess_fundamentals(bad)["status"] == "invalid_data", (ticker, field)
+                    if ticker in ("2409", "6488"):
+                        for published in (None, 42, "", "not-a-date", "2026-13-01"):
+                            bad = copy.deepcopy(raw)
+                            bad["announcement_tracking"]["records"][0]["published_on"] = published
+                            quality = assess_fundamentals(bad)
+                            assert quality["status"] == "invalid_data" and quality["can_screen"] is False
+                            assert not announcements.valid_source(ticker, bad["announcement_tracking"]["records"][0])
                     current = copy.deepcopy(raw)
                     current["records"][0]["date"] = period
                     if dataset == "TaiwanStockMonthRevenue":
@@ -159,6 +166,16 @@ def check_other_issuers():
                     assert assess_fundamentals(raw)["status"] == "missing_data"
                 if dataset == "TaiwanStockMonthRevenue":
                     assert item["published_on"] == publication
+                    if ticker == "2409":
+                        reproduced = copy.deepcopy(raw)
+                        reproduced.update(dataset="TaiwanStockMonthRevenue", source="FinMind",
+                                          start_date="2026-01-01", end_date="2026-10-23",
+                                          announcement_tracking={"ticker": "2409", "dataset": "TaiwanStockMonthRevenue",
+                                              "source": "AUO", "source_url": announcements.SOURCES["2409"][1],
+                                              "status": "available", "records": [{**item, "published_on": None,
+                                              "source_url": "https://www.auo.com/en-global/New_Archive/detail/News_Archive_FinanceReport_20261008",
+                                              "title": "AUO Corporation Reports September 2026 Consolidated Revenue"}]})
+                        assert assess_fundamentals(reproduced)["status"] == "invalid_data"
     for ticker in ("2409", "6488", "3481"):
         empty = '{"list": []}' if ticker == "3481" else "<html>No dated releases</html>"
         for html, expected in ((empty, "unavailable"),):
